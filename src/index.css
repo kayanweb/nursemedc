@@ -1,0 +1,170 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cairo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Cairo", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --animate-fade-in: fade-in 0.4s ease-out forwards;
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+  @keyframes fade-in {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@layer base {
+  body {
+    @apply antialiased text-gray-900 bg-slate-50 font-sans;
+  }
+}
+
+/* Print specific styles to produce exact replicas */
+@media print {
+  /* Hide all non-printable browser UI, sidebars, dashboard elements */
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 9pt !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  /* Force outer layout structures to expand to full size on the page */
+  #main-content-dashboard, 
+  .min-h-screen {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .print-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+    page-break-after: auto !important;
+    /* Allow it to expand and paginate naturally */
+  }
+
+  /* Force exact replica borders to be sharp in print */
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  th, td {
+    border: 1.5px solid #000000 !important;
+    padding: 4px 2px !important;
+    font-size: 7.5pt !important;
+    line-height: normal !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  th {
+    font-weight: 800 !important;
+    background-color: #f3f4f6 !important;
+  }
+
+  /* Keep checklist grid columns thin */
+  .day-col {
+    width: 2.3% !important;
+    max-width: 2.3% !important;
+    text-align: center !important;
+    padding: 2px 0.5px !important;
+    font-size: 7.5pt !important;
+    font-weight: 700 !important;
+  }
+
+  /* Prevent page breaks inside form headers */
+  .avoid-break {
+    page-break-inside: avoid !important;
+  }
+
+  /* Ensure text is clearly visible */
+  input, select, textarea {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    font-size: 8.5pt !important;
+    color: black !important;
+    resize: none !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+  }
+
+  /* Custom page setup */
+  @page {
+    size: A4 landscape !important;
+    margin: 0.5cm 0.4cm !important;
+  }
+}
+
+/* Custom scrollbars for awesome grid experience */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full hover:bg-slate-400;
+}
+
+.shift-dn {
+  @apply bg-fuchsia-600 text-white font-black border-2 border-fuchsia-700 shadow-md animate-pulse;
+}
+
+.shift-n {
+  @apply bg-slate-950 text-emerald-400 font-black border-2 border-slate-900 shadow-md;
+}
+
+/* Custom scrollbar for core main workspace content panel */
+.custom-main-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-main-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9; /* Slate 100 */
+  border-radius: 9999px;
+}
+
+.custom-main-scroll::-webkit-scrollbar-thumb {
+  background: #ec4899; /* Pink 500 brand accent */
+  border-radius: 9999px;
+  border: 2px solid #f1f5f9; /* Creates a beautiful inset border simulation */
+}
+
+.custom-main-scroll::-webkit-scrollbar-thumb:hover {
+  background: #db2777; /* Pink 600 */
+}
+
