@@ -1,0 +1,35 @@
+2185:        setActiveTab("duty");
+2190:        setActiveTab("duty");
+2268:      setActiveTab("editor");
+2350:      setActiveTab(notif.targetTab as any);
+2370:      setActiveTab("duty");
+2382:      setActiveTab("editor");
+2388:      setActiveTab("distribution");
+2399:      setActiveTab("analytics");
+2406:      setActiveTab("history");
+2412:      setActiveTab("it_panel");
+2418:      setActiveTab("settings");
+2428:      setActiveTab("roster");
+2437:      setActiveTab("messaging");
+2440:      setActiveTab("editor");
+2732:    setActiveTab("editor");
+4851:              onClick={() => setActiveTab("nursing_toolbox")}
+4866:              onClick={() => setActiveTab("supervisor")}
+4882:              onClick={() => setActiveTab("medication_ledger")}
+4898:                setActiveTab("editor");
+4916:              onClick={() => setActiveTab("distribution")}
+4932:              onClick={() => setActiveTab("roster")}
+4947:              onClick={() => setActiveTab("roster_config")}
+4962:              onClick={() => setActiveTab("meals")}
+4978:              onClick={() => setActiveTab("transport")}
+4994:            onClick={() => setActiveTab("analytics")}
+5010:            onClick={() => setActiveTab("history")}
+5030:            onClick={() => setActiveTab("it_panel")}
+5046:            onClick={() => setActiveTab("profile")}
+5061:            onClick={() => setActiveTab("medical_tools")}
+5078:            onClick={() => setActiveTab("manage_templates")}
+5093:            onClick={() => setActiveTab("messaging")}
+5153:            onClick={() => setActiveTab("duty")}
+11108:                                    setActiveTab("editor");
+11747:              setActiveTab("editor");
+13740:                  setActiveTab("nursing_toolbox");

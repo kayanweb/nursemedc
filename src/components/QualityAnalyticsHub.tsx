@@ -102,6 +102,7 @@ interface QualityAnalyticsHubProps {
   setNotifications: (val: any[]) => void;
   handleNotificationClick: (notif: any) => void;
   hospitalSettings: any;
+  systemUsers?: any[];
 }
 
 // Mock Employees list for evaluations
@@ -143,7 +144,8 @@ export default function QualityAnalyticsHub({
   notifications,
   setNotifications,
   handleNotificationClick,
-  hospitalSettings
+  hospitalSettings,
+  systemUsers = []
 }: QualityAnalyticsHubProps) {
 
   const isAr = language === "ar";
@@ -695,16 +697,27 @@ export default function QualityAnalyticsHub({
       alert(isAr ? "لقد تم إمضاء الالتزام وتوثيق هذه السياسة مسبقاً باسمك." : "Already acknowledged.");
       return;
     }
+
+    const code = window.prompt(isAr ? `مطلوب تأكيد الهوية: أدخل كود الموظف للتوقيع بالالتزام بهذه السياسة` : `Verification required: Enter your employee code to sign the policy`);
+    if (!code) return;
+    
+    // We assume systemUsers is available in props? Wait, let's check props.
+    const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code);
+    if (!authorizer) {
+        alert(isAr ? "الكود غير صحيح أو غير مسجل بالنظام." : "Invalid employee code. Authorization failed.");
+        return;
+    }
+
     const newAck = {
       id: `ack-${Date.now()}-${currentUser.id}`,
       policyId,
-      nurseId: currentUser.id,
-      nurseName: currentUser.nameAr || currentUser.nameEn,
+      nurseId: authorizer.id,
+      nurseName: authorizer.nameAr || authorizer.nameEn,
       signedAt: new Date().toISOString()
     };
     saveCQIPolicyAck(newAck);
-    addSystemLog(`Acknowledged Hospital Policy: ${policyId}`, "success");
-    alert(isAr ? "📝 تم إمضاء التزامك وتوقيعك الإلكتروني بالسياسة الطبية بنجاح سحابياً!" : "Policy electronically signed.");
+    addSystemLog(`Acknowledged Hospital Policy: ${policyId} by ${authorizer.nameEn}`, "success");
+    alert(isAr ? `📝 تم إمضاء التزامك وتوقيعك الإلكتروني بالسياسة الطبية بنجاح سحابياً للموظف ${authorizer.nameAr}!` : `Policy electronically signed for ${authorizer.nameEn}.`);
   };
 
   // Seeding Complete Quality Audit Archives

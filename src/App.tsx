@@ -59,6 +59,7 @@ import {
   Pill,
   Receipt,
   Microscope,
+  Folder,
 } from "lucide-react";
 import { 
   GoogleAuthProvider, 
@@ -108,6 +109,7 @@ import PatientRegistration from "./components/PatientRegistration";
 import EMRDashboard from "./components/EMRDashboard";
 import PharmacyInventory from "./components/PharmacyInventory";
 import BillingInsurance from "./components/BillingInsurance";
+import DocumentCenter from "./components/DocumentCenter";
 import LISRISDashboard from "./components/LISRISDashboard";
 import WardNurseDashboard from "./components/WardNurseDashboard";
 import OperatingTheaterBoard from "./components/OperatingTheaterBoard";
@@ -678,6 +680,11 @@ export const SystemSettingsContext = React.createContext<{
     portalTitleEn: "Baheya Digital Portal",
     premiumTitleAr: "نماذج بهية المميزة",
     premiumTitleEn: "Baheya Premium Forms",
+    themeMode: "light",
+    themeColor: "pink",
+    timezone: "Africa/Cairo",
+    dateFormat: "DD/MM/YYYY hh:mm A",
+    tenants: [{ name: "مستشفى بهية الرئيسي (الشيخ زايد)", legalId: "BHY-MAIN-1001", taxId: "543-210-987" }]
   },
   setHospitalSettings: () => {},
 });
@@ -714,7 +721,12 @@ export default function App() {
       biometric: false,
       sms: false,
       corporate: false
-    }
+    },
+    themeMode: "light",
+    themeColor: "pink",
+    timezone: "Africa/Cairo",
+    dateFormat: "DD/MM/YYYY hh:mm A",
+    tenants: [{ name: "مستشفى بهية الرئيسي (الشيخ زايد)", legalId: "BHY-MAIN-1001", taxId: "543-210-987" }]
   });
 
   return (
@@ -778,7 +790,7 @@ function AppContent() {
   const [userRegistrySearch, setUserRegistrySearch] = useState("");
   const [userRegistryPage, setUserRegistryPage] = useState(0);
   const [dbStatus, setDbStatus] = useState<"connected" | "syncing" | "error">("connected");
-  const [activeTab, setActiveTab] = useState<"editor" | "history" | "settings" | "login_settings" | "about" | "analytics" | "duty" | "it_panel" | "distribution" | "roster" | "messaging" | "cloud_settings" | "roster_config" | "approval" | "profile" | "medical_tools" | "nursing_toolbox" | "supervisor" | "medication_ledger" | "meals" | "director_dashboard" | "supervisor_dashboard" | "headnurse_dashboard" | "transport" | "reception" | "emr" | "pharmacy" | "billing" | "ancillary" | "ward" | "ot" | "hospital_admin">("duty");
+  const [activeTab, setActiveTab] = useState<"editor" | "history" | "settings" | "login_settings" | "about" | "analytics" | "duty" | "it_panel" | "distribution" | "roster" | "messaging" | "cloud_settings" | "roster_config" | "approval" | "profile" | "medical_tools" | "nursing_toolbox" | "supervisor" | "medication_ledger" | "meals" | "director_dashboard" | "supervisor_dashboard" | "headnurse_dashboard" | "transport" | "reception" | "emr" | "pharmacy" | "billing" | "ancillary" | "ward" | "ot" | "hospital_admin" | "manage_templates" | "document_center">("duty");
   const [ledgerViewMode, setLedgerViewMode] = useState<"weekly" | "monthly">("weekly");
   const [dayFocus, setDayFocus] = useState<"all" | number>("all"); // Show all 31 days or focus on a single day
   const [language, setLanguage] = useState<"ar" | "en">("ar");
@@ -1204,7 +1216,7 @@ function AppContent() {
     saveSetting("baheya_roster_wishes", updatedWishes);
 
     // Add notification
-    const newNotification = {
+    const newNotification: Notification = {
       id: `notif-${Date.now()}`,
       messageAr: `⚙️ رغبة سريعة جديدة: قامت الممرضة "${currentUser.nameAr}" بتسجيل رغبة يوم ${dayKey} شفت "${shift}".`,
       titleAr: `رغبة نوبتجية لـ ${currentUser.nameAr}`,
@@ -1214,6 +1226,8 @@ function AppContent() {
       bodyEn: `Staff registered shift (${shift}) for day ${dayKey} inside ${currentUser.department}.`,
       timestamp: new Date().toISOString(),
       read: false,
+      targetTab: "roster",
+      targetUserId: currentUser.id
     };
     setNotifications([newNotification, ...notifications]);
   };
@@ -2302,12 +2316,14 @@ Full administrative override and emergency clinical execution privileges have be
     if (isNormalStaff) {
       const activeShiftLabel = CLINICAL_SHIFTS.find(s => s.id === selectedShift)?.nameAr || selectedShift;
       const activeShiftLabelEn = CLINICAL_SHIFTS.find(s => s.id === selectedShift)?.nameEn || selectedShift;
-      const newNotif = {
+      const newNotif: Notification = {
         id: `notif-${Date.now()}`,
         messageAr: `📢 قام الموظف استاف التمريض (${currentUser.nameAr}) من قسم (${currentUser.department}) بتسليم شيت الجرد اليومي بتاريخ (${finalRecord.date}) الخاص بنموذج (${finalRecord.templateId}) لفترة (${activeShiftLabel}) بنجاح! جاهز للتفتيش والاعتماد الرقمي.`,
         messageEn: `📢 Staff Nurse (${currentUser.nameEn}) from (${currentUser.department}) submitted the Daily Inventory Checklist on (${finalRecord.date}) for (${activeShiftLabelEn}). Approved and available for review!`,
         timestamp: new Date().toISOString(),
-        read: false
+        read: false,
+        targetTab: "editor",
+        targetUserId: currentUser.id
       };
       
       const updatedNotifs = [newNotif, ...notifications];
@@ -2325,13 +2341,25 @@ Full administrative override and emergency clinical execution privileges have be
   };
 
   // Click handler to redirect users to relevant sections when clicking a notification
-  const handleNotificationClick = (notif: { id: string; messageAr: string; messageEn: string; timestamp: string; read: boolean }) => {
+  const handleNotificationClick = (notif: Notification) => {
     // 1. Mark as read
     const updated = notifications.map(n => n.id === notif.id ? { ...n, read: true } : n);
     setNotifications(updated);
     saveSetting("baheya_notifications", updated);
 
-    // 2. Determine redirection based on notification content matches
+    // 2. Determine redirection based on target properties or fallback to content matching
+    if (notif.targetTab) {
+      setActiveTab(notif.targetTab as any);
+      if (notif.targetSubTab && notif.targetTab === "analytics") {
+        setAnalyticsSubTab(notif.targetSubTab as any);
+      }
+      if (notif.targetUserId) {
+         const userToView = systemUsers.find(u => u.id === notif.targetUserId);
+         if (userToView) setViewingUserProfileUser(userToView);
+      }
+      return;
+    }
+
     const textToMatch = (notif.messageAr + " " + notif.messageEn).toLowerCase();
 
     if (
@@ -5045,6 +5073,22 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
           </button>
           )}
 
+          
+          {/* Clinical Templates Builder */}
+          {checkPermission("mod_system_settings") && (
+          <button
+            onClick={() => setActiveTab("manage_templates")}
+            className={`w-full flex items-center gap-3 px-6 py-3 text-right text-xs font-semibold transition-all border-l-4 ${
+              activeTab === "manage_templates"
+                ? "bg-slate-800 border-pink-500 text-pink-400 font-bold shadow-md"
+                : "border-transparent text-slate-400 hover:bg-slate-850 hover:text-white hover:border-pink-900"
+            }`}
+          >
+            <Settings className="h-4 w-4 shrink-0 text-pink-500" />
+            <span className="flex-1">{language === "ar" ? "تعديل وتصميم النماذج السريرية" : "Clinical Templates Builder"}</span>
+          </button>
+          )}
+
           {/* 6. Messaging & Requests - NEW */}
           {checkPermission("mod_messaging") && (
           <button
@@ -5059,6 +5103,19 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
             <span>{language === "ar" ? "المراسلات والطلبات" : "Messaging & Requests"}</span>
           </button>
           )}
+
+          {/* Document Center */}
+          <button
+            onClick={() => setActiveTab("document_center")}
+            className={`w-full flex items-center gap-3 px-6 py-2.5 text-right text-xs font-semibold transition-colors ${
+              activeTab === "document_center"
+                ? "bg-slate-800 border-r-4 border-pink-500 text-pink-400 font-bold"
+                : "text-slate-400 hover:bg-slate-800 hover:text-white"
+            }`}
+          >
+            <Folder className="h-4 w-4 shrink-0 text-pink-500" />
+            <span>{language === "ar" ? "النماذج والشيتات" : "Cloud Forms & Sheets"}</span>
+          </button>
 
           <button
             onClick={handleLogout}
@@ -7303,6 +7360,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
               allAvailableTemplates={allAvailableTemplates}
               language={language}
               currentUser={currentUser}
+              systemUsers={systemUsers}
               resolvedGaps={resolvedGaps}
               handleToggleGapState={handleToggleGapState}
               editingGapKey={editingGapKey}
@@ -8448,7 +8506,15 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
           )}
 
           {activeTab === "profile" && (
-            <ProfileView user={currentUser} language={language} />
+            <ProfileView user={currentUser} language={language} systemUsers={systemUsers} />
+          )}
+
+          {activeTab === "document_center" && (
+            <DocumentCenter 
+              language={language}
+              currentUser={currentUser}
+              systemUsers={systemUsers}
+            />
           )}
 
           {activeTab === "medical_tools" && (
@@ -8511,6 +8577,8 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                 currentUser={currentUser}
                 addSystemLog={addSystemLog}
                 onViewUserProfile={setViewingUserProfileUser}
+                onAppTabChange={setActiveTab}
+                setSelectedRosterDept={setSelectedRosterDept}
               />
             </div>
           )}
@@ -8524,15 +8592,15 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
           )}
 
           {activeTab === "director_dashboard" && (
-            <NursingDirectorDashboard language={language} />
+            <NursingDirectorDashboard language={language} onNavigate={setActiveTab} />
           )}
 
           {activeTab === "supervisor_dashboard" && (
-            <NursingSupervisorDashboard language={language} currentUser={currentUser} />
+            <NursingSupervisorDashboard language={language} onNavigate={setActiveTab} />
           )}
 
           {activeTab === "headnurse_dashboard" && (
-            <HeadNurseDashboard language={language} />
+            <HeadNurseDashboard language={language} onNavigate={setActiveTab} />
           )}
 
           {activeTab === "his" && (
@@ -10242,7 +10310,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                                 setRosterWishes(updatedWishes);
                                 saveSetting("baheya_roster_wishes", updatedWishes);
 
-                                const newNotification = {
+                                const newNotification: Notification = {
                                   id: `notif-${Date.now()}`,
                                   messageAr: `🚨 طلب تعديل نوبتجية معتمدة: قدمت الممرضة "${currentUser.nameAr}" طلباً مفصلاً لتعديل شفت يوم ${wishDayKey} بقسم "${currentUser.department || "أخرى"}".`,
                                   titleAr: `طلب تعديل نوبتجية معتمدة: ${currentUser.nameAr}`,
@@ -10252,6 +10320,8 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                                   bodyEn: `Staff requested revocation/change of approved shift on day ${wishDayKey}. Available in inbox.`,
                                   timestamp: new Date().toISOString(),
                                   read: false,
+                                  targetTab: "approval",
+                                  targetUserId: currentUser.id
                                 };
                                 setNotifications([newNotification, ...notifications]);
 
@@ -10343,7 +10413,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                               saveSetting("baheya_roster_wishes", updatedWishes);
 
                               // Broadcast notification
-                              const newNotification = {
+                              const newNotification: Notification = {
                                 id: `notif-${Date.now()}`,
                                 messageAr: `⚙️ رغبة نوبتجية جديدة: قامت الممرضة "${currentUser.nameAr}" بتقديم رغبتها لتثبيت وردية "${wishShift}" ليوم ${wishDayKey} بقسم "${currentUser.department || "أخرى"}".`,
                                 titleAr: `رغبة نوبتجية جديدة: ${currentUser.nameAr}`,
@@ -10353,6 +10423,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                                 bodyEn: `Staff requested shift (${wishShift}) for day ${wishDayKey} inside ${currentUser.department}.`,
                                 timestamp: new Date().toISOString(),
                                 read: false,
+                                targetTab: "roster"
                               };
                               setNotifications([newNotification, ...notifications]);
 
@@ -10587,12 +10658,14 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                                       saveSetting("baheya_roster_wishes", updated);
 
                                       // Broadcast rejection notification
-                                      const newNotif = {
+                                      const newNotif: Notification = {
                                         id: `notif-${Date.now()}`,
                                         messageAr: `❌ تم رفض طلب الورديات: رفض مشرف قسم "${wish.departmentName}" طلب تثبيت الوردية المرفوع من "${wish.employeeNameAr}" ليوم ${wish.dayKey}.`,
                                         messageEn: `❌ Shift Wish Rejected: Supervisor in section "${wish.departmentName}" declined the shift wish uploaded by "${wish.employeeNameEn}" for Day ${wish.dayKey}.`,
                                         timestamp: new Date().toISOString(),
-                                        read: false
+                                        read: false,
+                                        targetTab: "profile",
+                                        targetUserId: wish.employeeId
                                       };
                                       const updatedNotifs = [newNotif, ...notifications];
                                       setNotifications(updatedNotifs);
@@ -10679,12 +10752,14 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                                         saveSetting("baheya_department_rosters", nextRosterList);
                                         
                                         // Broadcast approval notification
-                                        const newApproveNotif = {
+                                        const newApproveNotif: Notification = {
                                           id: `notif-${Date.now()}`,
                                           messageAr: `✅ تم اعتماد النوبتجية: وافق مشرف قسم "${wish.departmentName}" على طلب الزميلة "${wish.employeeNameAr}" ليوم ${wish.dayKey} وتعيين الوردية "${wish.requestedShift}" تلقائياً بالتنسيق.`,
                                           messageEn: `✅ Shift Wish Approved: Supervisor for section "${wish.departmentName}" authorized shift wish for "${wish.employeeNameEn}" on Day ${wish.dayKey} with shift "${wish.requestedShift}", updating master logs.`,
                                           timestamp: new Date().toISOString(),
-                                          read: false
+                                          read: false,
+                                          targetTab: "roster",
+                                          targetUserId: wish.employeeId
                                         };
                                         setNotifications(prev => [newApproveNotif, ...prev]);
                                         // Merge update into local storage
@@ -10927,14 +11002,15 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                             return;
                           }
 
-                          const newNotif = {
+                          const newNotif: Notification = {
                             id: `notif-${Date.now()}`,
                             messageAr: `📡 [توجيه المشرفين] للقسم (${dept === "ALL" ? "جميع الأقسام" : dept}): ${msg}`,
                             messageEn: `📡 [Supervisor Directive] for (${dept === "ALL" ? "All Departments" : dept}): ${msg}`,
                             timestamp: new Date().toISOString(),
                             read: false,
                             type: "directive",
-                            targetDepartment: dept
+                            targetDepartment: dept,
+                            targetTab: "messaging"
                           };
 
                           const updated = [newNotif, ...notifications];
@@ -11077,7 +11153,570 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
             </div>
           )}
 
-          {activeTab === "history" && (() => {
+          
+          {activeTab === "manage_templates" && (
+            <div className="space-y-6 animate-fade font-sans text-right max-w-5xl mx-auto pb-20">
+              <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 border-b-4 border-pink-600 mb-6 mt-4 mx-4">
+                <div className="flex items-center gap-2 justify-end text-right">
+                  <div className="bg-pink-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
+                    {language === "ar" ? "إعداد النظام المؤسسي" : "HOSPITAL CONFIG"}
+                  </div>
+                  <h3 className="font-extrabold text-base text-pink-100 flex items-center gap-1.5 font-sans">
+                    <span>{language === "ar" ? "النماذج وقائمة مؤسسة بهية" : "Clinical Templates Architecture"}</span>
+                    <Settings className="h-4.5 w-4.5 text-pink-500 shrink-0" />
+                  </h3>
+                </div>
+              </div>
+              
+              <div className="px-4">
+              {/* Custom sheets and template management - COMPLETE INTERACTIVE SUITE */}
+              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-8">
+                
+                {/* Section 1: Template Modification & Customization & Activation (تعديل وتخصيص وتفعيل النماذج الأساسية والمخصصة) */}
+                <div>
+                  <div className="border-b border-slate-100 pb-3 mb-4">
+                    <h3 className="text-sm font-black text-slate-900 flex items-center gap-1.5 justify-end">
+                      <span>تعديل وتخصيص وتفعيل النماذج (أساسية + مخصصة)</span>
+                      <Settings className="h-4.5 w-4.5 text-pink-600" />
+                    </h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      اختر أي نموذج للجرودات من القائمة المتاحة لتعديل بيانات تعريفه، ترميز كوده، أو تعديل وإضافة وإزالة بنود وأصناف الجرد المكونة له فورياً. كما يمكنك تنشيط أو تعطيل الشيتات لمنع ظهورها تماماً.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4 font-sans text-xs">
+                    {/* Selector */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1">اختر الشيت المراد تعديله أو تفعيله/تعطيله:</label>
+                      <select
+                        onChange={(e) => handleSelectTemplateToEdit(e.target.value)}
+                        value={selectedTemplateToEdit}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-3 focus:bg-white outline-none focus:ring-1 focus:ring-pink-500 font-bold text-slate-800"
+                      >
+                        <option value="">-- اختر النموذج لفتحه للتحرير --</option>
+                        {/* Static standard list */}
+                        <optgroup label={language === "ar" ? "النماذج الطبية الأساسية الافتراضية" : "Clinical Standard Checklists"}>
+                          {FORM_TEMPLATES.map((t) => {
+                            const isDeactivated = deactivatedTemplateIds.includes(t.id);
+                            const label = language === "ar" ? t.titleAr : t.titleEn;
+                            return (
+                              <option key={t.id} value={t.id}>
+                                {t.code}: {label} {isDeactivated ? "❌ (معطل ومخفي حالياً)" : "✔ (نشط ومتاح)"}
+                              </option>
+                            );
+                          })}
+                        </optgroup>
+                        {/* Custom templates list */}
+                        {customTemplates.length > 0 && (
+                          <optgroup label={language === "ar" ? "النماذج المخصصة المضافة حديثاً" : "Added Custom Checklists"}>
+                            {customTemplates.map((t) => (
+                              <option key={t.id} value={t.id}>
+                                {t.code}: {language === "ar" ? t.titleAr : t.titleEn} (نشط ومتاح)
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                      </select>
+                    </div>
+
+                    {selectedTemplateToEdit && (
+                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+                        
+                        {/* Toggle Activate/Deactivate for Standard template */}
+                        {!selectedTemplateToEdit.startsWith("custom-tpl-") && (
+                          <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-250">
+                            <div className="text-right">
+                              <p className="font-bold text-slate-800">
+                                {deactivatedTemplateIds.includes(selectedTemplateToEdit) ? "النموذج معطل ومخفي حالياً عن الكادر الطبي" : "النموذج نشط ويظهر للمستخدمين بالقائمة"}
+                              </p>
+                              <span className="text-[10px] text-slate-400">تتحكم هذه الميزة في إخفاء الشيت بالكامل لتبسيط عمليات الجرد اليومية وتقليص الخيارات غير الضرورية</span>
+                            </div>
+                            <button
+                              onClick={() => handleToggleDeactivateTemplate(selectedTemplateToEdit)}
+                              className={`px-4 py-1.5 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                                deactivatedTemplateIds.includes(selectedTemplateToEdit)
+                                  ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+                                  : "bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200"
+                              }`}
+                            >
+                              {deactivatedTemplateIds.includes(selectedTemplateToEdit) ? "إعادة تنشيط وتمكين الشيت" : "تعطيل وإخفاء الشيت من القائمة"}
+                            </button>
+                          </div>
+                        )}
+
+                        <h4 className="text-[11px] font-extrabold text-pink-700 border-b pb-1.5 flex items-center justify-between">
+                          <span>بيانات تعريف وهيدر الشيت:</span>
+                          <span className="font-mono bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold">{selectedTemplateToEdit}</span>
+                        </h4>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div>
+                            <label className="block text-[9px] font-bold text-slate-450 mb-1">اسم الشيت (بالعربية)</label>
+                            <input
+                              type="text"
+                              value={editTemplateForm.titleAr}
+                              onChange={(e) => setEditTemplateForm({ ...editTemplateForm, titleAr: e.target.value })}
+                              className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-bold"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[9px] font-bold text-slate-450 mb-1">اسم الشيت (بالإنجليزية)</label>
+                            <input
+                              type="text"
+                              value={editTemplateForm.titleEn}
+                              onChange={(e) => setEditTemplateForm({ ...editTemplateForm, titleEn: e.target.value })}
+                              className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-mono font-bold"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[9px] font-bold text-slate-450 mb-1">الكود التعريفي للشيت</label>
+                            <input
+                              type="text"
+                              value={editTemplateForm.code}
+                              onChange={(e) => setEditTemplateForm({ ...editTemplateForm, code: e.target.value })}
+                              className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-mono font-black text-pink-600 uppercase"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[9px] font-bold text-slate-450 mb-1">القسم الافتراضي لتسجيل السجلات</label>
+                            <select
+                              value={editTemplateForm.departmentDefault}
+                              onChange={(e) => setEditTemplateForm({ ...editTemplateForm, departmentDefault: e.target.value })}
+                              className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-pink-500"
+                            >
+                              {departments.map((d, index) => (
+                                <option key={`${d}-${index}`} value={d}>{d}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-[9px] font-bold text-slate-450 mb-1">الإصدار (Version)</label>
+                            <input
+                              type="text"
+                              value={editTemplateForm.version}
+                              onChange={(e) => setEditTemplateForm({ ...editTemplateForm, version: e.target.value })}
+                              className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-mono text-slate-700"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[9px] font-bold text-slate-450 mb-1">تاريخ الاعتماد / الإصدار</label>
+                            <input
+                              type="text"
+                              value={editTemplateForm.issueDate}
+                              onChange={(e) => setEditTemplateForm({ ...editTemplateForm, issueDate: e.target.value })}
+                              className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-mono text-slate-700"
+                            />
+                          </div>
+
+                          <div className="md:col-span-3 flex items-center gap-2 bg-white p-2.5 rounded-lg border border-slate-200 mt-1">
+                            <input
+                              type="checkbox"
+                              id="editHasPatient"
+                              checked={editTemplateForm.hasPatientDetails}
+                              onChange={(e) => setEditTemplateForm({ ...editTemplateForm, hasPatientDetails: e.target.checked })}
+                              className="h-4 w-4 text-pink-600 border-slate-300 rounded cursor-pointer"
+                            />
+                            <label htmlFor="editHasPatient" className="font-bold text-slate-700 cursor-pointer user-select-none">
+                              تضمين وإظهار خانات بيانات المريض بالأعلى (الاسم، السن، الرقم الطبي، ورقم السرير)
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* Items editing section */}
+                        <div className="space-y-3 pt-2">
+                          <h4 className="text-[11px] font-extrabold text-pink-700 border-b pb-1.5">
+                            أصناف وبنود الجرد المكونة لهذا الشيت ({editTemplateItems.length} بند):
+                          </h4>
+
+                          {/* Quick single item adder */}
+                          <div className="bg-white p-3 rounded-lg border border-slate-200 grid grid-cols-1 md:grid-cols-12 gap-2 text-right items-end font-sans">
+                            <div className="md:col-span-3">
+                              <label className="block text-[9px] font-bold text-slate-400 mb-1">البند / الصنف بالعربية</label>
+                              <input
+                                type="text"
+                                value={editTemplateSingleItemForm.itemAr}
+                                onChange={(e) => setEditTemplateSingleItemForm({ ...editTemplateSingleItemForm, itemAr: e.target.value })}
+                                className="w-full bg-slate-50 border border-slate-200 rounded py-1 px-2 font-bold focus:bg-white outline-none"
+                                placeholder="شمعة فلتر تنفس رئيسية"
+                              />
+                            </div>
+                            
+                            <div className="md:col-span-3">
+                              <label className="block text-[9px] font-bold text-slate-400 mb-1">البند بالإنجليزية</label>
+                              <input
+                                type="text"
+                                value={editTemplateSingleItemForm.itemEn}
+                                onChange={(e) => setEditTemplateSingleItemForm({ ...editTemplateSingleItemForm, itemEn: e.target.value })}
+                                className="w-full bg-slate-50 border border-slate-200 rounded py-1 px-2 font-mono focus:bg-white outline-none"
+                                placeholder="Ventilator main filter"
+                              />
+                            </div>
+
+                            <div className="md:col-span-2">
+                              <label className="block text-[9px] font-bold text-slate-400 mb-1">كود الصنف</label>
+                              <input
+                                type="text"
+                                value={editTemplateSingleItemForm.code}
+                                onChange={(e) => setEditTemplateSingleItemForm({ ...editTemplateSingleItemForm, code: e.target.value })}
+                                className="w-full bg-slate-50 border border-slate-200 rounded py-1 px-2 font-mono focus:bg-white outline-none"
+                                placeholder="BH-ITM-01"
+                              />
+                            </div>
+
+                            <div className="md:col-span-1 border-r pr-2 md:border-r-0 md:pr-0">
+                              <label className="block text-[9px] font-bold text-slate-400 mb-1">الوحدة</label>
+                              <input
+                                type="text"
+                                value={editTemplateSingleItemForm.unit}
+                                onChange={(e) => setEditTemplateSingleItemForm({ ...editTemplateSingleItemForm, unit: e.target.value })}
+                                className="w-full bg-slate-50 border border-slate-200 rounded py-1 px-2 font-bold text-center focus:bg-white outline-none"
+                                placeholder="PCS"
+                              />
+                            </div>
+
+                            <div className="md:col-span-1">
+                              <label className="block text-[9px] font-bold text-slate-440 mb-1">الكمية</label>
+                              <input
+                                type="text"
+                                value={editTemplateSingleItemForm.qty}
+                                onChange={(e) => setEditTemplateSingleItemForm({ ...editTemplateSingleItemForm, qty: e.target.value })}
+                                className="w-full bg-slate-50 border border-slate-200 rounded py-1 px-2 font-bold text-center focus:bg-white outline-none"
+                                placeholder="1"
+                              />
+                            </div>
+
+                            <div className="md:col-span-2">
+                              <button
+                                onClick={handleAddOrEditSingleItemInTemplate}
+                                className="w-full py-1.5 bg-pink-700 hover:bg-pink-850 text-white rounded text-[10px] font-bold transition flex items-center justify-center gap-1 cursor-pointer"
+                              >
+                                {editTemplateItemIndex !== null ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                                <span>{editTemplateItemIndex !== null ? "حفظ التعديل" : "إضافة بند"}</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* List of items in standard/custom template */}
+                          <div className="max-h-60 overflow-y-auto border border-slate-200 rounded-lg divide-y divide-slate-150 bg-white shadow-inner">
+                            {editTemplateItems.map((item, idx) => {
+                              const isEditingThisItem = editTemplateItemIndex === idx;
+                              return (
+                                <div key={idx} className={`p-2 flex items-center justify-between text-[11px] hover:bg-slate-50 transition ${isEditingThisItem ? "bg-pink-50/40" : ""}`}>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-mono bg-slate-100 text-slate-500 rounded px-1 text-[9px] w-6 text-center font-bold">{item.sn}</span>
+                                    {item.code && <span className="font-mono text-slate-400 font-bold ml-1 text-[9px]">{item.code}</span>}
+                                    <span className="font-extrabold text-slate-800">{item.itemAr}</span>
+                                    {item.itemEn && <span className="text-slate-400 font-mono text-[10px] mr-1">/ {item.itemEn}</span>}
+                                    <span className="bg-pink-50 text-pink-700 mr-2 px-1 text-[9px] rounded font-bold">{item.qty || "1"} {item.unit || "PCS"}</span>
+                                  </div>
+
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <button
+                                      onClick={() => handleStartEditSingleItemInTemplate(idx)}
+                                      className="p-1 hover:bg-slate-105 hover:bg-slate-100 text-slate-600 rounded transition"
+                                      title="تعديل هذا البند"
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleRemoveSingleItemInTemplate(idx)}
+                                      className="p-1 hover:bg-rose-50 text-rose-650 rounded transition"
+                                      title="حذف هذا البند"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Actions row */}
+                        <div className="flex justify-between items-center pt-2 border-t font-sans text-xs">
+                          <button
+                            onClick={() => handleSelectTemplateToEdit("")}
+                            className="px-4 py-2 bg-slate-250 hover:bg-slate-300 bg-slate-200 text-slate-700 rounded-lg font-bold"
+                          >
+                            إلغاء وإخلاء لوحة التحكم
+                          </button>
+
+                          <button
+                            onClick={handleSaveTemplateEdits}
+                            className="px-5 py-2 bg-gradient-to-r from-pink-600 to-rose-600 text-white hover:from-pink-700 hover:to-rose-700 font-bold rounded-lg shadow-md transition cursor-pointer"
+                          >
+                            حفظ وتطبيق كافة التغيرات لـ ({editTemplateForm.code})
+                          </button>
+                        </div>
+
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Section 2: Custom Sheet Design and Build (نظام تصميم وإنشاء شيتات جديدة) */}
+                <div className="border-t border-slate-200 pt-6">
+                  <div className="border-b border-slate-100 pb-3 mb-4">
+                    <h3 className="text-sm font-black text-slate-900 flex items-center gap-1.5 justify-end">
+                      <span>تصميم وإنشاء شيت جرد وقسم مخصص جديد لقائمة التدقيق</span>
+                      <Plus className="h-4.5 w-4.5 text-pink-600" />
+                    </h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      قم بإنشاء نموذج جرد رقمي جديد مخصص تماماً. يمكنك إما بناء بنوده تفاعلياً واحداً تلو الآخر لتنسيقه بدقة مذهلة، أو كتابته بالنص مجمّعاً، ليقوم النظام بتوليده وإتاحته لتسجيل السجلات والطباعة في ثوانٍ.
+                    </p>
+                  </div>
+
+                  {/* Form */}
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4 text-xs">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-right">
+                      <div>
+                        <label className="block text-[9px] font-bold text-slate-450 mb-1">اسم الشيت المخصص (بالعربية)</label>
+                        <input
+                          type="text"
+                          value={templateForm.titleAr}
+                          onChange={(e) => setTemplateForm({ ...templateForm, titleAr: e.target.value })}
+                          className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-pink-500"
+                          placeholder="مثال: جرد مستلزمات رعاية الرقابة الأسبوعي"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[9px] font-bold text-slate-450 mb-1">اسم الشيت (بالإنجليزية)</label>
+                        <input
+                          type="text"
+                          value={templateForm.titleEn}
+                          onChange={(e) => setTemplateForm({ ...templateForm, titleEn: e.target.value })}
+                          className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-pink-500"
+                          placeholder="مثال: ICU Check Sheet"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[9px] font-bold text-slate-450 mb-1">ترميز الكود (Checklist Code)</label>
+                        <input
+                          type="text"
+                          value={templateForm.code}
+                          onChange={(e) => setTemplateForm({ ...templateForm, code: e.target.value })}
+                          className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-mono text-slate-800 uppercase font-black focus:outline-none focus:ring-1 focus:ring-pink-500"
+                          placeholder="مثال: BH-ICU-08"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[9px] font-bold text-slate-450 mb-1">القسم / الوحدة</label>
+                        <select
+                          value={templateForm.departmentDefault}
+                          onChange={(e) => setTemplateForm({ ...templateForm, departmentDefault: e.target.value })}
+                          className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-pink-500 font-sans"
+                        >
+                          {departments.map((d, index) => (
+                            <option key={`${d}-${index}`} value={d}>{d}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[9px] font-bold text-slate-450 mb-1">رقم مراجعة النسخة (Revision)</label>
+                        <input
+                          type="text"
+                          value={templateForm.version}
+                          onChange={(e) => setTemplateForm({ ...templateForm, version: e.target.value })}
+                          className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-mono focus:outline-none focus:ring-1 focus:ring-pink-500"
+                          placeholder="01"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[9px] font-bold text-slate-450 mb-1">تاريخ الإصدار والاعتماد</label>
+                        <input
+                          type="text"
+                          value={templateForm.issueDate}
+                          onChange={(e) => setTemplateForm({ ...templateForm, issueDate: e.target.value })}
+                          className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-mono focus:outline-none focus:ring-1 focus:ring-pink-500"
+                        />
+                      </div>
+
+                      <div className="md:col-span-3 flex items-center gap-2 bg-white p-3 text-right border rounded-lg border-slate-200 mt-1">
+                        <input
+                          type="checkbox"
+                          id="newHasPatient"
+                          checked={templateForm.hasPatientDetails}
+                          onChange={(e) => setTemplateForm({ ...templateForm, hasPatientDetails: e.target.checked })}
+                          className="h-4 w-4 text-pink-600 border-slate-300 rounded cursor-pointer"
+                        />
+                        <label htmlFor="newHasPatient" className="font-bold text-slate-700 cursor-pointer user-select-none">
+                          تفعيل لوحة بيانات المريض أعلى الملف (الاسم، والسن، والجنسية والتذكرة الطبية)
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Interactive Item list designer */}
+                    <div className="pt-2">
+                      <h4 className="font-bold text-slate-700 mb-2 block">تصميم بنود الجرد تفاعلياً (أو استخدم صندوق الأنابيب أدناه):</h4>
+                      
+                      <div className="bg-white p-3 rounded-lg border border-slate-200 grid grid-cols-1 md:grid-cols-12 gap-2 text-right items-end">
+                        <div className="md:col-span-3">
+                          <label className="block text-[9px] font-bold text-slate-400 mb-1">البند بالعربية *</label>
+                          <input
+                            type="text"
+                            value={newTemplateItemForm.itemAr}
+                            onChange={(e) => setNewTemplateItemForm({ ...newTemplateItemForm, itemAr: e.target.value })}
+                            className="w-full bg-slate-50 border border-slate-200 rounded py-1 px-2 font-bold focus:bg-white outline-none"
+                            placeholder="مثال: جهاز قياس التنفس مع الخرطوم"
+                          />
+                        </div>
+
+                        <div className="md:col-span-3">
+                          <label className="block text-[9px] font-bold text-slate-400 mb-1">البند بالإنجليزية</label>
+                          <input
+                            type="text"
+                            value={newTemplateItemForm.itemEn}
+                            onChange={(e) => setNewTemplateItemForm({ ...newTemplateItemForm, itemEn: e.target.value })}
+                            className="w-full bg-slate-50 border border-slate-200 rounded py-1 px-2 font-mono focus:bg-white outline-none"
+                            placeholder="Respiratory gauge set"
+                          />
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <label className="block text-[9px] font-bold text-slate-400 mb-1">كود الصنف (اختياري)</label>
+                          <input
+                            type="text"
+                            value={newTemplateItemForm.code}
+                            onChange={(e) => setNewTemplateItemForm({ ...newTemplateItemForm, code: e.target.value })}
+                            className="w-full bg-slate-50 border border-slate-200 rounded py-1 px-2 font-mono focus:bg-white outline-none"
+                            placeholder="ITM-01"
+                          />
+                        </div>
+
+                        <div className="md:col-span-1.5 border-r pr-2 md:border-r-0 md:pr-0">
+                          <label className="block text-[9px] font-bold text-slate-400 mb-1">الوحدة</label>
+                          <input
+                            type="text"
+                            value={newTemplateItemForm.unit}
+                            onChange={(e) => setNewTemplateItemForm({ ...newTemplateItemForm, unit: e.target.value })}
+                            className="w-full bg-slate-50 border border-slate-200 rounded py-1 px-2 font-bold text-center focus:bg-white outline-none"
+                            placeholder="PCS"
+                          />
+                        </div>
+
+                        <div className="md:col-span-1.5">
+                          <label className="block text-[9px] font-bold text-slate-400 mb-1">الكمية المطلوبة</label>
+                          <input
+                            type="text"
+                            value={newTemplateItemForm.qty}
+                            onChange={(e) => setNewTemplateItemForm({ ...newTemplateItemForm, qty: e.target.value })}
+                            className="w-full bg-slate-50 border border-slate-200 rounded py-1 px-2 font-bold text-center focus:bg-white outline-none"
+                            placeholder="1"
+                          />
+                        </div>
+
+                        <div className="md:col-span-1">
+                          <button
+                            onClick={handleAddNewTemplateItem}
+                            className="w-full py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded text-[10px] font-bold transition flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            <Plus className="h-3 w-3" />
+                            <span>درج</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Created builder items preview */}
+                      {newTemplateItems.length > 0 && (
+                        <div className="mt-3 bg-white p-2.5 rounded-lg border border-slate-200 space-y-2">
+                          <span className="text-[10px] font-bold text-slate-400 block border-b pb-1">البنود المضافة حالياً للشيت الجديد ({newTemplateItems.length} بند جرد مخصص):</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {newTemplateItems.map((item, index) => (
+                              <div key={index} className="flex items-center gap-1 bg-slate-100 text-slate-700 px-2 py-1 rounded border border-slate-200">
+                                <span className="font-bold">{item.itemAr}</span>
+                                <span className="text-slate-400 text-[8px]">({item.qty} {item.unit})</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveNewTemplateItem(index)}
+                                  className="text-slate-400 hover:text-red-650 transition font-bold"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Fallback Text-based pipelines parser */}
+                    {newTemplateItems.length === 0 && (
+                      <div className="pt-2">
+                        <label className="block text-[10px] font-black text-slate-500 mb-1">
+                          أو الصق مصفوفة البنود دفعة واحدة بالتنسيق التالي (اسم الصنف بالعربية|الاسم بالإنجبليزية|الوحدة|الكمية):
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={templateForm.itemsText}
+                          onChange={(e) => setTemplateForm({ ...templateForm, itemsText: e.target.value })}
+                          className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 font-mono font-bold leading-normal outline-none focus:ring-1 focus:ring-pink-500 placeholder-slate-400 focus:bg-white"
+                          placeholder="سرنجة معقمة 5 سم مخصصة|Sterile Syringe 5cc|PCS|12&#10;شريط اختبار قياس رطوبة الهواء|Air Humidity Testing Strip|STRIP|6&#10;مسحة كحول ناصعة معقمة مخصصة|Sterile Alcohol Swab|PACK|24"
+                        />
+                        <p className="text-[10px] text-slate-400 leading-normal mt-1">
+                          يقوم النظام بتسجيل البنود وتغذية الـ 31 يوماً آلياً لكل سطر مندمج. افصل البنود بسطر جديد (Enter)، والخصائص برمز الأنبوب (|).
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="flex justify-end pt-2">
+                      <button
+                        onClick={handleCreateCustomTemplate}
+                        className="px-6 py-2.5 bg-gradient-to-r from-pink-650 to-rose-650 hover:from-pink-700 hover:to-rose-700 text-white font-extrabold rounded-lg shadow-md transition cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span>إنشاء وتنسيق الشيت بقائمة {hospitalSettings.nameAr || "المؤسسة"}</span>
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Section 3: Lists current custom templates */}
+                {customTemplates.length > 0 && (
+                  <div className="border-t border-slate-200 pt-6 text-xs">
+                    <h4 className="text-xs font-bold text-slate-800 mb-3 block">الشيتات المخصصة المشحونة المصنوعة حالياً:</h4>
+                    <div className="divide-y divide-slate-150 border border-slate-200 rounded-xl overflow-hidden bg-white">
+                      {customTemplates.map((customTpl) => (
+                        <div key={customTpl.id} className="p-3 bg-white flex items-center justify-between gap-3 hover:bg-slate-50 transition">
+                          <div>
+                            <span className="font-mono bg-pink-50 text-pink-700 font-extrabold px-2 py-0.5 rounded text-[10px] ml-2">
+                              {customTpl.code}
+                            </span>
+                            <span className="font-extrabold text-slate-900 block sm:inline-block">
+                              {customTpl.titleAr} / {customTpl.titleEn}
+                            </span>
+                            <span className="text-[10px] text-slate-400 mt-1 sm:mt-0 font-bold block sm:inline-block sm:mr-4">
+                              القسم الافتراضي: {customTpl.departmentDefault} | {customTpl.items.length} أصناف
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteCustomTemplate(customTpl.id)}
+                            className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-100 rounded-lg text-[10px] font-bold transition cursor-pointer"
+                          >
+                            حذف الشيت بالكامل
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              </div>
+            </div>
+          )}
+
+{activeTab === "history" && (() => {
             const finalHistoryRecords = filteredRecords.filter(r => {
               if (historyDeptFilter && r.department !== historyDeptFilter) return false;
               if (historyTemplateFilter && r.templateId !== historyTemplateFilter) return false;
@@ -11783,7 +12422,11 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                     
                     <div>
                       <label className="block text-[10px] font-bold text-slate-500 mb-1">النمط البصري الافتراضي للمنظومة</label>
-                      <select className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-3 focus:bg-white outline-none focus:ring-1 focus:ring-pink-500 font-bold text-xs" defaultValue="light">
+                      <select 
+                        value={settingsForm.themeMode}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, themeMode: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-3 focus:bg-white outline-none focus:ring-1 focus:ring-pink-500 font-bold text-xs"
+                      >
                         <option value="light">وضع المستشفى الساطع الإفتراضي (Light Mode)</option>
                         <option value="dark">وضع العناية المركز المظلم (Dark Mode)</option>
                         <option value="system">مزامنة تلقائية حسب نظام المستخدم (System Fallback)</option>
@@ -11793,10 +12436,10 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                     <div>
                       <label className="block text-[10px] font-bold text-slate-500 mb-1">لون الهوية البصري الأساسي</label>
                       <div className="flex justify-end gap-3 px-2">
-                        <button className="w-6 h-6 rounded-full bg-pink-600 ring-2 ring-offset-1 ring-pink-600 outline-none"></button>
-                        <button className="w-6 h-6 rounded-full bg-emerald-600 hover:ring-2 ring-offset-1 ring-emerald-600 outline-none transition-all"></button>
-                        <button className="w-6 h-6 rounded-full bg-blue-600 hover:ring-2 ring-offset-1 ring-blue-600 outline-none transition-all"></button>
-                        <button className="w-6 h-6 rounded-full bg-indigo-600 hover:ring-2 ring-offset-1 ring-indigo-600 outline-none transition-all"></button>
+                        <button onClick={() => setSettingsForm({ ...settingsForm, themeColor: 'pink' })} className={`w-6 h-6 rounded-full bg-pink-600 outline-none transition-all ${settingsForm.themeColor === 'pink' ? 'ring-2 ring-offset-1 ring-pink-600' : 'hover:ring-2 ring-offset-1 ring-pink-400'}`}></button>
+                        <button onClick={() => setSettingsForm({ ...settingsForm, themeColor: 'emerald' })} className={`w-6 h-6 rounded-full bg-emerald-600 outline-none transition-all ${settingsForm.themeColor === 'emerald' ? 'ring-2 ring-offset-1 ring-emerald-600' : 'hover:ring-2 ring-offset-1 ring-emerald-400'}`}></button>
+                        <button onClick={() => setSettingsForm({ ...settingsForm, themeColor: 'blue' })} className={`w-6 h-6 rounded-full bg-blue-600 outline-none transition-all ${settingsForm.themeColor === 'blue' ? 'ring-2 ring-offset-1 ring-blue-600' : 'hover:ring-2 ring-offset-1 ring-blue-400'}`}></button>
+                        <button onClick={() => setSettingsForm({ ...settingsForm, themeColor: 'indigo' })} className={`w-6 h-6 rounded-full bg-indigo-600 outline-none transition-all ${settingsForm.themeColor === 'indigo' ? 'ring-2 ring-offset-1 ring-indigo-600' : 'hover:ring-2 ring-offset-1 ring-indigo-400'}`}></button>
                       </div>
                     </div>
                   </div>
@@ -11809,7 +12452,11 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                     
                     <div>
                       <label className="block text-[10px] font-bold text-slate-500 mb-1">المنطقة الزمنية (Timezone)</label>
-                      <select className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-3 focus:bg-white outline-none focus:ring-1 focus:ring-pink-500 font-bold text-xs text-left" dir="ltr" defaultValue="Africa/Cairo">
+                      <select 
+                         value={settingsForm.timezone}
+                         onChange={(e) => setSettingsForm({ ...settingsForm, timezone: e.target.value })}
+                         className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-3 focus:bg-white outline-none focus:ring-1 focus:ring-pink-500 font-bold text-xs text-left" dir="ltr"
+                      >
                         <option value="Africa/Cairo">Africa/Cairo (EGYPT)</option>
                         <option value="Asia/Riyadh">Asia/Riyadh (KSA)</option>
                         <option value="Asia/Dubai">Asia/Dubai (UAE)</option>
@@ -11819,10 +12466,14 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
 
                     <div>
                       <label className="block text-[10px] font-bold text-slate-500 mb-1">تنسيق تاريخ الشيتات السريرية الرسمية</label>
-                      <select className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-3 focus:bg-white outline-none focus:ring-1 focus:ring-pink-500 font-bold text-xs text-left font-mono" dir="ltr" defaultValue="DD/MM/YYYY">
-                        <option value="DD/MM/YYYY">DD/MM/YYYY hh:mm A</option>
-                        <option value="MM/DD/YYYY">MM/DD/YYYY hh:mm A</option>
-                        <option value="YYYY-MM-DD">YYYY-MM-DD hh:mm</option>
+                      <select 
+                         value={settingsForm.dateFormat}
+                         onChange={(e) => setSettingsForm({ ...settingsForm, dateFormat: e.target.value })}
+                         className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-3 focus:bg-white outline-none focus:ring-1 focus:ring-pink-500 font-bold text-xs text-left font-mono" dir="ltr"
+                      >
+                        <option value="DD/MM/YYYY hh:mm A">DD/MM/YYYY hh:mm A</option>
+                        <option value="MM/DD/YYYY hh:mm A">MM/DD/YYYY hh:mm A</option>
+                        <option value="YYYY-MM-DD hh:mm">YYYY-MM-DD hh:mm</option>
                       </select>
                     </div>
                   </div>
@@ -11835,20 +12486,39 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                       <span className="text-pink-500">🏢</span>
                     </h4>
                     
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs">
-                      <div className="flex justify-between items-center bg-white p-3 border rounded shadow-sm">
-                        <div className="flex gap-2">
-                           <button className="text-rose-500 px-2 py-1 bg-rose-50 rounded hover:bg-rose-100 font-bold border border-rose-200 text-[10px]">مسح المبنى</button>
-                           <button className="text-slate-600 px-2 py-1 bg-slate-50 rounded hover:bg-slate-100 font-bold border border-slate-200 text-[10px]">تعديل الضريبي</button>
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs space-y-3">
+                      {settingsForm.tenants && settingsForm.tenants.map((t, idx) => (
+                        <div key={idx} className="flex justify-between items-center bg-white p-3 border rounded shadow-sm">
+                          <div className="flex gap-2">
+                             <button onClick={() => {
+                                 const temp = [...settingsForm.tenants];
+                                 temp.splice(idx, 1);
+                                 setSettingsForm({...settingsForm, tenants: temp});
+                             }} className="text-rose-500 px-2 py-1 bg-rose-50 rounded hover:bg-rose-100 font-bold border border-rose-200 text-[10px]">مسح المبنى</button>
+                             <button onClick={() => {
+                                 const newName = prompt("تعديل اسم المبنى:", t.name);
+                                 if (newName) {
+                                     const temp = [...settingsForm.tenants];
+                                     temp[idx].name = newName;
+                                     setSettingsForm({...settingsForm, tenants: temp});
+                                 }
+                             }} className="text-slate-600 px-2 py-1 bg-slate-50 rounded hover:bg-slate-100 font-bold border border-slate-200 text-[10px]">تعديل</button>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-slate-800">{t.name}</p>
+                            <p className="text-[10px] font-mono text-slate-500">LEGAL_ID: {t.legalId} &bull; TAX: {t.taxId}</p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-bold text-slate-800">مستشفى بهية الرئيسي (الشيخ زايد)</p>
-                          <p className="text-[10px] font-mono text-slate-500">LEGAL_ID: BHY-MAIN-1001 &bull; TAX: 543-210-987</p>
-                        </div>
-                      </div>
+                      ))}
                       
                       <div className="mt-2 text-left">
-                        <button className="text-pink-600 font-bold text-[11px] bg-pink-50 px-3 py-1.5 rounded-lg border border-pink-200 hover:bg-pink-100 transition">+ إضافة منشأة تابعة أخرى أو مبنى جديد (Add Tenant)</button>
+                        <button onClick={() => {
+                          const name = prompt("اسم المنشأة/الفرع (بالعربية):");
+                          if(name) {
+                              const newId = `BHY-SUB-${Math.floor(Math.random() * 10000)}`;
+                              setSettingsForm({...settingsForm, tenants: [...(settingsForm.tenants || []), {name, legalId: newId, taxId: "PENDING"}]})
+                          }
+                        }} className="text-pink-600 font-bold text-[11px] bg-pink-50 px-3 py-1.5 rounded-lg border border-pink-200 hover:bg-pink-100 transition">+ إضافة منشأة تابعة أخرى أو مبنى جديد (Add Tenant)</button>
                       </div>
                     </div>
                   </div>
@@ -12017,548 +12687,6 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                 </div>
               </div>
 
-              {/* Custom sheets and template management - COMPLETE INTERACTIVE SUITE */}
-              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-8">
-                
-                {/* Section 1: Template Modification & Customization & Activation (تعديل وتخصيص وتفعيل النماذج الأساسية والمخصصة) */}
-                <div>
-                  <div className="border-b border-slate-100 pb-3 mb-4">
-                    <h3 className="text-sm font-black text-slate-900 flex items-center gap-1.5 justify-end">
-                      <span>تعديل وتخصيص وتفعيل النماذج (أساسية + مخصصة)</span>
-                      <Settings className="h-4.5 w-4.5 text-pink-600" />
-                    </h3>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      اختر أي نموذج للجرودات من القائمة المتاحة لتعديل بيانات تعريفه، ترميز كوده، أو تعديل وإضافة وإزالة بنود وأصناف الجرد المكونة له فورياً. كما يمكنك تنشيط أو تعطيل الشيتات لمنع ظهورها تماماً.
-                    </p>
-                  </div>
-
-                  <div className="space-y-4 font-sans text-xs">
-                    {/* Selector */}
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 mb-1">اختر الشيت المراد تعديله أو تفعيله/تعطيله:</label>
-                      <select
-                        onChange={(e) => handleSelectTemplateToEdit(e.target.value)}
-                        value={selectedTemplateToEdit}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-3 focus:bg-white outline-none focus:ring-1 focus:ring-pink-500 font-bold text-slate-800"
-                      >
-                        <option value="">-- اختر النموذج لفتحه للتحرير --</option>
-                        {/* Static standard list */}
-                        <optgroup label={language === "ar" ? "النماذج الطبية الأساسية الافتراضية" : "Clinical Standard Checklists"}>
-                          {FORM_TEMPLATES.map((t) => {
-                            const isDeactivated = deactivatedTemplateIds.includes(t.id);
-                            const label = language === "ar" ? t.titleAr : t.titleEn;
-                            return (
-                              <option key={t.id} value={t.id}>
-                                {t.code}: {label} {isDeactivated ? "❌ (معطل ومخفي حالياً)" : "✔ (نشط ومتاح)"}
-                              </option>
-                            );
-                          })}
-                        </optgroup>
-                        {/* Custom templates list */}
-                        {customTemplates.length > 0 && (
-                          <optgroup label={language === "ar" ? "النماذج المخصصة المضافة حديثاً" : "Added Custom Checklists"}>
-                            {customTemplates.map((t) => (
-                              <option key={t.id} value={t.id}>
-                                {t.code}: {language === "ar" ? t.titleAr : t.titleEn} (نشط ومتاح)
-                              </option>
-                            ))}
-                          </optgroup>
-                        )}
-                      </select>
-                    </div>
-
-                    {selectedTemplateToEdit && (
-                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
-                        
-                        {/* Toggle Activate/Deactivate for Standard template */}
-                        {!selectedTemplateToEdit.startsWith("custom-tpl-") && (
-                          <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-250">
-                            <div className="text-right">
-                              <p className="font-bold text-slate-800">
-                                {deactivatedTemplateIds.includes(selectedTemplateToEdit) ? "النموذج معطل ومخفي حالياً عن الكادر الطبي" : "النموذج نشط ويظهر للمستخدمين بالقائمة"}
-                              </p>
-                              <span className="text-[10px] text-slate-400">تتحكم هذه الميزة في إخفاء الشيت بالكامل لتبسيط عمليات الجرد اليومية وتقليص الخيارات غير الضرورية</span>
-                            </div>
-                            <button
-                              onClick={() => handleToggleDeactivateTemplate(selectedTemplateToEdit)}
-                              className={`px-4 py-1.5 rounded-lg text-[10px] font-bold transition cursor-pointer ${
-                                deactivatedTemplateIds.includes(selectedTemplateToEdit)
-                                  ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
-                                  : "bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200"
-                              }`}
-                            >
-                              {deactivatedTemplateIds.includes(selectedTemplateToEdit) ? "إعادة تنشيط وتمكين الشيت" : "تعطيل وإخفاء الشيت من القائمة"}
-                            </button>
-                          </div>
-                        )}
-
-                        <h4 className="text-[11px] font-extrabold text-pink-700 border-b pb-1.5 flex items-center justify-between">
-                          <span>بيانات تعريف وهيدر الشيت:</span>
-                          <span className="font-mono bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold">{selectedTemplateToEdit}</span>
-                        </h4>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          <div>
-                            <label className="block text-[9px] font-bold text-slate-450 mb-1">اسم الشيت (بالعربية)</label>
-                            <input
-                              type="text"
-                              value={editTemplateForm.titleAr}
-                              onChange={(e) => setEditTemplateForm({ ...editTemplateForm, titleAr: e.target.value })}
-                              className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-bold"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-[9px] font-bold text-slate-450 mb-1">اسم الشيت (بالإنجليزية)</label>
-                            <input
-                              type="text"
-                              value={editTemplateForm.titleEn}
-                              onChange={(e) => setEditTemplateForm({ ...editTemplateForm, titleEn: e.target.value })}
-                              className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-mono font-bold"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-[9px] font-bold text-slate-450 mb-1">الكود التعريفي للشيت</label>
-                            <input
-                              type="text"
-                              value={editTemplateForm.code}
-                              onChange={(e) => setEditTemplateForm({ ...editTemplateForm, code: e.target.value })}
-                              className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-mono font-black text-pink-600 uppercase"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-[9px] font-bold text-slate-450 mb-1">القسم الافتراضي لتسجيل السجلات</label>
-                            <select
-                              value={editTemplateForm.departmentDefault}
-                              onChange={(e) => setEditTemplateForm({ ...editTemplateForm, departmentDefault: e.target.value })}
-                              className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-pink-500"
-                            >
-                              {departments.map((d, index) => (
-                                <option key={`${d}-${index}`} value={d}>{d}</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="block text-[9px] font-bold text-slate-450 mb-1">الإصدار (Version)</label>
-                            <input
-                              type="text"
-                              value={editTemplateForm.version}
-                              onChange={(e) => setEditTemplateForm({ ...editTemplateForm, version: e.target.value })}
-                              className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-mono text-slate-700"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-[9px] font-bold text-slate-450 mb-1">تاريخ الاعتماد / الإصدار</label>
-                            <input
-                              type="text"
-                              value={editTemplateForm.issueDate}
-                              onChange={(e) => setEditTemplateForm({ ...editTemplateForm, issueDate: e.target.value })}
-                              className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-mono text-slate-700"
-                            />
-                          </div>
-
-                          <div className="md:col-span-3 flex items-center gap-2 bg-white p-2.5 rounded-lg border border-slate-200 mt-1">
-                            <input
-                              type="checkbox"
-                              id="editHasPatient"
-                              checked={editTemplateForm.hasPatientDetails}
-                              onChange={(e) => setEditTemplateForm({ ...editTemplateForm, hasPatientDetails: e.target.checked })}
-                              className="h-4 w-4 text-pink-600 border-slate-300 rounded cursor-pointer"
-                            />
-                            <label htmlFor="editHasPatient" className="font-bold text-slate-700 cursor-pointer user-select-none">
-                              تضمين وإظهار خانات بيانات المريض بالأعلى (الاسم، السن، الرقم الطبي، ورقم السرير)
-                            </label>
-                          </div>
-                        </div>
-
-                        {/* Items editing section */}
-                        <div className="space-y-3 pt-2">
-                          <h4 className="text-[11px] font-extrabold text-pink-700 border-b pb-1.5">
-                            أصناف وبنود الجرد المكونة لهذا الشيت ({editTemplateItems.length} بند):
-                          </h4>
-
-                          {/* Quick single item adder */}
-                          <div className="bg-white p-3 rounded-lg border border-slate-200 grid grid-cols-1 md:grid-cols-12 gap-2 text-right items-end font-sans">
-                            <div className="md:col-span-3">
-                              <label className="block text-[9px] font-bold text-slate-400 mb-1">البند / الصنف بالعربية</label>
-                              <input
-                                type="text"
-                                value={editTemplateSingleItemForm.itemAr}
-                                onChange={(e) => setEditTemplateSingleItemForm({ ...editTemplateSingleItemForm, itemAr: e.target.value })}
-                                className="w-full bg-slate-50 border border-slate-200 rounded py-1 px-2 font-bold focus:bg-white outline-none"
-                                placeholder="شمعة فلتر تنفس رئيسية"
-                              />
-                            </div>
-                            
-                            <div className="md:col-span-3">
-                              <label className="block text-[9px] font-bold text-slate-400 mb-1">البند بالإنجليزية</label>
-                              <input
-                                type="text"
-                                value={editTemplateSingleItemForm.itemEn}
-                                onChange={(e) => setEditTemplateSingleItemForm({ ...editTemplateSingleItemForm, itemEn: e.target.value })}
-                                className="w-full bg-slate-50 border border-slate-200 rounded py-1 px-2 font-mono focus:bg-white outline-none"
-                                placeholder="Ventilator main filter"
-                              />
-                            </div>
-
-                            <div className="md:col-span-2">
-                              <label className="block text-[9px] font-bold text-slate-400 mb-1">كود الصنف</label>
-                              <input
-                                type="text"
-                                value={editTemplateSingleItemForm.code}
-                                onChange={(e) => setEditTemplateSingleItemForm({ ...editTemplateSingleItemForm, code: e.target.value })}
-                                className="w-full bg-slate-50 border border-slate-200 rounded py-1 px-2 font-mono focus:bg-white outline-none"
-                                placeholder="BH-ITM-01"
-                              />
-                            </div>
-
-                            <div className="md:col-span-1 border-r pr-2 md:border-r-0 md:pr-0">
-                              <label className="block text-[9px] font-bold text-slate-400 mb-1">الوحدة</label>
-                              <input
-                                type="text"
-                                value={editTemplateSingleItemForm.unit}
-                                onChange={(e) => setEditTemplateSingleItemForm({ ...editTemplateSingleItemForm, unit: e.target.value })}
-                                className="w-full bg-slate-50 border border-slate-200 rounded py-1 px-2 font-bold text-center focus:bg-white outline-none"
-                                placeholder="PCS"
-                              />
-                            </div>
-
-                            <div className="md:col-span-1">
-                              <label className="block text-[9px] font-bold text-slate-440 mb-1">الكمية</label>
-                              <input
-                                type="text"
-                                value={editTemplateSingleItemForm.qty}
-                                onChange={(e) => setEditTemplateSingleItemForm({ ...editTemplateSingleItemForm, qty: e.target.value })}
-                                className="w-full bg-slate-50 border border-slate-200 rounded py-1 px-2 font-bold text-center focus:bg-white outline-none"
-                                placeholder="1"
-                              />
-                            </div>
-
-                            <div className="md:col-span-2">
-                              <button
-                                onClick={handleAddOrEditSingleItemInTemplate}
-                                className="w-full py-1.5 bg-pink-700 hover:bg-pink-850 text-white rounded text-[10px] font-bold transition flex items-center justify-center gap-1 cursor-pointer"
-                              >
-                                {editTemplateItemIndex !== null ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
-                                <span>{editTemplateItemIndex !== null ? "حفظ التعديل" : "إضافة بند"}</span>
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* List of items in standard/custom template */}
-                          <div className="max-h-60 overflow-y-auto border border-slate-200 rounded-lg divide-y divide-slate-150 bg-white shadow-inner">
-                            {editTemplateItems.map((item, idx) => {
-                              const isEditingThisItem = editTemplateItemIndex === idx;
-                              return (
-                                <div key={idx} className={`p-2 flex items-center justify-between text-[11px] hover:bg-slate-50 transition ${isEditingThisItem ? "bg-pink-50/40" : ""}`}>
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-mono bg-slate-100 text-slate-500 rounded px-1 text-[9px] w-6 text-center font-bold">{item.sn}</span>
-                                    {item.code && <span className="font-mono text-slate-400 font-bold ml-1 text-[9px]">{item.code}</span>}
-                                    <span className="font-extrabold text-slate-800">{item.itemAr}</span>
-                                    {item.itemEn && <span className="text-slate-400 font-mono text-[10px] mr-1">/ {item.itemEn}</span>}
-                                    <span className="bg-pink-50 text-pink-700 mr-2 px-1 text-[9px] rounded font-bold">{item.qty || "1"} {item.unit || "PCS"}</span>
-                                  </div>
-
-                                  <div className="flex items-center gap-1.5 shrink-0">
-                                    <button
-                                      onClick={() => handleStartEditSingleItemInTemplate(idx)}
-                                      className="p-1 hover:bg-slate-105 hover:bg-slate-100 text-slate-600 rounded transition"
-                                      title="تعديل هذا البند"
-                                    >
-                                      <Pencil className="h-3 w-3" />
-                                    </button>
-                                    <button
-                                      onClick={() => handleRemoveSingleItemInTemplate(idx)}
-                                      className="p-1 hover:bg-rose-50 text-rose-650 rounded transition"
-                                      title="حذف هذا البند"
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* Actions row */}
-                        <div className="flex justify-between items-center pt-2 border-t font-sans text-xs">
-                          <button
-                            onClick={() => handleSelectTemplateToEdit("")}
-                            className="px-4 py-2 bg-slate-250 hover:bg-slate-300 bg-slate-200 text-slate-700 rounded-lg font-bold"
-                          >
-                            إلغاء وإخلاء لوحة التحكم
-                          </button>
-
-                          <button
-                            onClick={handleSaveTemplateEdits}
-                            className="px-5 py-2 bg-gradient-to-r from-pink-600 to-rose-600 text-white hover:from-pink-700 hover:to-rose-700 font-bold rounded-lg shadow-md transition cursor-pointer"
-                          >
-                            حفظ وتطبيق كافة التغيرات لـ ({editTemplateForm.code})
-                          </button>
-                        </div>
-
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Section 2: Custom Sheet Design and Build (نظام تصميم وإنشاء شيتات جديدة) */}
-                <div className="border-t border-slate-200 pt-6">
-                  <div className="border-b border-slate-100 pb-3 mb-4">
-                    <h3 className="text-sm font-black text-slate-900 flex items-center gap-1.5 justify-end">
-                      <span>تصميم وإنشاء شيت جرد وقسم مخصص جديد لقائمة التدقيق</span>
-                      <Plus className="h-4.5 w-4.5 text-pink-600" />
-                    </h3>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      قم بإنشاء نموذج جرد رقمي جديد مخصص تماماً. يمكنك إما بناء بنوده تفاعلياً واحداً تلو الآخر لتنسيقه بدقة مذهلة، أو كتابته بالنص مجمّعاً، ليقوم النظام بتوليده وإتاحته لتسجيل السجلات والطباعة في ثوانٍ.
-                    </p>
-                  </div>
-
-                  {/* Form */}
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4 text-xs">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-right">
-                      <div>
-                        <label className="block text-[9px] font-bold text-slate-450 mb-1">اسم الشيت المخصص (بالعربية)</label>
-                        <input
-                          type="text"
-                          value={templateForm.titleAr}
-                          onChange={(e) => setTemplateForm({ ...templateForm, titleAr: e.target.value })}
-                          className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-pink-500"
-                          placeholder="مثال: جرد مستلزمات رعاية الرقابة الأسبوعي"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[9px] font-bold text-slate-450 mb-1">اسم الشيت (بالإنجليزية)</label>
-                        <input
-                          type="text"
-                          value={templateForm.titleEn}
-                          onChange={(e) => setTemplateForm({ ...templateForm, titleEn: e.target.value })}
-                          className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-pink-500"
-                          placeholder="مثال: ICU Check Sheet"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[9px] font-bold text-slate-450 mb-1">ترميز الكود (Checklist Code)</label>
-                        <input
-                          type="text"
-                          value={templateForm.code}
-                          onChange={(e) => setTemplateForm({ ...templateForm, code: e.target.value })}
-                          className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-mono text-slate-800 uppercase font-black focus:outline-none focus:ring-1 focus:ring-pink-500"
-                          placeholder="مثال: BH-ICU-08"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[9px] font-bold text-slate-450 mb-1">القسم / الوحدة</label>
-                        <select
-                          value={templateForm.departmentDefault}
-                          onChange={(e) => setTemplateForm({ ...templateForm, departmentDefault: e.target.value })}
-                          className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-pink-500 font-sans"
-                        >
-                          {departments.map((d, index) => (
-                            <option key={`${d}-${index}`} value={d}>{d}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-[9px] font-bold text-slate-450 mb-1">رقم مراجعة النسخة (Revision)</label>
-                        <input
-                          type="text"
-                          value={templateForm.version}
-                          onChange={(e) => setTemplateForm({ ...templateForm, version: e.target.value })}
-                          className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-mono focus:outline-none focus:ring-1 focus:ring-pink-500"
-                          placeholder="01"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[9px] font-bold text-slate-450 mb-1">تاريخ الإصدار والاعتماد</label>
-                        <input
-                          type="text"
-                          value={templateForm.issueDate}
-                          onChange={(e) => setTemplateForm({ ...templateForm, issueDate: e.target.value })}
-                          className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-mono focus:outline-none focus:ring-1 focus:ring-pink-500"
-                        />
-                      </div>
-
-                      <div className="md:col-span-3 flex items-center gap-2 bg-white p-3 text-right border rounded-lg border-slate-200 mt-1">
-                        <input
-                          type="checkbox"
-                          id="newHasPatient"
-                          checked={templateForm.hasPatientDetails}
-                          onChange={(e) => setTemplateForm({ ...templateForm, hasPatientDetails: e.target.checked })}
-                          className="h-4 w-4 text-pink-600 border-slate-300 rounded cursor-pointer"
-                        />
-                        <label htmlFor="newHasPatient" className="font-bold text-slate-700 cursor-pointer user-select-none">
-                          تفعيل لوحة بيانات المريض أعلى الملف (الاسم، والسن، والجنسية والتذكرة الطبية)
-                        </label>
-                      </div>
-                    </div>
-
-                    {/* Interactive Item list designer */}
-                    <div className="pt-2">
-                      <h4 className="font-bold text-slate-700 mb-2 block">تصميم بنود الجرد تفاعلياً (أو استخدم صندوق الأنابيب أدناه):</h4>
-                      
-                      <div className="bg-white p-3 rounded-lg border border-slate-200 grid grid-cols-1 md:grid-cols-12 gap-2 text-right items-end">
-                        <div className="md:col-span-3">
-                          <label className="block text-[9px] font-bold text-slate-400 mb-1">البند بالعربية *</label>
-                          <input
-                            type="text"
-                            value={newTemplateItemForm.itemAr}
-                            onChange={(e) => setNewTemplateItemForm({ ...newTemplateItemForm, itemAr: e.target.value })}
-                            className="w-full bg-slate-50 border border-slate-200 rounded py-1 px-2 font-bold focus:bg-white outline-none"
-                            placeholder="مثال: جهاز قياس التنفس مع الخرطوم"
-                          />
-                        </div>
-
-                        <div className="md:col-span-3">
-                          <label className="block text-[9px] font-bold text-slate-400 mb-1">البند بالإنجليزية</label>
-                          <input
-                            type="text"
-                            value={newTemplateItemForm.itemEn}
-                            onChange={(e) => setNewTemplateItemForm({ ...newTemplateItemForm, itemEn: e.target.value })}
-                            className="w-full bg-slate-50 border border-slate-200 rounded py-1 px-2 font-mono focus:bg-white outline-none"
-                            placeholder="Respiratory gauge set"
-                          />
-                        </div>
-
-                        <div className="md:col-span-2">
-                          <label className="block text-[9px] font-bold text-slate-400 mb-1">كود الصنف (اختياري)</label>
-                          <input
-                            type="text"
-                            value={newTemplateItemForm.code}
-                            onChange={(e) => setNewTemplateItemForm({ ...newTemplateItemForm, code: e.target.value })}
-                            className="w-full bg-slate-50 border border-slate-200 rounded py-1 px-2 font-mono focus:bg-white outline-none"
-                            placeholder="ITM-01"
-                          />
-                        </div>
-
-                        <div className="md:col-span-1.5 border-r pr-2 md:border-r-0 md:pr-0">
-                          <label className="block text-[9px] font-bold text-slate-400 mb-1">الوحدة</label>
-                          <input
-                            type="text"
-                            value={newTemplateItemForm.unit}
-                            onChange={(e) => setNewTemplateItemForm({ ...newTemplateItemForm, unit: e.target.value })}
-                            className="w-full bg-slate-50 border border-slate-200 rounded py-1 px-2 font-bold text-center focus:bg-white outline-none"
-                            placeholder="PCS"
-                          />
-                        </div>
-
-                        <div className="md:col-span-1.5">
-                          <label className="block text-[9px] font-bold text-slate-400 mb-1">الكمية المطلوبة</label>
-                          <input
-                            type="text"
-                            value={newTemplateItemForm.qty}
-                            onChange={(e) => setNewTemplateItemForm({ ...newTemplateItemForm, qty: e.target.value })}
-                            className="w-full bg-slate-50 border border-slate-200 rounded py-1 px-2 font-bold text-center focus:bg-white outline-none"
-                            placeholder="1"
-                          />
-                        </div>
-
-                        <div className="md:col-span-1">
-                          <button
-                            onClick={handleAddNewTemplateItem}
-                            className="w-full py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded text-[10px] font-bold transition flex items-center justify-center gap-1 cursor-pointer"
-                          >
-                            <Plus className="h-3 w-3" />
-                            <span>درج</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Created builder items preview */}
-                      {newTemplateItems.length > 0 && (
-                        <div className="mt-3 bg-white p-2.5 rounded-lg border border-slate-200 space-y-2">
-                          <span className="text-[10px] font-bold text-slate-400 block border-b pb-1">البنود المضافة حالياً للشيت الجديد ({newTemplateItems.length} بند جرد مخصص):</span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {newTemplateItems.map((item, index) => (
-                              <div key={index} className="flex items-center gap-1 bg-slate-100 text-slate-700 px-2 py-1 rounded border border-slate-200">
-                                <span className="font-bold">{item.itemAr}</span>
-                                <span className="text-slate-400 text-[8px]">({item.qty} {item.unit})</span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveNewTemplateItem(index)}
-                                  className="text-slate-400 hover:text-red-650 transition font-bold"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Fallback Text-based pipelines parser */}
-                    {newTemplateItems.length === 0 && (
-                      <div className="pt-2">
-                        <label className="block text-[10px] font-black text-slate-500 mb-1">
-                          أو الصق مصفوفة البنود دفعة واحدة بالتنسيق التالي (اسم الصنف بالعربية|الاسم بالإنجبليزية|الوحدة|الكمية):
-                        </label>
-                        <textarea
-                          rows={3}
-                          value={templateForm.itemsText}
-                          onChange={(e) => setTemplateForm({ ...templateForm, itemsText: e.target.value })}
-                          className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 font-mono font-bold leading-normal outline-none focus:ring-1 focus:ring-pink-500 placeholder-slate-400 focus:bg-white"
-                          placeholder="سرنجة معقمة 5 سم مخصصة|Sterile Syringe 5cc|PCS|12&#10;شريط اختبار قياس رطوبة الهواء|Air Humidity Testing Strip|STRIP|6&#10;مسحة كحول ناصعة معقمة مخصصة|Sterile Alcohol Swab|PACK|24"
-                        />
-                        <p className="text-[10px] text-slate-400 leading-normal mt-1">
-                          يقوم النظام بتسجيل البنود وتغذية الـ 31 يوماً آلياً لكل سطر مندمج. افصل البنود بسطر جديد (Enter)، والخصائص برمز الأنبوب (|).
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="flex justify-end pt-2">
-                      <button
-                        onClick={handleCreateCustomTemplate}
-                        className="px-6 py-2.5 bg-gradient-to-r from-pink-650 to-rose-650 hover:from-pink-700 hover:to-rose-700 text-white font-extrabold rounded-lg shadow-md transition cursor-pointer flex items-center gap-1.5"
-                      >
-                        <Plus className="h-4 w-4" />
-                        <span>إنشاء وتنسيق الشيت بقائمة {hospitalSettings.nameAr || "المؤسسة"}</span>
-                      </button>
-                    </div>
-
-                  </div>
-                </div>
-
-                {/* Section 3: Lists current custom templates */}
-                {customTemplates.length > 0 && (
-                  <div className="border-t border-slate-200 pt-6 text-xs">
-                    <h4 className="text-xs font-bold text-slate-800 mb-3 block">الشيتات المخصصة المشحونة المصنوعة حالياً:</h4>
-                    <div className="divide-y divide-slate-150 border border-slate-200 rounded-xl overflow-hidden bg-white">
-                      {customTemplates.map((customTpl) => (
-                        <div key={customTpl.id} className="p-3 bg-white flex items-center justify-between gap-3 hover:bg-slate-50 transition">
-                          <div>
-                            <span className="font-mono bg-pink-50 text-pink-700 font-extrabold px-2 py-0.5 rounded text-[10px] ml-2">
-                              {customTpl.code}
-                            </span>
-                            <span className="font-extrabold text-slate-900 block sm:inline-block">
-                              {customTpl.titleAr} / {customTpl.titleEn}
-                            </span>
-                            <span className="text-[10px] text-slate-400 mt-1 sm:mt-0 font-bold block sm:inline-block sm:mr-4">
-                              القسم الافتراضي: {customTpl.departmentDefault} | {customTpl.items.length} أصناف
-                            </span>
-                          </div>
-                          <button
-                            onClick={() => handleDeleteCustomTemplate(customTpl.id)}
-                            className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-100 rounded-lg text-[10px] font-bold transition cursor-pointer"
-                          >
-                            حذف الشيت بالكامل
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
           )}
 
@@ -13997,7 +14125,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
 
             {/* Modal Body: Render ProfileView inside directly! */}
             <div className="p-6">
-              <ProfileView user={viewingUserProfileUser} language={language} />
+              <ProfileView user={viewingUserProfileUser} language={language} systemUsers={systemUsers} />
             </div>
           </div>
         </div>

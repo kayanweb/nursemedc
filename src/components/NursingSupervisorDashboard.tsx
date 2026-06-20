@@ -6,9 +6,10 @@ import SmartNotificationCenter from "./SmartNotificationCenter";
 
 interface Props {
   language: "ar" | "en";
+  onNavigate?: (tab: string, subTab?: string) => void;
 }
 
-export default function NursingSupervisorDashboard({ language }: Props) {
+export default function NursingSupervisorDashboard({ language, onNavigate }: Props) {
   const isAr = language === "ar";
   const [activeTab, setActiveTab] = useState<"reports" | "forms" | "interactive">("reports");
   const [activeForm, setActiveForm] = useState<"none" | "rounding" | "dailySuite">("none");
@@ -336,7 +337,7 @@ export default function NursingSupervisorDashboard({ language }: Props) {
 
          {/* Right/Left Sidebar - Smart Notification Center */}
          <div className="w-full xl:w-[320px] shrink-0 xl:h-[calc(100vh-140px)] sticky top-6">
-            <SmartNotificationCenter language={language} />
+            <SmartNotificationCenter language={language} onNavigate={onNavigate} />
          </div>
 
       </div>

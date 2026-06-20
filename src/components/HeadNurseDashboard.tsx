@@ -4,9 +4,10 @@ import SmartNotificationCenter from "./SmartNotificationCenter";
 
 interface Props {
   language: "ar" | "en";
+  onNavigate?: (tab: string, subTab?: string) => void;
 }
 
-export default function HeadNurseDashboard({ language }: Props) {
+export default function HeadNurseDashboard({ language, onNavigate }: Props) {
   const isAr = language === "ar";
   const [activeTab, setActiveTab] = useState<"handover" | "assignment" | "tasks" | "stock" | "admit">("handover");
 
@@ -407,7 +408,7 @@ export default function HeadNurseDashboard({ language }: Props) {
 
         {/* Right Sidebar - Smart Notification Center */}
         <div className="w-full xl:w-[320px] shrink-0 xl:h-[calc(100vh-140px)] sticky top-6">
-          <SmartNotificationCenter language={language} />
+          <SmartNotificationCenter language={language} onNavigate={onNavigate} />
         </div>
 
       </div>

@@ -1,0 +1,72 @@
+src/App.tsx:1555:    { id: "signoffRosterCno", nameAr: "التوقيع والاعتماد الإلكتروني النهائي للروستر (Medical director signoff)", nameEn: "Final CNO & Director Roster Signoff Signature" },
+src/App.tsx:1564:    { id: "signMedicalOrders", nameAr: "التوقيع الإلكتروني المعتمد للتعليمات ووصف العلاج (Sign Medical Orders)", nameEn: "Sign Off Medical & Medication Orders" },
+src/App.tsx:1613:        { id: "signoffRosterCno", nameAr: "التوقيع والاعتماد الإلكتروني النهائي للروستر (Medical director signoff)", nameEn: "Final CNO & Director Roster Signoff Signature" },
+src/App.tsx:1622:        { id: "signMedicalOrders", nameAr: "التوقيع الإلكتروني المعتمد للتعليمات ووصف العلاج (Sign Medical Orders)", nameEn: "Sign Off Medical & Medication Orders" },
+src/App.tsx:4180:        { sn: "2", code: "AMA-02", itemAr: "توقيع المريض والولي أو صلة القرابة مع بصمة اليد والبطاقة", itemEn: "Patient and relative signature with ID card photocopy", unit: "Doc", qty: "1", days: { "1": "✔", "2": "✔", "3": "✔", "4": "✔", "5": "✔", "6": "✘", "15": "✔", "16": "✔", "17": "✔" } }
+src/App.tsx:5459:                ? `✅ تم تقديم واعتماد الشيك ليست اليومية لـ [${effectiveDutyDept}] بنجاح، بانتظار توقيع مديرة التمريض والمشرفين!` 
+src/App.tsx:5488:              alert(language === "ar" ? "🎉 تم الختم والتوقيع والاعتماد الجراحي النهائي بنجاح ومزامنته للوحة الجودة!" : "🎉 Final clinical audit signed off and logged to quality database successfully!");
+src/App.tsx:5661:                            statusTextAr = "✍ تم التقديم (بانتظار توقيعك)";
+src/App.tsx:5694:                                <span>{language === "ar" ? "اعتماد وتوقيع الشيت" : "Certify Sheet"}</span>
+src/App.tsx:5792:                                    language === "ar" ? "لم يتم التوقيع اليوم" : "No entry today"
+src/App.tsx:5923:                                  ? (language === "ar" ? "تم الاعتماد النهائي، الختم والتوقيع بواسطة المشرف!" : "Checklist fully Audited, Signed and Accredited by Supervisor!")
+src/App.tsx:5924:                                  : (language === "ar" ? "تم التقديم والإتمام اليومي بنجاح وتوقيع الاستاف!" : "Today's Checklist successfully completed by staff but pending Audit sign-off.")}
+src/App.tsx:6066:                              {language === "ar" ? "توقيع الموظف وإرسال استمارة الجرد الرقمية اليومية" : "Bilingual Electronic Staff Verification Stamps"}
+src/App.tsx:6117:                                <span>{language === "ar" ? "تأكيد الختم والتوقيع كمديرة تمريض ومشرف معتمد" : "Certify, Sign & Seal Healthcare Entry Logs"}</span>
+src/App.tsx:7068:                              <p className="font-bold">{language === "ar" ? "توقيع المريض المقر بالمسؤولية" : "Patient Declarant Signature:"}</p>
+src/App.tsx:7069:                              <p className="text-[10px] text-slate-450">{language === "ar" ? "توقيع أو ختم بصمة اليد" : "Handwritten signature or thumbprint"}</p>
+src/App.tsx:7072:                              <p className="font-bold">{language === "ar" ? "توقيع الطبيب والختم الرسمي" : "Physician Stamp & Stamp:"}</p>
+src/App.tsx:7073:                              <p className="text-[10px] text-slate-455">{language === "ar" ? "تاريخ ووقت التوقيع بالرفض" : "Date & time of clearance"}</p>
+src/App.tsx:7240:                                      <span>{language === "ar" ? "توقيع وبصمة الموظف اليومي:" : "Daily Verified Signature:"}</span>
+src/App.tsx:9208:                              {language === "ar" ? `⌛ بانتظار توقيع رئيسة التمريض (${customCnoName})` : `Pending Signature of ${customCnoName}`}
+src/App.tsx:9255:                              {cnoApproved ? (language === "ar" ? "إلغاء التوقيع" : "Revoke") : (language === "ar" ? "توقيع الآن 📝" : "Sign Off")}
+src/App.tsx:9275:                                <span>✓ {language === "ar" ? "تم التوقيع بنجاح والإصدار الرسمي" : "Operations Sealed"}</span>
+src/App.tsx:9282:                              {language === "ar" ? `⌛ بانتظار توقيع المدير الطبي ورئيس العمليات (${customDirectorName})` : `Pending Seal of ${customDirectorName}`}
+src/App.tsx:9329:                              {directorApproved ? (language === "ar" ? "إلغاء التوقيع" : "Revoke") : (language === "ar" ? "توقيع الآن 📝" : "Sign Off")}
+src/App.tsx:9345:                          ⚙️ تخصيص أسماء أصحاب التوقيع المعتمدين والمناصب المرنة والترقية الفورية
+src/App.tsx:9988:                      <span>توقيع رئيسة تمريض القسم:</span>
+src/App.tsx:9992:                      <span>توقيع أ. فاطمة الزهراء (رئيسة تمريض المستشفى CNO):</span>
+src/App.tsx:9998:                      <span>موافقة وتوقيع د. محمد السيد (المدير العام):</span>
+src/App.tsx:10499:                                ? `يقوم النظام ببث التعديلات والطلب لمشرف القسم الحالي (${selectedRosterDept}) ومباشرة إلى رئيسة التمريض (HN)، ثم مدير الجودة (Quality)، وصولاً إلى المدير الطبي (CNO) للمراجعة والتوقيع الإلكتروني.`
+src/App.tsx:13440:                      <h4 className="font-bold text-xs text-pink-300">✍️ {language === "ar" ? "تحديد توقيعات ومسميات رؤساء الشعب والمدراء" : "Official Signatories Configurator"}</h4>
+src/components/EMRDashboard.tsx:295:                   <FileSignature className="w-4 h-4" /> {isAr ? "توقيع وإغلاق الزيارة (Sign & Close)" : "Sign & Lock Visit"}
+src/components/HeadNurseDashboard.tsx:170:                     {isAr ? "إغلاق وتوقيع تسليم الشفت" : "Sign & Lock Complete Handover"}
+src/components/HeadNurseDashboard.tsx:343:                       <p className="text-[10px] text-rose-700 font-bold mt-1 max-w-sm">جرد الشفت الإلزامي يتطلب توقيع مزدوج لمسؤول الصيدلة والتمريض للمطابقة مع استهلاك المرضى (MAR).</p>
+src/components/HeadNurseDashboard.tsx:371:                   <ShieldCheck className="w-5 h-5 text-rose-400"/> {isAr ? "بوابة الصرف المغلقة (توقيع ثنائي)" : "Dual Signature Vault"}
+src/components/MealsDeliveryLog.tsx:169:              <th className="border-2 border-slate-800 px-2 py-4 font-black w-32 text-base">{isAr ? "التوقيع" : "Signature"}</th>
+src/components/MealsDeliveryLog.tsx:536:                  <th className="border-2 border-slate-800 px-2 py-4 font-black w-32 text-base">{isAr ? "التوقيع" : "Signature"}</th>
+src/components/MedicationLedger.tsx:995:                ? "طبقاً لمعايير سلامة المرضى الدولية، تتطلب الأدوية عالية الخطورة (مثل الإنسولين، الهيبارين، المحاليل المركزة) التحقق المستقل من ممرضين منفصلين وتوقيعهما معاً بالرمز السري قبل حقن المريض."
+src/components/MedicationLedger.tsx:1150:                        <span>{isAr ? `توقيع الشريك: ${log.coNurse}` : `Checked by: ${log.coNurse}`}</span>
+src/components/MedicationLedger.tsx:1151:                        <span>{isAr ? `توقيع المجهز: ${log.primaryNurse}` : `Prepared by: ${log.primaryNurse}`}</span>
+src/components/NursingAdminToolbox.tsx:544:          { key: "beforeAnes", labelAr: "التحقق من موافقة المريض المكتوبة وسجل تحسسه وفحص مخدر التخدير الموضعي (مرحلة التوقيع)", labelEn: "Sign-In check: Confirm identity, signed consent, site marking, and anesthesia check" },
+src/components/NursingAdminToolbox.tsx:552:          { key: "df3", labelAr: "التوقيع والختم الإلكتروني وتسجيل وقت العمل", labelEn: "Complete digital signature with timestamp tracking" }
+src/components/NursingAdminToolbox.tsx:938:                  <label className="block text-xs font-bold text-slate-700">{isAr ? "المسؤول عن الفحص والتوقيع:" : "Assigned Practitioner:"}</label>
+src/components/NursingDirectorDashboard.tsx:183:                         <button className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 rounded-md text-[10px] font-bold transition">✅ توقيع إلكتروني</button>
+src/components/NursingSupervisorDashboard.tsx:330:                        {isAr ? "توقيع وترحيل مفكرة القيادة" : "Sign & Lock Command Log"}
+src/components/ProfileView.tsx:1206:                      <p className="font-extrabold">{isAr ? "توقيع الكادر بالتعهد:" : "Employee Signature:"}</p>
+src/components/ProfileView.tsx:1494:                ? "تقترن بصمتك وتوقيع الكود الإلكتروني مباشرة بكل ورقة نوبتجية أو طلب يتم إرساله لتثبيت الشفافية ومنع التلاعب والتزوير التشغيلي."
+src/components/QualityAnalyticsHub.tsx:177:      correctiveAr: "استدعاء الصيدلي الإكلينيكي فوراً بموقع الطوارئ ومراجعة العلامات الحيوية كل 15 دقيقة مع توقيع عقوبة تنبيه إداري للممرض المسؤول.",
+src/components/QualityAnalyticsHub.tsx:707:    alert(isAr ? "📝 تم إمضاء التزامك وتوقيعك الإلكتروني بالسياسة الطبية بنجاح سحابياً!" : "Policy electronically signed.");
+src/components/QualityAnalyticsHub.tsx:1359:                      <span>{isAr ? "توقيع مالي سريري وحفظ بـ HIPAA Database" : "E-Sign & Save to HIPAA Secure DB"}</span>
+src/components/QualityAnalyticsHub.tsx:2693:                <p className="text-[10.5px] text-slate-500 mt-0.5">تفحص السياسات الرسمية للمستشفى واقرأ الميثاق الطبي السنوي، ثم قم بتعزيز توقيعك بالتزام السياسة للحفظ في مستندات الاعتماد.</p>
+src/components/QualityAnalyticsHub.tsx:2856:            typeNameAr: "توقيع التزام بالسياسة الحيوية",
+src/components/QualityAnalyticsHub.tsx:2858:            titleAr: `توقيع إلكتروني بالتزام سياسة: ${policyTitle}`,
+src/components/QualityAnalyticsHub.tsx:3289:                              <p><span className="text-slate-400 font-bold">● نوع الإجراء القانوني:</span> <span className="font-black text-slate-900">توقيع أمني إلكتروني بالعلم والالتزام التام بالسياسة</span></p>
+src/components/QualityAnalyticsHub.tsx:3291:                              <p><span className="text-slate-400 font-bold">● البصمة الرقمية للتوقيع:</span> <span className="font-mono bg-slate-100 px-1 py-0.5 rounded text-[10px] text-indigo-750">SIG-BAHEYA-{item.originalData.nurseId?.toUpperCase()}-{item.id}</span></p>
+src/components/QualityAnalyticsHub.tsx:3312:                          <p className="font-black text-slate-900">التوقيع الإلكتروني المصدق:</p>
+src/components/RosterPlanningPanel.tsx:311:    const code = window.prompt(isAr ? `مطلوب تأكيد الهوية لتنفيذ: تفويض استثناء للموظف ${resolvedUser.nameAr}\nأدخل كود الموظف الخاص بك للتوقيع:` : `Verification required.\nEnter your employee code to sign:`);
+src/components/RosterPlanningPanel.tsx:340:        `توقيع ترخيص استثنائي مخصص للموظف/ة (${newRecord.employeeNameAr}) - قسم ${newRecord.department}. الحدود القياسية ${newRecord.type === "under" ? "الأدنى" : "الأقصى"} تصبح ${newRecord.newTargetShifts} شيفت.`,
+src/components/RosterPlanningPanel.tsx:349:    alert(isAr ? "✔ تم تنفيذ وتوثيق ترخيص التجاوز والتوقيع بصحيفة التدقيق الإلكتروني بنجاح!" : "✔ Limit exception authorized and archived into the audit book!");
+src/components/RosterPlanningPanel.tsx:1063:                            تأمين ترصيد الترخيص وتوقيع استثناء
+src/components/RosterPlanningPanel.tsx:1289:                <p className="text-slate-400 text-[10px] mt-0.5">طبقاً للمادة 2 من سياسة العمل، يجب تفويض أي زيادة أو نقصان بتوقيع مدير التمريض.</p>
+src/components/RosterPlanningPanel.tsx:1376:                  <span>التوقيع الإلكتروني الإلزامي:</span>
+src/components/RosterPlanningPanel.tsx:1393:                <span>إجازة التوقيع وأرشفة الطلب</span>
+src/components/RosterPlanningPanel.tsx:1404:                <p className="text-slate-400 text-xs mt-0.5">التراخيص المشفّرة بختم وتوقيع الإدارة لترحيل بيانات الجودة.</p>
+src/components/RosterPlanningPanel.tsx:1442:                        <span>تم التوقيع إلكترونياً بختم: [{rec.signedBy}]</span>
+src/components/RosterPlanningPanel.tsx:1627:              يقوم النظام بالتحقق التلقائي والمسح المستمر لجميع الكوادر الطبية والتمريضية في مختلف الأقسام الطبية للتأكد من استكمال النصاب الشهري التشغيلى الأساسي للحد الأدنى (<b>{settings.الحد_الأدنى_للشيفتات_الشهري} وردية شهرياً</b>) في الفترة الحالية (16 مايو - 15 يونيو 2026). يتم توجيه إنذار تلقائي وتجميد الاعتماد للمقصرين لحين قيام مدير التمريض بتوقيع استثناء للحد الأدنى بأثر رجعي.
+src/components/RosterPlanningPanel.tsx:1719:                  reason: `تأمين ترصيد الترخيص وتوقيع استثناء للحد الأدنى من الوردية لتأكيد التغطية التشغيلية للقسم`,
+src/components/RosterPlanningPanel.tsx:1730:                  addSystemLog(`توقيع ترخيص استثنائي للحد الأدنى المسموح للكادر (${user.nameAr}) - الحد الأدنى يصبح ${currentShifts} شيفت. بواسطة المشرف (${authorizer.nameAr})`, "success");
+src/components/RosterPlanningPanel.tsx:1732:                alert(isAr ? `✔ تم اعتماد ترصيد الترخيص وتوقيع استثناء للحد الأدنى للكادر (${user.nameAr}) بنجاح للمشرف ${authorizer.nameAr}!` : `Exception approved for ${user.nameEn} by ${authorizer.nameEn}!`);
+src/components/RosterPlanningPanel.tsx:1790:                      <span>تأمين ترصيد الترخيص وتوقيع استثناء للحد الأدنى</span>
+src/components/SupervisorDailySuite.tsx:2987:              <span>{isAr ? "توقيع واعتماد السوبرفايزر:" : "Authorized Supervisor Signature:"}</span>
+src/components/SupervisorRoundingAudit.tsx:44:       { id: "med_narcotic", textAr: "اكتمال دفتر الأدوية المخدرة ومطابقة العهدة بالتوقيع المزدوج", textEn: "Narcotics book complete with double signatures" },
+src/components/SupervisorRoundingAudit.tsx:335:                  <span>{isAr ? "توقيع المشرف المرور:" : "Supervisor Signature:"}</span>

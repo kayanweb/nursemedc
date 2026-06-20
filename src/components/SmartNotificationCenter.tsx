@@ -3,9 +3,10 @@ import { AlertCircle, AlertTriangle, Info, X } from "lucide-react";
 
 interface Props {
   language: "ar" | "en";
+  onNavigate?: (tab: string, subTab?: string) => void;
 }
 
-export default function SmartNotificationCenter({ language }: Props) {
+export default function SmartNotificationCenter({ language, onNavigate }: Props) {
   const isAr = language === "ar";
   
   return (
@@ -20,7 +21,10 @@ export default function SmartNotificationCenter({ language }: Props) {
       
       <div className="space-y-3 overflow-y-auto flex-1 pr-1 custom-scrollbar">
         {/* Red Alert */}
-        <div className="bg-rose-950/50 border border-rose-800 rounded-xl p-3 relative overflow-hidden group">
+        <div 
+          onClick={() => onNavigate && onNavigate("emr")}
+          className="bg-rose-950/50 border border-rose-800 rounded-xl p-3 relative overflow-hidden group cursor-pointer hover:bg-rose-900/50 transition-colors"
+        >
           <div className="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>
           <div className="flex gap-3">
             <div className="mt-0.5 bg-rose-900/50 p-1.5 rounded-lg shrink-0 h-min">
@@ -40,7 +44,10 @@ export default function SmartNotificationCenter({ language }: Props) {
         </div>
 
         {/* Yellow Alert */}
-        <div className="bg-amber-950/50 border border-amber-800/50 rounded-xl p-3 relative overflow-hidden">
+        <div 
+           onClick={() => onNavigate && onNavigate("roster")}
+           className="bg-amber-950/50 border border-amber-800/50 rounded-xl p-3 relative overflow-hidden cursor-pointer hover:bg-amber-900/50 transition-colors"
+        >
           <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
           <div className="flex gap-3">
             <div className="mt-0.5 bg-amber-900/50 p-1.5 rounded-lg shrink-0 h-min">
@@ -61,7 +68,10 @@ export default function SmartNotificationCenter({ language }: Props) {
         </div>
 
         {/* Blue Alert */}
-        <div className="bg-sky-950/50 border border-sky-800/50 rounded-xl p-3 relative overflow-hidden">
+        <div 
+          onClick={() => onNavigate && onNavigate("transport")}
+          className="bg-sky-950/50 border border-sky-800/50 rounded-xl p-3 relative overflow-hidden cursor-pointer hover:bg-sky-900/50 transition-colors"
+        >
           <div className="absolute top-0 left-0 w-1 h-full bg-sky-500"></div>
           <div className="flex gap-3">
             <div className="mt-0.5 bg-sky-900/50 p-1.5 rounded-lg shrink-0 h-min">
@@ -75,7 +85,7 @@ export default function SmartNotificationCenter({ language }: Props) {
                 {isAr ? "نقل المريض من الطوارئ إلى غرفة 312 بالباطنة، بانتظار موافقتك." : "Transfer from ER to Ward 312 pending your approval."}
               </p>
               <div className="mt-2 flex gap-2 w-full">
-                  <button className="flex-1 bg-sky-600 hover:bg-sky-500 text-white text-[9px] font-bold py-1.5 rounded transition">
+                  <button onClick={(e) => { e.stopPropagation(); onNavigate && onNavigate("transport", "approve"); }} className="flex-1 bg-sky-600 hover:bg-sky-500 text-white text-[9px] font-bold py-1.5 rounded transition">
                      {isAr ? "موافقة فورية" : "Approve Now"}
                   </button>
               </div>

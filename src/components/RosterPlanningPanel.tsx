@@ -158,7 +158,9 @@ export default function RosterPlanningPanel({
   currentUser = { id: "", nameAr: "مستخدم تجريبي" },
   addSystemLog,
   onViewUserProfile,
-  rosterAuditLogs = []
+  rosterAuditLogs = [],
+  onAppTabChange,
+  setSelectedRosterDept
 }: {
   language: string;
   hospitalSettings: any;
@@ -170,6 +172,8 @@ export default function RosterPlanningPanel({
   addSystemLog?: (msg: string, type?: "info" | "success" | "warning" | "error") => void;
   onViewUserProfile?: (user: any) => void;
   rosterAuditLogs?: RosterAuditLog[];
+  onAppTabChange?: (tab: any) => void;
+  setSelectedRosterDept?: (dept: string) => void;
 }) {
   const isAr = language === "ar";
 
@@ -303,8 +307,12 @@ export default function RosterPlanningPanel({
       alert(isAr ? "تسجيل سبب التجاوز إجباري طبقاً لسياسة الجودة ولائحة مدير التمريض" : "Reason statement is mandatory.");
       return;
     }
-    if (!cnoEsignature.trim()) {
-      alert(isAr ? "يرجى كتابة اسم التوقيع الإلكتروني لمدير هيئة التمريض لتفعيل التصريح السحابي" : "E-signature name is required.");
+
+    const code = window.prompt(isAr ? `مطلوب تأكيد الهوية لتنفيذ: تفويض استثناء للموظف ${resolvedUser.nameAr}\nأدخل كود الموظف الخاص بك للتوقيع:` : `Verification required.\nEnter your employee code to sign:`);
+    if (!code) return;
+    const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code);
+    if (!authorizer) {
+      alert(isAr ? "الكود غير صحيح أو غير مسجل بالنظام." : "Invalid employee code. Authorization failed.");
       return;
     }
 
@@ -319,7 +327,7 @@ export default function RosterPlanningPanel({
       newTargetShifts: overrideNewShifts,
       reason: overrideReason.trim(),
       periodType: overridePeriodType,
-      signedBy: cnoEsignature.trim(),
+      signedBy: `${authorizer.nameAr} (${authorizer.staffId})`,
       timestampMs: Date.now(),
       dateSignedStr: new Date().toISOString().split("T")[0]
     };
@@ -1211,15 +1219,66 @@ export default function RosterPlanningPanel({
 
                 {/* Switch view buttons */}
                 <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <span className="text-[10px] text-slate-400 font-bold">
-                    وقت التحديث: 09:00 ص
-                  </span>
+                  <div className="flex gap-1.5 border border-slate-100 bg-slate-50 p-0.5 rounded-lg">
+                    <button onClick={() => {
+                        const code = window.prompt(isAr ? `تأكيد إجراء (طباعة): أدخل كود الموظف:` : `Verification required (Print). Enter code:`);
+                        if (!code) return;
+                        const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code);
+                        if (!authorizer) {
+                          alert(isAr ? "الكود غير صحيح." : "Invalid code.");
+                          return;
+                        }
+                        if(addSystemLog) addSystemLog(`طباعة بواسطة: ${authorizer.nameAr}`, "info");
+                        window.print();
+                    }} className="px-2 py-1 text-slate-500 hover:text-pink-600 hover:bg-white rounded transition shadow-sm" title={isAr ? "طباعة التقرير" : "Print Report"}>
+                      <Printer className="w-3.5 h-3.5"/>
+                    </button>
+                    <button onClick={() => {
+                        const code = window.prompt(isAr ? `تأكيد إجراء (تصدير CSV): أدخل كود الموظف:` : `Verification required (Export). Enter code:`);
+                        if (!code) return;
+                        const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code);
+                        if (!authorizer) {
+                          alert(isAr ? "الكود غير صحيح." : "Invalid code.");
+                          return;
+                        }
+                        if(addSystemLog) addSystemLog(`تصدير تقرير بواسطة: ${authorizer.nameAr}`, "info");
+                        alert(isAr ? `تم التصدير بواسطة: ${authorizer.nameAr}` : "Export completed.");
+                    }} className="px-2 py-1 text-slate-500 hover:text-pink-600 hover:bg-white rounded transition shadow-sm" title={isAr ? "تصدير CSV" : "Export CSV"}>
+                      <Download className="w-3.5 h-3.5"/>
+                    </button>
+                    <button onClick={() => {
+                        const code = window.prompt(isAr ? `تأكيد إجراء (إرسال تنبيه آلي): أدخل كود الموظف:` : `Verification required (Notify). Enter code:`);
+                        if (!code) return;
+                        const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code);
+                        if (!authorizer) {
+                          alert(isAr ? "الكود غير صحيح." : "Invalid code.");
+                          return;
+                        }
+                        if(addSystemLog) addSystemLog(`تنبيه غياب بواسطة: ${authorizer.nameAr}`, "warning");
+                        alert(isAr ? `تم إشعار الغائبين والمشرفين بتوقيع: ${authorizer.nameAr}` : "Notifications sent.");
+                    }} className="px-2 py-1 text-slate-500 hover:text-pink-600 hover:bg-white rounded transition shadow-sm" title={isAr ? "إرسال تنبيهات للغائبين" : "Send Automated Alerts"}>
+                      <Mail className="w-3.5 h-3.5"/>
+                    </button>
+                  </div>
 
                   <button
                     onClick={() => {
-                      alert(isAr ? `جاري إبراز وتحويل التاب لعرض الروستر التفصيلي لـ: ${stat.departmentName}` : `Redraw active worksheet rows to detail view: ${stat.departmentName}`);
-                      // We can optionally change local state to bubble selection
-                      window.scrollTo({ top: 400, behavior: "smooth" });
+                      // Optional: employee PIN to authorize viewing
+                      const code = window.prompt(isAr ? `مطلوب تأكيد الهوية للدخول لـ: الروستر التفصيلي لـ ${stat.departmentName}\nأدخل كود الموظف الخاص بك:` : `Verification required.\nEnter your employee code:`);
+                      if (!code) return;
+                      const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code);
+                      if (!authorizer) {
+                        alert(isAr ? "الكود غير صحيح أو غير مسجل بالنظام." : "Invalid employee code. Authorization failed.");
+                        return;
+                      }
+                      
+                      if (setSelectedRosterDept) {
+                        setSelectedRosterDept(stat.departmentName);
+                      }
+                      if (onAppTabChange) {
+                        onAppTabChange("roster");
+                      }
+                      window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
                     className="px-3 py-1.5 text-pink-600 hover:bg-pink-100 rounded-lg text-[10px] font-black transition flex items-center gap-1 cursor-pointer"
                   >
@@ -1661,6 +1720,14 @@ export default function RosterPlanningPanel({
               };
 
               const handleQuickException = (user: any, currentShifts: number) => {
+                const code = window.prompt(isAr ? `تأكيد إجراء (تأمين ترصيد): أدخل كود الموظف للاعتماد (مثال: pin أو staffId):` : `Verification required (Approve Exception). Enter code:`);
+                if (!code) return;
+                const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code);
+                if (!authorizer) {
+                  alert(isAr ? "الكود غير صحيح أو غير مسجل بالنظام." : "Invalid employee code. Authorization failed.");
+                  return;
+                }
+
                 const newRecord: LimitOverrideRecord = {
                   id: `override-${Date.now()}`,
                   employeeId: user.id,
@@ -1672,7 +1739,7 @@ export default function RosterPlanningPanel({
                   newTargetShifts: currentShifts,
                   reason: `تأمين ترصيد الترخيص وتوقيع استثناء للحد الأدنى من الوردية لتأكيد التغطية التشغيلية للقسم`,
                   periodType: "temporary",
-                  signedBy: "مدير التمريض والكوادر",
+                  signedBy: `${authorizer.nameAr} (${authorizer.staffId})`,
                   timestampMs: Date.now(),
                   dateSignedStr: new Date().toISOString().split("T")[0]
                 };
@@ -1681,9 +1748,9 @@ export default function RosterPlanningPanel({
                 saveOverrides(nextList);
                 
                 if (addSystemLog) {
-                  addSystemLog(`توقيع ترخيص استثنائي للحد الأدنى المسموح للكادر (${user.nameAr}) - الحد الأدنى يصبح ${currentShifts} شيفت.`, "success");
+                  addSystemLog(`توقيع ترخيص استثنائي للحد الأدنى المسموح للكادر (${user.nameAr}) - الحد الأدنى يصبح ${currentShifts} شيفت. بواسطة المشرف (${authorizer.nameAr})`, "success");
                 }
-                alert(isAr ? `✔ تم اعتماد ترصيد الترخيص وتوقيع استثناء للحد الأدنى للكادر (${user.nameAr}) بنجاح وتوجيهه فوراً لمدير التمريض والكوادر!` : `Exception approved for ${user.nameEn}!`);
+                alert(isAr ? `✔ تم اعتماد ترصيد الترخيص وتوقيع استثناء للحد الأدنى للكادر (${user.nameAr}) بنجاح للمشرف ${authorizer.nameAr}!` : `Exception approved for ${user.nameEn} by ${authorizer.nameEn}!`);
               };
 
               if (list.length === 0) {

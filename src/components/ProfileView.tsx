@@ -15,6 +15,7 @@ interface ProfileViewProps {
   user: AppUser;
   language: "ar" | "en";
   hospitalSettings?: any;
+  systemUsers?: any[];
 }
 
 interface LeaveRequestRecord {
@@ -39,7 +40,7 @@ interface AdminRequestRecord {
   timestampMs: number;
 }
 
-export default function ProfileView({ user, language, hospitalSettings }: ProfileViewProps) {
+export default function ProfileView({ user, language, hospitalSettings, systemUsers = [] }: ProfileViewProps) {
   const isAr = language === "ar";
   
   // Tab State
@@ -602,7 +603,7 @@ export default function ProfileView({ user, language, hospitalSettings }: Profil
           }`}
         >
           <Briefcase size={13} />
-          <span>{isAr ? "طلبات إدارية استثنائية" : "Admin Requests"}</span>
+          <span>{isAr ? "طلبات إدارية واستثناءات" : "Admin Requests"}</span>
         </button>
       </div>
 

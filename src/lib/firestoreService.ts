@@ -704,6 +704,43 @@ export async function saveSetting(key: string, value: any): Promise<void> {
     }
 }
 
+export function syncCloudDocuments(onData: (docs: any[]) => void) {
+  const path = "baheya_cqi_documents";
+  return onSnapshot(
+    collection(db, path),
+    (snapshot) => {
+      const list: any[] = [];
+      snapshot.forEach((doc) => {
+        list.push(doc.data());
+      });
+      // Sort by timestamp desc
+      list.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      onData(list);
+    },
+    (error) => {
+      handleFirestoreError(error, OperationType.LIST, path);
+    }
+  );
+}
+
+export async function saveCloudDocument(docData: any): Promise<void> {
+  const path = `baheya_cqi_documents/${docData.id}`;
+  try {
+      await setDoc(doc(db, "baheya_cqi_documents", docData.id), docData);
+  } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+export async function deleteCloudDocument(docId: string): Promise<void> {
+  const path = `baheya_cqi_documents/${docId}`;
+  try {
+      await deleteDoc(doc(db, "baheya_cqi_documents", docId));
+  } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, path);
+  }
+}
+
 // 15. Quality OVRs Sync and Save
 export function syncCQIOvrs(onData: (ovrs: any[]) => void) {
   const path = "baheya_cqi_ovrs";

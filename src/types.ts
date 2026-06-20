@@ -165,6 +165,9 @@ export interface Notification {
   titleEn?: string;
   bodyAr?: string;
   bodyEn?: string;
+  targetTab?: string;
+  targetSubTab?: string;
+  targetUserId?: string;
 }
 
 export interface RosterWish {

@@ -1,0 +1,92 @@
+  hospitalSettings: any;
+  hospitalSettings: {
+  const [hospitalSettings, setHospitalSettings] = useState<any>({
+    <SystemSettingsContext.Provider value={{ hospitalSettings, setHospitalSettings }}>
+  const { hospitalSettings, setHospitalSettings } = React.useContext(SystemSettingsContext);
+    if (hospitalSettings) {
+        ? (hospitalSettings.portalTitleAr || hospitalSettings.nameAr || "البوابة الرقمية للمستشفى")
+        : (hospitalSettings.portalTitleEn || hospitalSettings.nameEn || "Hospital Digital Portal");
+  }, [hospitalSettings, language]);
+      messageAr: `إشعار نظام: تم تنشيط بوابة ${hospitalSettings.nameAr || "المؤسسة"} الرقمية وبدء مراقبة الجودة الطبية والسريرية.`,
+      messageEn: `System Notice: ${hospitalSettings.nameEn || "Hospital"} Clinical Audit Portal activated successfully.`,
+    const finalTitleAr = templateForm.titleAr.trim() || `شيت ${hospitalSettings.nameAr || "المؤسسة"} المخصص الجرد اليومي (${new Date().toLocaleDateString('ar-EG')})`;
+    const finalTitleEn = templateForm.titleEn.trim() || `${hospitalSettings.portalTitleEn} Custom Daily Sheet (${new Date().toLocaleDateString('en-US')})`;
+    alert(language === "ar" ? `تم تسجيل وتصميم شيت ${hospitalSettings.portalTitleAr} المخصص بنجاح، وجاري فتح المحرر لك الآن!` : `New custom ${hospitalSettings.portalTitleEn} checklist created and opened in your worksheet editor!`);
+        ? `🚨 تحذير هام: هل أنت متأكد من رغبتك في إعادة تهيئة الروستر في قسم (${selectedRosterDept}) إلى الوضع الأصلي للتطبيق؟ سيتم مسح أي نوبتجيات معدلة وإرجاع قائمة الموظفين الأساسيين ل${hospitalSettings.nameAr || "المؤسسة"}.`
+          ? `🔒 تنبيه الالتزام والرقابة الطبية: يمنع منعاً باتاً سجل أو تعديل الجداول لغير اليوم الحالي (${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}). لا يمكنك تسجيل بيانات أو تعديل خانات الأيام السابقة أو القادمة للالتزام الطبي والرقابي بمستشفى ${hospitalSettings.nameAr || "المؤسسة"}.`
+          : `🔒 ${hospitalSettings.nameEn} Quality Compliance Lock: Recording or updating cell data for past or future dates is strictly prohibited. You can only log and modify entries for the current active day (${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}).`
+          ? `🔒 تنبيه الالتزام والرقابة الطبية: يمنع منعاً باتاً التعبئة التلقائية لغير اليوم الحالي (${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}). لا يمكنك تسجيل بيانات أو تعديل خانات الأيام السابقة أو القادمة للالتزام الطبي الوقائي بمستشفى ${hospitalSettings.nameAr || "المؤسسة"}.`
+          : `🔒 ${hospitalSettings.nameEn} Quality Compliance Lock: Bulk-filling cell data for past or future dates is strictly prohibited. You can only log and modify entries for today's active day (${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}).`
+          ? `عذراً، البريد الإلكتروني المدخل غير مسجل بنظام كادر ${hospitalSettings.nameAr || "المؤسسة"}.`
+      sender: `security-noreply@${(hospitalSettings.nameEn || "hospital").toLowerCase().replace(/\s+/g, "")}.org`,
+        ? `🔒 [نظام الأمان بـ ${hospitalSettings.nameAr || "المستشفى"}] كود استعادة الـ PIN السري وتنبيهات الكادر` 
+        : `🔒 [${hospitalSettings.nameEn || "Hospital"} Security Portal] Passcode PIN Recovery & System Override Link`,
+        ? `تم تحديث وحفظ الرمز الجديد بنجاح بنظام كادر ${hospitalSettings.nameAr || "المؤسسة"} المركزي لـ ${recoveryTargetUser.nameAr}. يمكنك كتابة الرمز الجديد لتسجيل الدخول آمن.`
+    alert(language === "ar" ? `تم توليد وتغذية النظام بـ 3 سجلات تاريخية طبية واقعية لـ ${hospitalSettings.nameAr || "المؤسسة"} لتجربة لوحة التحليلات بالتفصيل!` : "Seeded 3 real historical medical audit logs into current session database!");
+                nameAr={hospitalSettings.nameAr} 
+                nameEn={hospitalSettings.nameEn} 
+                taglineAr={hospitalSettings.taglineAr} 
+                taglineEn={hospitalSettings.taglineEn} 
+                {hospitalSettings.portalTitleEn || "Kayan"}
+                {hospitalSettings.premiumTitleEn || "Complete Medical System"}
+                {language === "ar" ? hospitalSettings.welcomeTitleAr || "مرحباً بعودتك، يا محترف الرعاية الصحية" : hospitalSettings.welcomeTitleEn || "Welcome Back, Healthcare Professional"}
+                {language === "ar" ? hospitalSettings.welcomeSubtitleAr || "سجل الدخول للوصول إلى سجلات المرضى والمواعيد وأدوات النظام." : hospitalSettings.welcomeSubtitleEn || "Sign in to access your Patient Records, Appointments, and System Tools."}
+                      ? `أدخل البريد الإلكتروني الخاص بك في ${hospitalSettings.nameAr || "المستشفى"} المربوط بملف الكادر. سيقوم النظام بمصادقتك ذاتياً لوضع PIN جديد دون وسيط.`
+                      : `Type your corporate healthcare email attached to your personnel profile in ${hospitalSettings.nameEn}. System will authenticate you on live Firestore.`}
+                  {hospitalSettings.loginMethods?.hospital_id !== false && (
+                  {hospitalSettings.loginMethods?.employee_code !== false && (
+                  {hospitalSettings.loginMethods?.sso && (
+                  {hospitalSettings.loginMethods?.biometric && (
+                  {hospitalSettings.loginMethods?.sms && (
+                  {hospitalSettings.loginMethods?.corporate && (
+            <span>{hospitalSettings.nameEn} Medical Cloud Storage Client v5.0</span>
+              nameAr={hospitalSettings.nameAr} 
+              nameEn={hospitalSettings.nameEn} 
+              taglineAr={hospitalSettings.taglineAr} 
+              taglineEn={hospitalSettings.taglineEn} 
+              <h1 className="text-sm font-bold text-white font-sans">{language === "ar" ? hospitalSettings.portalTitleAr : hospitalSettings.portalTitleEn}</h1>
+              <p className="text-[10px] text-slate-400 uppercase tracking-tighter">{language === "ar" ? hospitalSettings.premiumTitleAr : hospitalSettings.premiumTitleEn}</p>
+              nameAr={hospitalSettings.nameAr} 
+              nameEn={hospitalSettings.nameEn} 
+              taglineAr={hospitalSettings.taglineAr} 
+              taglineEn={hospitalSettings.taglineEn} 
+                <span className="group-hover:text-pink-750 transition-colors">{language === "ar" ? hospitalSettings.appHeaderAr : hospitalSettings.appHeaderEn}</span>
+                {language === "ar" ? hospitalSettings.taglineAr : hospitalSettings.taglineEn}
+              title={language === "ar" ? `ورديتك المقررة اليوم بالرسمي ل${hospitalSettings.nameAr}` : `Your assigned ${hospitalSettings.nameEn} shift today`}
+                        ? `واجهة تفتيش الرعاية السريرية المعتمدة لروتين تمريض وأرشفة ${hospitalSettings.nameAr || "المؤسسة"}. يقوم الممرضون بالمجموعات والجرودات الصباحية اليومية وتصديق استمارة الواجب، بينما تدقق مديرة التمريض والمشرف يدوياً بنقرة خروج واحدة.`
+                        : `Standardized clinical audit interface for ${hospitalSettings.nameEn} nurses. Staff execute physical checking tasks, sign daily sheets off, and nursing directors certify compliance metrics with structured logs.`}
+                          <span>لوحة التفتيش والمتابعة اللحظية لأقسام مستشفى {hospitalSettings.nameAr || "المؤسسة"} اليومية</span>
+                    {language === "ar" ? `استعرض وابحث بنصف الاسم أو الكود الخاص بأقسام ${hospitalSettings.nameAr || "المؤسسة"} المتكاملة:` : "Filter and search through the clinical departments checklist archives:"}
+                          hospitalSettings,
+                          nameAr={hospitalSettings.nameAr} 
+                          nameEn={hospitalSettings.nameEn} 
+                          taglineAr={hospitalSettings.taglineAr} 
+                          taglineEn={hospitalSettings.taglineEn} 
+                            <span>Revision: {selectedTemplate.code} | Issue Date: {selectedTemplate.issueDate} | ${hospitalSettings.nameEn} Clinical Quality Archive - Page 1 of 1</span>
+              hospitalSettings={hospitalSettings}
+                      <span>لوحة مؤشرات الجودة لـ {hospitalSettings.nameAr}</span>
+                        تقييم نسبي لمعدل التزام فرق التمريض بالجرد المنهجي المعتمد ل${hospitalSettings.nameAr || "المؤسسة"}.
+                          <span className="font-bold">وحدة طوارئ واستقبل ${hospitalSettings.nameAr || "المؤسسة"} (Emergency Dept)</span>
+                hospitalSettings={hospitalSettings}
+                hospitalSettings={hospitalSettings}
+                          ? `حفظ الجدول لقسم "${selectedRosterDept}" كأرشيف معتمد للشهر الحالي مغلق للتفتيش والمطابقة بالختم لـ ${hospitalSettings.nameAr || "المستشفى"}.` 
+                      {language === "ar" ? `دليل فترات الورديات الرسمية المعتمدة لـ ${hospitalSettings.nameAr || "المؤسسة"}` : "Approved Hospital Shift Legends"}
+                      {language === "ar" ? `خاص بالإدارة الطبية والتمريض العليا لمستشفى ${hospitalSettings.nameAr}` : `${hospitalSettings.nameEn} Senior Medical Leadership Sign-off`}
+                            {language === "ar" ? `اعتماد ملاءمة التوزيع لخطط رعاية المرضى بـ ${hospitalSettings.nameAr || "المؤسسة"} تحت إشراف المنصب.` : "Verifies staff workload compliance with hospital care delivery directives."}
+                                    {(hospitalSettings.nameAr || "مؤسسة بهية").slice(0, 30)}
+                            {language === "ar" ? `الاعتماد التشغيلي النهائي لربط الورديات وإقرار الموازنة الموثقة بختم ${hospitalSettings.nameAr || "المستشفى"}.` : "Final operational seal and financial payroll alignment sign-off."}
+                                    {(hospitalSettings.nameAr || "مؤسسة بهية").slice(0, 30)}
+                      <span>🏆 {language === "ar" ? `الروستر الموحد لـ ${hospitalSettings.nameAr || "المستشفى"} معتمد وموثق بختم الإدارة الطبية والتمريض العليا ومغلق لبدء العمل الفعلي للدورة!` : "Roster fully authorized & locked for hospital operations!"}</span>
+                        {language === "ar" ? `قاعدة بيانات ${hospitalSettings.nameAr} للأقسام والوحدات` : `${hospitalSettings.nameEn} Department Pool`}
+                        ? `منصة الإشراف المتكاملة لتعيين وتوزيع النماذج التشغيلية واستمارات الجرد على الوحدات الطبية الـ 16 المختلفة بمستشفى ${hospitalSettings.nameAr || "المؤسسة"} مع مراقبة مؤشرات الامتثال اليومي.`
+                              ? `✅ تم بث التوجيه بنجاح! سيظهر فوراً لطواقم التمريض بالقسم المستهدف كـ إعلام هام بنظام كادر ${hospitalSettings.nameAr || "المؤسسة"}.`
+                                {language === "ar" ? `قسم ${hospitalSettings.nameAr || "المؤسسة"} المتكامل الفرعي` : `Integrated Wing`}
+                        <span>إنشاء وتنسيق الشيت بقائمة {hospitalSettings.nameAr || "المؤسسة"}</span>
+                                            hospitalSettings,
+                                    hospitalSettings,
+                                alert(language === "ar" ? `عذراً: يجب الحفاظ على قسم طبي واحد على الأقل بنظام ${hospitalSettings.nameAr || "المؤسسة"}!` : "Access Denied: You must keep at least one registered department!");
+                            setSettingsForm({ ...settingsForm, premiumTitleAr: `البوابة الورديَّة لـ ${hospitalSettings.nameAr || "المنشأة"}` });
+                            alert(language === "ar" ? `✔ تم حفظ مظهر المنشأة لتثبيت الطابع الوردي الكلاسيكي لـ ${hospitalSettings.nameAr || "المنشأة"}!` : "Rose-Pink theme activated!");
+                          <span>{language === "ar" ? `الوردي الكلاسيكي (${hospitalSettings.nameAr || "بهية"})` : `Classic ${hospitalSettings.nameEn || "Baheya"} Rose`}</span>
+                  {language === "ar" ? hospitalSettings.appFooterAr : hospitalSettings.appFooterEn}
+                  {language === "ar" ? hospitalSettings.accreditationBodyAr : hospitalSettings.accreditationBodyEn} | {language === "ar" ? "إصدار:" : "Version:"} {hospitalSettings.appVersion} | {hospitalSettings.revisionDate}

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Users, Activity, GraduationCap, TrendingUp, AlertTriangle, ShieldCheck, UserCheck, Stethoscope, Clock, ShieldAlert, FileBarChart, DollarSign, CalendarCheck, FileText } from "lucide-react";
+import { Users, Activity, GraduationCap, TrendingUp, AlertTriangle, ShieldCheck, UserCheck, Stethoscope, Clock, ShieldAlert, FileBarChart, DollarSign, CalendarCheck, FileText, Archive } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import SmartNotificationCenter from "./SmartNotificationCenter";
 
@@ -15,9 +15,10 @@ const OCCUPANCY_DATA = [
 
 interface Props {
   language: "ar" | "en";
+  onNavigate?: (tab: string, subTab?: string) => void;
 }
 
-export default function NursingDirectorDashboard({ language }: Props) {
+export default function NursingDirectorDashboard({ language, onNavigate }: Props) {
   const isAr = language === "ar";
   const [activeTab, setActiveTab] = useState<"workforce" | "kpi" | "training" | "quality" | "financial" | "department_heads">("workforce");
 
@@ -518,7 +519,7 @@ export default function NursingDirectorDashboard({ language }: Props) {
 
         {/* Right/Left Sidebar - Smart Notification Center */}
         <div className="w-full xl:w-[320px] shrink-0 xl:h-[calc(100vh-140px)] sticky top-6">
-          <SmartNotificationCenter language={language} />
+          <SmartNotificationCenter language={language} onNavigate={onNavigate} />
         </div>
 
       </div>
