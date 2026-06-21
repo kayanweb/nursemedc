@@ -1239,7 +1239,9 @@ function AppContent() {
       targetTab: "roster",
       targetUserId: currentUser.id
     };
-    setNotifications([newNotification, ...notifications]);
+    const updatedNotifs = [newNotification, ...notifications];
+    setNotifications(updatedNotifs);
+    saveSetting("baheya_notifications", updatedNotifs);
   };
 
   const setResolvedGaps = (updated: Record<string, any>) => {
@@ -1816,18 +1818,36 @@ Full administrative override and emergency clinical execution privileges have be
   );
 
   // Notifications system for supervisors/auditors
-  const [notifications, setNotifications] = useFirestoreSync<Notification>(
-    (onData) => syncNotifications(currentUser.id, onData),
-    [{
+  const [notifications, setNotifications] = useState<Notification[]>([
+    {
       id: "init-notif-1",
       userId: currentUser.id,
       messageAr: `إشعار نظام: تم تنشيط بوابة ${hospitalSettings.nameAr || "المؤسسة"} الرقمية وبدء مراقبة الجودة الطبية والسريرية.`,
       messageEn: `System Notice: ${hospitalSettings.nameEn || "Hospital"} Clinical Audit Portal activated successfully.`,
       timestamp: new Date().toISOString(),
       read: false
-    }],
-    [currentUser.id]
-  );
+    }
+  ]);
+
+  useEffect(() => {
+    const unsub = syncSetting("baheya_notifications", (data: any) => {
+      if (data && Array.isArray(data.value)) {
+        setNotifications(data.value);
+      } else {
+        setNotifications([
+          {
+            id: "init-notif-1",
+            userId: "all",
+            messageAr: `إشعار نظام: تم تنشيط بوابة ${hospitalSettings.nameAr || "المؤسسة"} الرقمية وبدء مراقبة الجودة الطبية والسريرية.`,
+            messageEn: `System Notice: ${hospitalSettings.nameEn || "Hospital"} Clinical Audit Portal activated successfully.`,
+            timestamp: new Date().toISOString(),
+            read: false
+          }
+        ]);
+      }
+    });
+    return () => unsub();
+  }, [currentUser?.id, hospitalSettings.nameAr]);
 
   const isSupervisor = ["admin", "quality", "president", "head_nurse", "it", "supervisor", "nursing_director"].includes(currentUser.role);
   const canConfigureRoster = ["admin", "it", "nursing_director"].includes(currentUser.role);
@@ -2462,6 +2482,27 @@ Full administrative override and emergency clinical execution privileges have be
       textToMatch.includes("messaging")
     ) {
       setActiveTab("messaging");
+    } else if (
+      textToMatch.includes("كود") ||
+      textToMatch.includes("طوارئ") ||
+      textToMatch.includes("عناية") ||
+      textToMatch.includes("code blue") ||
+      textToMatch.includes("emr") ||
+      textToMatch.includes("icu")
+    ) {
+      setActiveTab("emr");
+    } else if (
+      textToMatch.includes("نقل") ||
+      textToMatch.includes("transport") ||
+      textToMatch.includes("حركة")
+    ) {
+      setActiveTab("transport");
+    } else if (
+      textToMatch.includes("بلاغ") ||
+      textToMatch.includes("ovr") ||
+      textToMatch.includes("حادث")
+    ) {
+      setActiveTab("analytics");
     } else {
       // Default to editor
       setActiveTab("editor");
@@ -5335,7 +5376,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
 
               {isBellOpen && (
                 <div 
-                  className="absolute left-0 mt-2 w-80 bg-white/90 backdrop-blur-xl border border-slate-200/50 rounded-2xl shadow-2xl z-50 overflow-hidden transition-all duration-200 origin-top-left flex flex-col max-h-[350px]"
+                  className="absolute -right-16 md:right-0 mt-2 w-[290px] xs:w-[320px] sm:w-[360px] bg-white/95 backdrop-blur-xl border border-slate-200/50 rounded-2xl shadow-2xl z-50 overflow-hidden transition-all duration-200 origin-top-right flex flex-col max-h-[400px]"
                 >
                   <div className="px-4 py-3 bg-slate-900/5 backdrop-blur-md border-b border-slate-200/50 flex items-center justify-between">
                     <h4 className="text-[11px] font-black text-slate-800 flex items-center gap-1.5">
@@ -10432,7 +10473,11 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                                   targetTab: "approval",
                                   targetUserId: currentUser.id
                                 };
-                                setNotifications([newNotification, ...notifications]);
+                                {
+                                  const updatedNotifsList = [newNotification, ...notifications];
+                                  setNotifications(updatedNotifsList);
+                                  saveSetting("baheya_notifications", updatedNotifsList);
+                                }
 
                                 setWishReasonAr("");
                                 setWishReasonEn("");
@@ -10534,7 +10579,11 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                                 read: false,
                                 targetTab: "roster"
                               };
-                              setNotifications([newNotification, ...notifications]);
+                              {
+                                const updatedNotifsList = [newNotification, ...notifications];
+                                setNotifications(updatedNotifsList);
+                                saveSetting("baheya_notifications", updatedNotifsList);
+                              }
 
                               setWishReasonAr("");
                               setWishReasonEn("");
@@ -10870,15 +10919,9 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                                           targetTab: "roster",
                                           targetUserId: wish.employeeId
                                         };
-                                        setNotifications(prev => [newApproveNotif, ...prev]);
-                                        // Merge update into local storage
-                                        const existingNotifsJson = "[]";
-                                        try {
-                                          const parsedNotifs = JSON.parse(existingNotifsJson);
-                                          saveSetting("baheya_notifications", [newApproveNotif, ...parsedNotifs]);
-                                        } catch (err) {
-                                          saveSetting("baheya_notifications", [newApproveNotif]);
-                                        }
+                                        const updatedNotifs = [newApproveNotif, ...notifications];
+                                        setNotifications(updatedNotifs);
+                                        saveSetting("baheya_notifications", updatedNotifs);
 
                                         return nextRosterList;
                                       });

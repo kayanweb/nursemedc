@@ -397,7 +397,7 @@ export default function QualityAnalyticsHub({
       };
       const updatedNotifs = [newNotif, ...notifications];
       setNotifications(updatedNotifs);
-      saveSetting("hospital_notifications", updatedNotifs);
+      saveSetting("baheya_notifications", updatedNotifs);
 
       setSimActiveResult(null);
       setEditingSimLogId(null);
@@ -679,7 +679,7 @@ export default function QualityAnalyticsHub({
     };
     const updatedNotifs = [ovrNotif, ...notifications];
     setNotifications(updatedNotifs);
-    saveSetting("hospital_notifications", updatedNotifs);
+    saveSetting("baheya_notifications", updatedNotifs);
 
     setOvrForm({
       department: "EMERGENCY UNIT",
@@ -737,7 +737,7 @@ export default function QualityAnalyticsHub({
     };
     const updatedNotifs = [evalNotif, ...notifications];
     setNotifications(updatedNotifs);
-    saveSetting("hospital_notifications", updatedNotifs);
+    saveSetting("baheya_notifications", updatedNotifs);
 
     setEvalComments("");
     setShowEvalForm(false);
