@@ -34,6 +34,7 @@ interface UserApprovalProps {
   language: "ar" | "en";
   departments?: string[];
   currentUser?: AppUser | null;
+  onUpdateUsers?: React.Dispatch<React.SetStateAction<AppUser[]>>;
 }
 
 const SYSTEM_MODULES = [
@@ -59,7 +60,8 @@ export default function UserApprovalDashboard({
   allAvailableTemplates, 
   language,
   departments = [],
-  currentUser
+  currentUser,
+  onUpdateUsers
 }: UserApprovalProps) {
   
   // State for unified elegant dialog popup modal
@@ -214,6 +216,9 @@ export default function UserApprovalDashboard({
     };
 
     await saveSystemUser(updated);
+    if (onUpdateUsers) {
+      onUpdateUsers(prev => prev.map(u => u.id === user.id ? updated : u));
+    }
     setJustApprovedPin({ name: user.nameAr, pin: defaultPin });
     setBulkActionLogs(prev => [`[CORP LAN] Approved user: ${user.nameAr} with PIN ${defaultPin}`, ...prev]);
   };
@@ -221,6 +226,9 @@ export default function UserApprovalDashboard({
   const handleReject = async (user: AppUser) => {
     const updated: AppUser = { ...user, status: "disabled" };
     await saveSystemUser(updated);
+    if (onUpdateUsers) {
+      onUpdateUsers(prev => prev.map(u => u.id === user.id ? updated : u));
+    }
     setBulkActionLogs(prev => [`[CORP LAN] Deactivated user: ${user.nameAr}`, ...prev]);
   };
 
@@ -277,6 +285,9 @@ export default function UserApprovalDashboard({
       };
 
       await saveSystemUser(updatedUser);
+      if (onUpdateUsers) {
+        onUpdateUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+      }
       setSelectedUserForModal(null);
       setBulkActionLogs(prev => [`[RBAC FULL COMMIT] Modified details, modules & templates for ${updatedUser.nameAr} with security authorization check.`, ...prev]);
       alert(language === "ar" ? "✅ تم حفظ التعديلات الجديدة وتحديث صلاحيات HIPAA RBAC وتطبيقها فوراً!" : "✅ Role adjustments, overrides and permissions synchronized successfully!");

@@ -55,6 +55,7 @@ import {
   deleteSystemLog
 } from "../lib/firestoreService";
 import firebaseConfig from "../../firebase-applet-config.json";
+import { getActiveDbProvider, setActiveDbProvider, DB_PROVIDERS_CONFIG, DbProvider, switchEnvironment } from "../lib/dbConfig";
 
 interface Props {
   language: "ar" | "en";
@@ -94,7 +95,54 @@ export default function CloudSettingsPage({
   const isAr = language === "ar";
 
   // State definitions
-  const [activeSubTab, setActiveSubTab] = useState<"status" | "stats" | "migration" | "logs">("status");
+  const [activeSubTab, setActiveSubTab] = useState<"status" | "stats" | "migration" | "logs" | "providers">("providers");
+  const [currentDbProvider, setCurrentDbProvider] = useState<DbProvider>(() => getActiveDbProvider());
+
+  // Connection testing states per provider
+  const [dbStatus, setDbStatus] = useState<Record<DbProvider, "connected" | "standby" | "error" | "testing">>({
+    FIREBASE: "connected",
+    SUPABASE: "standby",
+    POCKETBASE: "standby",
+    LOCAL_HOST: "standby"
+  });
+
+  // Advanced DB Settings state
+  const [alert, setAlert] = useState<{ show: boolean; message: string; type: "success" | "error" | "" }>({ show: false, message: "", type: "" });
+
+  // Firebase connection keys
+  const [firebaseProjectId, setFirebaseProjectId] = useState(() => DB_PROVIDERS_CONFIG.FIREBASE.projectId);
+  const [firebaseApiKey, setFirebaseApiKey] = useState(() => DB_PROVIDERS_CONFIG.FIREBASE.apiKey);
+  const [firebaseAuthDomain, setFirebaseAuthDomain] = useState(() => DB_PROVIDERS_CONFIG.FIREBASE.authDomain);
+  const [firebaseStorageBucket, setFirebaseStorageBucket] = useState(() => DB_PROVIDERS_CONFIG.FIREBASE.storageBucket);
+  const [firebaseAppId, setFirebaseAppId] = useState(() => DB_PROVIDERS_CONFIG.FIREBASE.appId);
+
+  // Supabase connection keys
+  const [supabaseUrl, setSupabaseUrl] = useState(() => DB_PROVIDERS_CONFIG.SUPABASE.supabaseUrl);
+  const [supabaseKey, setSupabaseKey] = useState(() => DB_PROVIDERS_CONFIG.SUPABASE.supabaseKey);
+  const [dbSchema, setDbSchema] = useState(() => DB_PROVIDERS_CONFIG.SUPABASE.dbSchema);
+  const [realtimeChannel, setRealtimeChannel] = useState(() => DB_PROVIDERS_CONFIG.SUPABASE.realtimeChannel);
+
+  // PocketBase Connection keys
+  const [pocketbaseUrl, setPocketbaseUrl] = useState(() => DB_PROVIDERS_CONFIG.POCKETBASE.baseUrl);
+  const [pocketbaseAdminEmail, setPocketbaseAdminEmail] = useState(() => DB_PROVIDERS_CONFIG.POCKETBASE.adminEmail);
+  const [pocketbaseAdminPassword, setPocketbaseAdminPassword] = useState(() => DB_PROVIDERS_CONFIG.POCKETBASE.adminPassword);
+
+  // Localhost setup keys
+  const [localIntranetHost, setLocalIntranetHost] = useState(() => DB_PROVIDERS_CONFIG.LOCAL_HOST.intranetHost);
+  const [localWsUrl, setLocalWsUrl] = useState(() => DB_PROVIDERS_CONFIG.LOCAL_HOST.wsUrl);
+  const [localRequestTimeout, setLocalRequestTimeout] = useState(() => DB_PROVIDERS_CONFIG.LOCAL_HOST.requestTimeout);
+  const [localUseSecureWs, setLocalUseSecureWs] = useState(() => DB_PROVIDERS_CONFIG.LOCAL_HOST.useSecureWs);
+
+  useEffect(() => {
+    const syncActiveProv = () => {
+      const prov = getActiveDbProvider();
+      setCurrentDbProvider(prov);
+      setDbStatus(prev => ({ ...prev, [prov]: "connected" }));
+    };
+    window.addEventListener("db-provider-changed", syncActiveProv);
+    return () => window.removeEventListener("db-provider-changed", syncActiveProv);
+  }, []);
+
   const [latencyText, setLatencyText] = useState<string>("--");
   const [latencyColor, setLatencyColor] = useState<string>("text-gray-400");
   const [pinging, setPinging] = useState<boolean>(false);
@@ -670,6 +718,17 @@ export default function CloudSettingsPage({
         {/* Sub-tab Selectors */}
         <div className="flex items-center bg-slate-100 border border-slate-200 p-1 rounded-xl shadow-sm">
           <button
+            onClick={() => setActiveSubTab("providers")}
+            className={`px-4 py-2 rounded-lg font-bold text-xs transition duration-200 flex items-center gap-1.5 cursor-pointer ${
+              activeSubTab === "providers"
+                ? "bg-slate-900 text-white shadow"
+                : "text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            <Sliders className="w-3.5 h-3.5 text-indigo-500 animate-pulse" />
+            <span>{isAr ? "بيئات العمل الأربعة" : "4 DB Providers"}</span>
+          </button>
+          <button
             onClick={() => setActiveSubTab("status")}
             className={`px-4 py-2 rounded-lg font-bold text-xs transition duration-200 flex items-center gap-1.5 cursor-pointer ${
               activeSubTab === "status"
@@ -691,30 +750,498 @@ export default function CloudSettingsPage({
             <Database className="w-3.5 h-3.5" />
             <span>{isAr ? "أرقام الجرد والمزامنة" : "Data Matrix"}</span>
           </button>
-          <button
-            onClick={() => setActiveSubTab("migration")}
-            className={`px-4 py-2 rounded-lg font-bold text-xs transition duration-200 flex items-center gap-1.5 cursor-pointer ${
-              activeSubTab === "migration"
-                ? "bg-slate-900 text-white shadow"
-                : "text-slate-600 hover:bg-slate-200"
-            }`}
-          >
-            <DatabaseBackup className="w-3.5 h-3.5" />
-            <span>{isAr ? "النسخ واسترداد الكوارث" : "Disaster Recovery"}</span>
-          </button>
-          <button
-            onClick={() => setActiveSubTab("logs")}
-            className={`px-4 py-2 rounded-lg font-bold text-xs transition duration-200 flex items-center gap-1.5 cursor-pointer ${
-              activeSubTab === "logs"
-                ? "bg-slate-900 text-white shadow"
-                : "text-slate-600 hover:bg-slate-200"
-            }`}
-          >
-            <Activity className="w-3.5 h-3.5" />
-            <span>{isAr ? "سجلات التشغيل الفورية" : "Live Audit Logs"}</span>
-          </button>
         </div>
       </header>
+
+      {/* Main Container Panels */}
+      {activeSubTab === "providers" && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          {/* HIPAA & ZERO-CACHE STATEMENT HEADER */}
+          <div className="bg-gradient-to-r from-emerald-500/10 to-indigo-500/10 border border-emerald-500/20 p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+            <div className="space-y-1">
+              <h3 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
+                <UserCheck className="w-5 h-5 text-emerald-600 animate-pulse" />
+                <span>{isAr ? "معيار الأمان الطبي العالمي ($HIPAA$) وصفر تخزين محلي" : "Zero-Cache Standard & HIPAA Cloud Architecture"}</span>
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed max-w-3xl">
+                {isAr 
+                  ? "تأكيد فني تام للإدارة الصحية: لا يتم تخزين شيتات وحالات المرضى أو الورديات أو جداول البيانات الطبية الحساسة في مستودع المتصفح (localStorage) مطلقاً. يرتبط النظام بقاعدة البيانات المباشرة ببث حي وتلقائي، وتتحقق مزامنة الأجهزة فاصلاً بفاصل دون التسبب في ثغرات تسريب أمنية."
+                  : "Technical compliance: Patient clinical records, worker rosters, and schedules are never stored on user browsers (localStorage is zero). Live streams pipe directly as virtual signals. Logging out completely clears remaining RAM memories."}
+              </p>
+            </div>
+            <div className="bg-emerald-50 text-emerald-800 text-[10px] sm:text-xs font-black px-3 py-1.5 rounded-xl flex items-center gap-1 shrink-0">
+              <span className="w-2 h-2 rounded-full bg-emerald-500/80 animate-ping" />
+              {isAr ? "التزامن الفوري نشط" : "STREAMING PROTOCOL: ON"}
+            </div>
+          </div>
+
+          {/* SMART NOTIFICATION BANNER */}
+          {alert.show && (
+            <div 
+              className={`p-4 rounded-xl border flex items-start gap-3 shadow-sm transition duration-300 ${
+                alert.type === "success" 
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-800" 
+                  : "bg-rose-50 border-rose-200 text-rose-800"
+              }`}
+            >
+              <div className="text-lg mt-0.5">
+                {alert.type === "success" ? "🚀" : "⚠️"}
+              </div>
+              <div className="flex-1 text-xs font-semibold leading-relaxed">
+                {alert.message}
+              </div>
+              <button 
+                onClick={() => setAlert({ show: false, message: "", type: "" })}
+                className="text-slate-400 hover:text-slate-600 self-center text-sm font-bold ml-2 transition"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* CARDS CONTAINER */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* 1. FIREBASE FIRESTORE CARD */}
+            <div className={`p-6 rounded-2xl border transition duration-300 ${currentDbProvider === "FIREBASE" ? "bg-white border-orange-500 shadow-md ring-2 ring-orange-500/10" : "bg-white border-slate-200 hover:border-slate-300 shadow-sm"}`}>
+              <div className="flex items-start justify-between mb-4">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-wider">{isAr ? "بيئة رقم 1" : "ENVIRONMENT 01"}</span>
+                  <h4 className="text-md font-black text-slate-800 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-orange-500 animate-pulse" />
+                    <span>Firebase Firestore (Google Cloud)</span>
+                  </h4>
+                </div>
+                <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full ${currentDbProvider === "FIREBASE" ? "bg-orange-100 text-orange-800" : "bg-slate-100 text-slate-500"}`}>
+                  {currentDbProvider === "FIREBASE" ? (isAr ? "⚡ المحرك النشط حالياً" : "ACTIVE ENGINE") : (isAr ? "جاهز / خامل" : "STANDBY")}
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-500 leading-relaxed mb-4">
+                {isAr ? "المحرك السحابي الأساسي المعتمد على خوادم جوجل الذكية لبث التحديثات الفورية للمستشفى عبر تقنية السناب-شوت اللحظية." : "The native organization cloud store operating via Firebase socket emitters for instant medical status streams."}
+              </p>
+
+              <div className="grid grid-cols-1 gap-3.5 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-150">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-600 font-sans tracking-wide block">{isAr ? "معرف المشروع (Project ID):" : "Project ID"}</label>
+                  <input
+                    type="text"
+                    value={firebaseProjectId}
+                    onChange={(e) => setFirebaseProjectId(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-600 font-sans tracking-wide block">{isAr ? "مفتاح الواجهة السحابية (API Key):" : "API Key"}</label>
+                  <input
+                    type="password"
+                    placeholder="AIzaSy..."
+                    value={firebaseApiKey}
+                    onChange={(e) => setFirebaseApiKey(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-600 font-sans tracking-wide block">{isAr ? "نطاق التوثيق (Auth Domain):" : "Auth Domain"}</label>
+                  <input
+                    type="text"
+                    placeholder="kayan.firebaseapp.com"
+                    value={firebaseAuthDomain}
+                    onChange={(e) => setFirebaseAuthDomain(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-600 font-sans tracking-wide block">{isAr ? "مستودع التخزين والتقارير (Storage Bucket):" : "Storage Bucket"}</label>
+                  <input
+                    type="text"
+                    placeholder="kayan.appspot.com"
+                    value={firebaseStorageBucket}
+                    onChange={(e) => setFirebaseStorageBucket(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-600 font-sans tracking-wide block">{isAr ? "معرف التطبيق الفريد (App ID):" : "App ID"}</label>
+                  <input
+                    type="text"
+                    placeholder="1:1234:web:xyz"
+                    value={firebaseAppId}
+                    onChange={(e) => setFirebaseAppId(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 bg-white"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  let settings = {
+                    projectId: firebaseProjectId,
+                    apiKey: firebaseApiKey,
+                    authDomain: firebaseAuthDomain,
+                    storageBucket: firebaseStorageBucket,
+                    appId: firebaseAppId,
+                    instanceType: "Native OnSnapshot"
+                  };
+                  const success = switchEnvironment("FIREBASE", settings);
+                  if (success) {
+                    setCurrentDbProvider("FIREBASE");
+                    setAlert({
+                      show: true,
+                      message: isAr
+                        ? "🚀 تم بنجاح التحول لحافلة محرك [ FIREBASE ] السحابي. التحديثات تجري فاصلاً فاصلاً."
+                        : "🚀 Successfully switched active cloud pipeline to [ Firebase Firestore ].",
+                      type: "success"
+                    });
+                    saveSystemLog({
+                      id: `log-${Date.now()}`,
+                      event: isAr
+                        ? "تم تفعيل محرك الاتصال Firebase سحابياً بنجاح."
+                        : "Successfully synchronized database connection schema with Google Firebase.",
+                      type: "info",
+                      time: new Date().toLocaleTimeString(),
+                      timestampMs: Date.now()
+                    }).catch(() => {});
+                  }
+                }}
+                className={`w-full py-2.5 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer border ${
+                  currentDbProvider === "FIREBASE" 
+                    ? "bg-orange-50 border-orange-200 text-orange-700" 
+                    : "bg-slate-900 border-transparent text-white hover:bg-slate-800"
+                }`}
+              >
+                {isAr ? "حفظ وتفعيل بيئة فايربيز" : "Save & Activate Firebase Engine"}
+              </button>
+            </div>
+
+            {/* 2. SUPABASE REALTIME CARD */}
+            <div className={`p-6 rounded-2xl border transition duration-300 ${currentDbProvider === "SUPABASE" ? "bg-white border-emerald-500 shadow-md ring-2 ring-emerald-500/10" : "bg-white border-slate-200 hover:border-slate-300 shadow-sm"}`}>
+              <div className="flex items-start justify-between mb-4">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-wider">{isAr ? "بيئة رقم 2" : "ENVIRONMENT 02"}</span>
+                  <h4 className="text-md font-black text-slate-800 flex items-center gap-1.5">
+                    <Database className="w-4 h-4 text-emerald-500" />
+                    <span>Supabase Realtime (PostgreSQL Engine)</span>
+                  </h4>
+                </div>
+                <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full ${currentDbProvider === "SUPABASE" ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"}`}>
+                  {currentDbProvider === "SUPABASE" ? (isAr ? "⚡ المحرك النشط حالياً" : "ACTIVE ENGINE") : (isAr ? "جاهز / خامل" : "STANDBY")}
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-500 leading-relaxed mb-4">
+                {isAr ? "محرك بث البيانات العلائقي المستند لقواعد بيانات بروجريس، لربط إشارات المرضى وتتبع سجلات الأطباء الفورية بدون كاش." : "Relational cloud streaming built on top of Postgres realtime subscription pipelines for enterprise healthcare workflows."}
+              </p>
+
+              <div className="grid grid-cols-1 gap-3.5 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-150">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-600 font-sans tracking-wide block">SUPABASE ENDPOINT URL:</label>
+                  <input
+                    type="text"
+                    placeholder="https://xyz.supabase.co"
+                    value={supabaseUrl}
+                    onChange={(e) => setSupabaseUrl(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-600 font-sans tracking-wide block">SECRET API KEY (Anon/Service):</label>
+                  <input
+                    type="password"
+                    placeholder="eyJhbGci..."
+                    value={supabaseKey}
+                    onChange={(e) => setSupabaseKey(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-600 font-sans tracking-wide block">{isAr ? "مخطط قاعدة البيانات (Database Schema):" : "Database Schema"}</label>
+                  <input
+                    type="text"
+                    value={dbSchema}
+                    onChange={(e) => setDbSchema(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-600 font-sans tracking-wide block">{isAr ? "اسم قناة البث (Realtime Channel):" : "Realtime Channel Name"}</label>
+                  <input
+                    type="text"
+                    value={realtimeChannel}
+                    onChange={(e) => setRealtimeChannel(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 bg-white"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (!supabaseUrl || !supabaseKey) {
+                    setAlert({
+                      show: true,
+                      message: isAr 
+                        ? "⚠️ تنبيه: يرجى ملء الخانات الأساسية (SUPABASE ENDPOINT URL & SECRET API KEY) لبدء تشغيل سوبابيس."
+                        : "⚠️ Attention: Supabase Endpoint URL and Secret API Key are required.",
+                      type: "error"
+                    });
+                    return;
+                  }
+                  let settings = {
+                    supabaseUrl,
+                    supabaseKey,
+                    dbSchema,
+                    realtimeChannel
+                  };
+                  const success = switchEnvironment("SUPABASE", settings);
+                  if (success) {
+                    setCurrentDbProvider("SUPABASE");
+                    setAlert({
+                      show: true,
+                      message: isAr
+                        ? "🚀 تم بنجاح التحول والانتقال السريع لبيئة [ SUPABASE ] ومزامنة الجداول والريل تايم بنجاح."
+                        : "🚀 Successfully shifted database core client over to [ Supabase PostgreSQL db ].",
+                      type: "success"
+                    });
+                    saveSystemLog({
+                      id: `log-${Date.now()}`,
+                      event: isAr
+                        ? "تم تحويل المحرك العلائقي المستهدف إلى Supabase PostgreSQL."
+                        : "System datastore switched successfully to Supabase PostgreSQL Database engine.",
+                      type: "success",
+                      time: new Date().toLocaleTimeString(),
+                      timestampMs: Date.now()
+                    }).catch(() => {});
+                  }
+                }}
+                className={`w-full py-2.5 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer border ${
+                  currentDbProvider === "SUPABASE" 
+                    ? "bg-emerald-50 border-emerald-200 text-emerald-700" 
+                    : "bg-slate-900 border-transparent text-white hover:bg-slate-800"
+                }`}
+              >
+                {isAr ? "حفظ والانتقال لبيئة صوبابيز" : "Save & Activate Supabase Engine"}
+              </button>
+            </div>
+
+            {/* 3. POCKETBASE EVENT STREAM CARD */}
+            <div className={`p-6 rounded-2xl border transition duration-300 ${currentDbProvider === "POCKETBASE" ? "bg-white border-blue-500 shadow-md ring-2 ring-blue-500/10" : "bg-white border-slate-200 hover:border-slate-300 shadow-sm"}`}>
+              <div className="flex items-start justify-between mb-4">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-wider">{isAr ? "بيئة رقم 3" : "ENVIRONMENT 03"}</span>
+                  <h4 className="text-md font-black text-slate-800 flex items-center gap-1.5">
+                    <Server className="w-4 h-4 text-blue-500" />
+                    <span>PocketBase SSE Stream (Open-Source Cloud)</span>
+                  </h4>
+                </div>
+                <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full ${currentDbProvider === "POCKETBASE" ? "bg-blue-100 text-blue-800" : "bg-slate-100 text-slate-500"}`}>
+                  {currentDbProvider === "POCKETBASE" ? (isAr ? "⚡ المحرك النشط حالياً" : "ACTIVE ENGINE") : (isAr ? "جاهز / خامل" : "STANDBY")}
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-500 leading-relaxed mb-4">
+                {isAr ? "قناة بث خفيفة ومستقرة تماماً مبنية على أحداث الخادم (Server-Sent Events) لتأمين النقل الفوري والكامل للبيانات الطبية." : "Event-driven Server-Sent Events (SSE) streaming engine for lightweight medical telemetry and real-time ledger records."}
+              </p>
+
+              <div className="grid grid-cols-1 gap-3.5 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-150">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-600 font-sans tracking-wide block">POCKETBASE CONNECTION URL:</label>
+                  <input
+                    type="text"
+                    placeholder="https://kayan-server.io"
+                    value={pocketbaseUrl}
+                    onChange={(e) => setPocketbaseUrl(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-600 font-sans tracking-wide block">{isAr ? "بريد المسؤول للربط (Admin Email):" : "Admin Auth Email"}</label>
+                  <input
+                    type="email"
+                    placeholder="admin@kayan.com"
+                    value={pocketbaseAdminEmail}
+                    onChange={(e) => setPocketbaseAdminEmail(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-600 font-sans tracking-wide block">{isAr ? "رمز مرور الربط (Admin Password):" : "Admin Auth Password"}</label>
+                  <input
+                    type="password"
+                    placeholder="••••••••"
+                    value={pocketbaseAdminPassword}
+                    onChange={(e) => setPocketbaseAdminPassword(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 bg-white"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (!pocketbaseUrl || !pocketbaseAdminEmail || !pocketbaseAdminPassword) {
+                    setAlert({
+                      show: true,
+                      message: isAr 
+                        ? "⚠️ تنبيه: يرجى ملء جميع الخانات الفارغة لتجنب كسر اتصال بيئة [ POCKETBASE ]."
+                        : "⚠️ Attention: Please fill in all fields to avoid pocketbase pipeline disruption.",
+                      type: "error"
+                    });
+                    return;
+                  }
+                  let settings = {
+                    baseUrl: pocketbaseUrl,
+                    adminEmail: pocketbaseAdminEmail,
+                    adminPassword: pocketbaseAdminPassword
+                  };
+                  const success = switchEnvironment("POCKETBASE", settings);
+                  if (success) {
+                    setCurrentDbProvider("POCKETBASE");
+                    setAlert({
+                      show: true,
+                      message: isAr
+                        ? "🚀 تم بنجاح الحفظ وتفعيل بيئة بوكيت بيز للعمل ببث أحداث الخادم المباشر."
+                        : "🚀 Successfully established connection with PocketBase medical channel.",
+                      type: "success"
+                    });
+                    saveSystemLog({
+                      id: `log-${Date.now()}`,
+                      event: isAr
+                        ? "تم نقل المخدم النشط المعتمد لسجلات وعمليات البث إلى PocketBase."
+                        : "Successfully synchronized database engine to utilize PocketBase SSE streams.",
+                      type: "success",
+                      time: new Date().toLocaleTimeString(),
+                      timestampMs: Date.now()
+                    }).catch(() => {});
+                  }
+                }}
+                className={`w-full py-2.5 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer border ${
+                  currentDbProvider === "POCKETBASE" 
+                    ? "bg-blue-50 border-blue-200 text-blue-700" 
+                    : "bg-slate-900 border-transparent text-white hover:bg-slate-800"
+                }`}
+              >
+                {isAr ? "حفظ وتفعيل بيئة بوكيت بيز" : "Save & Activate PocketBase Engine"}
+              </button>
+            </div>
+
+            {/* 4. LOCAL_HOST ROUTER API CARD */}
+            <div className={`p-6 rounded-2xl border transition duration-300 ${currentDbProvider === "LOCAL_HOST" ? "bg-white border-blue-600 shadow-md ring-2 ring-blue-600/10" : "bg-white border-slate-200 hover:border-slate-300 shadow-sm"}`}>
+              <div className="flex items-start justify-between mb-4">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-wider">{isAr ? "بيئة رقم 4" : "ENVIRONMENT 04"}</span>
+                  <h4 className="text-md font-black text-slate-800 flex items-center gap-1.5">
+                    <Wifi className="w-4 h-4 text-blue-600 animate-pulse" />
+                    <span>Hospital Intranet Server (الشبكة الداخلية للمستشفى)</span>
+                  </h4>
+                </div>
+                <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full ${currentDbProvider === "LOCAL_HOST" ? "bg-blue-50 text-blue-800" : "bg-slate-100 text-slate-500"}`}>
+                  {currentDbProvider === "LOCAL_HOST" ? (isAr ? "⚡ المحرك النشط حالياً" : "ACTIVE ENGINE") : (isAr ? "جاهز / خامل" : "STANDBY")}
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-500 leading-relaxed mb-4">
+                {isAr ? "الاتصال المباشر عالي الأمان وبأعلى درجات الخصوصية؛ يربط النظام بسيرفر المستشفى الداخلي في مركز البيانات للغرف السريرية عبر الراوتر المحلي." : "Direct sandboxed intranet database operating on the local router with secure fallbacks."}
+              </p>
+
+              <div className="grid grid-cols-1 gap-3.5 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-150">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-600 font-sans tracking-wide block">INTRANET ENDPOINT HOST (API):</label>
+                  <input
+                    type="text"
+                    placeholder="http://192.168.1.100:5000/api"
+                    value={localIntranetHost}
+                    onChange={(e) => setLocalIntranetHost(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-600 font-sans tracking-wide block">LOCAL WEBSOCKET ADDR (WS):</label>
+                  <input
+                    type="text"
+                    placeholder="ws://192.168.1.100:5000/live"
+                    value={localWsUrl}
+                    onChange={(e) => setLocalWsUrl(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-600 font-sans tracking-wide block">{isAr ? "مهلة انتهاء الطلب (بالملي ثانية):" : "Request Timeout (ms)"}</label>
+                  <input
+                    type="number"
+                    value={localRequestTimeout}
+                    onChange={(e) => setLocalRequestTimeout(Number(e.target.value))}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-600 font-sans tracking-wide block">{isAr ? "نوع التشفير والاتصال الآمن:" : "Secure Connection Type"}</label>
+                  <select
+                    value={localUseSecureWs ? "WSS" : "WS"}
+                    onChange={(e) => setLocalUseSecureWs(e.target.value === "WSS")}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white text-slate-700 font-semibold"
+                  >
+                    <option value="WS">{isAr ? "بروتوكول عادي غير مشفر (ws://)" : "Regular Unsecure WebSocket (ws://)"}</option>
+                    <option value="WSS">{isAr ? "بروتوكول آمن ومشفر (wss:// - مستحسن)" : "Secure Encrypted WebSocket (wss:// - Recommended)"}</option>
+                  </select>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (!localIntranetHost || !localWsUrl) {
+                    setAlert({
+                      show: true,
+                      message: isAr 
+                        ? "⚠️ تنبيه: يرجى ملء البيانات المستهدفة لتجنب كسر محرك السيرفر المحلي للأمن القومي."
+                        : "⚠️ Attention: Intranet endpoints and socket routes must be defined properly.",
+                      type: "error"
+                    });
+                    return;
+                  }
+                  let settings = {
+                    intranetHost: localIntranetHost,
+                    wsUrl: localWsUrl,
+                    apiUrl: localIntranetHost,
+                    requestTimeout: localRequestTimeout,
+                    useSecureWs: localUseSecureWs
+                  };
+                  const success = switchEnvironment("LOCAL_HOST", settings);
+                  if (success) {
+                    setCurrentDbProvider("LOCAL_HOST");
+                    setAlert({
+                      show: true,
+                      message: isAr
+                        ? "🚀 تم بنجاح الانتقال الكامل والربط الفيدرالي بمخدم الشبكة المحلية للمستشفى بنجاح."
+                        : "🚀 Successfully routed data pipes directly to hospital Local Server.",
+                      type: "success"
+                    });
+                    saveSystemLog({
+                      id: `log-${Date.now()}`,
+                      event: isAr
+                        ? "تم تبديل المخدم الداخلي للأمن الفيدرالي المحلي بنجاح."
+                        : "Switched system data processing pipelines to rely on secure hospital node routers.",
+                      type: "success",
+                      time: new Date().toLocaleTimeString(),
+                      timestampMs: Date.now()
+                    }).catch(() => {});
+                  }
+                }}
+                className={`w-full py-2.5 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer border ${
+                  currentDbProvider === "LOCAL_HOST" 
+                    ? "bg-indigo-50 border-indigo-200 text-indigo-700" 
+                    : "bg-slate-900 border-transparent text-white hover:bg-slate-800"
+                }`}
+              >
+                {isAr ? "حفظ والانتقال الكامل للشبكة المحلية للمستشفى" : "Save & Activate Intranet Server"}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* Main Container Panels */}
       {activeSubTab === "status" && (

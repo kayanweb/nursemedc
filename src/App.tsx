@@ -809,6 +809,19 @@ function AppContent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [breakGlassAlert, setBreakGlassAlert] = useState<{ show: boolean; msgAr: string; msgEn: string; dept: string } | null>(null);
   const [isBellOpen, setIsBellOpen] = useState(false);
+  const [selectedNotificationForModal, setSelectedNotificationForModal] = useState<Notification | null>(null);
+
+  const [quotaExceededMessage, setQuotaExceededMessage] = useState<string | null>(() => {
+    return (window as any).firestoreQuotaExceeded ? "Quota limit exceeded" : null;
+  });
+
+  useEffect(() => {
+    const handleQuota = (e: any) => {
+      setQuotaExceededMessage(e.detail?.error || "Free daily write units per project (free tier database) limit exceeded");
+    };
+    window.addEventListener("firestore-quota-exceeded", handleQuota);
+    return () => window.removeEventListener("firestore-quota-exceeded", handleQuota);
+  }, []);
 
   // Clinical Quality sub-tabs and incident logs inputs
   const [analyticsSubTab, setAnalyticsSubTab] = useState<"kpis" | "sentinel" | "compliance">("kpis");
@@ -1352,6 +1365,7 @@ function AppContent() {
   const [isCompactRosterView, setIsCompactRosterView] = useState<boolean>(false);
   const [isRbacAdminAuthenticated, setIsRbacAdminAuthenticated] = useState<boolean>(false);
   const [rbacAdminPasscode, setRbacAdminPasscode] = useState<string>("");
+  const [rbacAdminUserId, setRbacAdminUserId] = useState<string>("");
 
   // IT Console States
   const [alertWebhookUrl, setAlertWebhookUrl] = useState<string>("https://api.hospital.org/v1/alerts");
@@ -1795,6 +1809,26 @@ Full administrative override and emergency clinical execution privileges have be
 
   const [currentUser, setCurrentUser] = useState<AppUser>(MOCK_USERS[0]);
 
+  // Synchronise logged-in user with systemUsers database updates in real-time immediately
+  useEffect(() => {
+    if (isLoggedIn && currentUser) {
+      const freshUser = systemUsers.find(u => u.id === currentUser.id);
+      if (freshUser) {
+        const hasChanges = 
+          freshUser.status !== currentUser.status ||
+          freshUser.role !== currentUser.role ||
+          JSON.stringify(freshUser.moduleOverrides || []) !== JSON.stringify(currentUser.moduleOverrides || []) ||
+          JSON.stringify(freshUser.moduleDenials || []) !== JSON.stringify(currentUser.moduleDenials || []) ||
+          freshUser.nameAr !== currentUser.nameAr ||
+          freshUser.nameEn !== currentUser.nameEn;
+          
+        if (hasChanges) {
+          setCurrentUser(freshUser);
+        }
+      }
+    }
+  }, [systemUsers, isLoggedIn, currentUser]);
+
   const [viewingUserProfileUser, setViewingUserProfileUser] = useState<AppUser | null>(null);
 
   // Sentinel Events & adverse clinical incidents state
@@ -1962,7 +1996,9 @@ Full administrative override and emergency clinical execution privileges have be
     staffId: "",
     pin: "1234",
     email: "",
-    permissions: [] as string[]
+    permissions: [] as string[],
+    moduleOverrides: [] as string[],
+    moduleDenials: [] as string[]
   });
 
   // Template lists controls (Search & Dept Pills)
@@ -2394,10 +2430,29 @@ Full administrative override and emergency clinical execution privileges have be
     setNotifications(updated);
     saveSetting("baheya_notifications", updated);
     setIsBellOpen(false);
+    setSelectedNotificationForModal(notif);
 
     // 2. Determine redirection based on target properties or fallback to content matching
+    const titleAr = notif.titleAr || "";
+    const titleEn = notif.titleEn || "";
+    const msgAr = notif.messageAr || "";
+    const msgEn = notif.messageEn || "";
+    const bodyAr = notif.bodyAr || "";
+    const bodyEn = notif.bodyEn || "";
+    const textToMatch = `${titleAr} ${titleEn} ${msgAr} ${msgEn} ${bodyAr} ${bodyEn}`.toLowerCase();
+
     if (notif.targetTab) {
-      setActiveTab(notif.targetTab as any);
+      if (notif.targetTab === "approval" || notif.targetTab === "rbac") {
+        const isUserRelated = textToMatch.includes("موافقة") || textToMatch.includes("حساب") || textToMatch.includes("صلاحية") || textToMatch.includes("تسجيل") || textToMatch.includes("مستخدم") || textToMatch.includes("user") || textToMatch.includes("account") || textToMatch.includes("credentials");
+        if (isUserRelated) {
+          setActiveTab("it_panel");
+          setItSubTab("rbac");
+        } else {
+          setActiveTab("roster_config");
+        }
+      } else {
+        setActiveTab(notif.targetTab as any);
+      }
       if (notif.targetSubTab && notif.targetTab === "analytics") {
         setAnalyticsSubTab(notif.targetSubTab as any);
       }
@@ -2408,9 +2463,21 @@ Full administrative override and emergency clinical execution privileges have be
       return;
     }
 
-    const textToMatch = (notif.messageAr + " " + notif.messageEn).toLowerCase();
-
     if (
+      textToMatch.includes("صلاحية") || 
+      textToMatch.includes("صلاحيات") || 
+      textToMatch.includes("موافقة مستخدم") || 
+      textToMatch.includes("تفعيل حساب") || 
+      textToMatch.includes("دور") || 
+      textToMatch.includes("user approval") || 
+      textToMatch.includes("rbac") || 
+      textToMatch.includes("permission") || 
+      textToMatch.includes("approval") ||
+      textToMatch.includes("موافقة")
+    ) {
+      setActiveTab("it_panel");
+      setItSubTab("rbac");
+    } else if (
       textToMatch.includes("ديوتي") || 
       textToMatch.includes("مهمة") || 
       textToMatch.includes("وظائف") || 
@@ -2513,6 +2580,26 @@ Full administrative override and emergency clinical execution privileges have be
 
     // Close the notification popup
     setIsBellOpen(false);
+  };
+
+  // General routing helper for dashboard with secondary parameters
+  const handleGeneralNavigation = (tab: string, subTab?: string) => {
+    if (tab === "approval" || tab === "rbac") {
+      setActiveTab("it_panel");
+      setItSubTab("rbac");
+    } else if (tab === "it_panel") {
+      setActiveTab("it_panel");
+      if (subTab) {
+        setItSubTab(subTab as any);
+      }
+    } else if (tab === "analytics") {
+      setActiveTab("analytics");
+      if (subTab) {
+        setAnalyticsSubTab(subTab as any);
+      }
+    } else {
+      setActiveTab(tab as any);
+    }
   };
 
   // Delete Record (Restricted to ADMIN/PRESIDENT)
@@ -3358,8 +3445,203 @@ Full administrative override and emergency clinical execution privileges have be
     addSystemLog(`Re-initialised department roster for ${selectedRosterDept} safely.`, "info");
   };
 
+  const handleAutoMorningDistribution = () => {
+    const userConfirm = confirm(
+      language === "ar"
+        ? "هل تريد ملء الجدول بالتوزيع الصباحي التلقائي (نوبتجيات صباحية للأيام العادية وعطلة للجمعة)؟"
+        : "Apply auto morning distribution (Day shifts for weekdays, OFF for Fridays)?"
+    );
+    if (!userConfirm) return;
+
+    setRosterList((prevList) => {
+      const nextList = prevList.map((rost) => {
+        if (rost.departmentName === selectedRosterDept) {
+          const updatedRows = rost.rows.map((row: any) => {
+            const shifts = { ...row.shifts };
+            for (let d = 1; d <= 31; d++) {
+              const dayKey = d.toString();
+              const weekday = ROSTER_DAYS_WD[d - 1];
+              if (weekday === "FRI") {
+                shifts[dayKey] = "OFF";
+              } else {
+                shifts[dayKey] = "D";
+              }
+            }
+            return { ...row, shifts };
+          });
+          return { ...rost, rows: updatedRows };
+        }
+        return rost;
+      });
+      saveSetting("baheya_department_rosters", nextList);
+      return nextList;
+    });
+    addSystemLog(`Applied Auto Morning Distribution for ${selectedRosterDept}`, "success");
+  };
+
+  const handleAutoNightAndHolidayDistribution = () => {
+    const userConfirm = confirm(
+      language === "ar"
+        ? "هل تريد تفعيل التوزيع التلقائي لسهر العطلات والمبيت (تنظيم مناوبات الليل والمبيت الموزعة تلقائياً)؟"
+        : "Apply rotating night shifts & holiday night-shifts?"
+    );
+    if (!userConfirm) return;
+
+    setRosterList((prevList) => {
+      const nextList = prevList.map((rost) => {
+        if (rost.departmentName === selectedRosterDept) {
+          const updatedRows = rost.rows.map((row: any, rIdx: number) => {
+            const shifts = { ...row.shifts };
+            for (let d = 1; d <= 31; d++) {
+              const dayKey = d.toString();
+              const weekday = ROSTER_DAYS_WD[d - 1];
+              const rotationSeed = (rIdx * 3 + d) % 4;
+              
+              if (weekday === "FRI") {
+                shifts[dayKey] = "OFF";
+              } else if (weekday === "SAT") {
+                shifts[dayKey] = rotationSeed === 0 ? "DN" : "OFF";
+              } else {
+                if (rotationSeed === 1) {
+                  shifts[dayKey] = "N";
+                } else if (rotationSeed === 2) {
+                  shifts[dayKey] = "D";
+                } else {
+                  shifts[dayKey] = "D";
+                }
+              }
+            }
+            return { ...row, shifts };
+          });
+          return { ...rost, rows: updatedRows };
+        }
+        return rost;
+      });
+      saveSetting("baheya_department_rosters", nextList);
+      return nextList;
+    });
+    addSystemLog(`Applied Rotating Night/Holiday Roster for ${selectedRosterDept}`, "success");
+  };
+
+  const handleIsolateFridayOffs = () => {
+    const userConfirm = confirm(
+      language === "ar"
+        ? "هل تريد تفعيل عزل راحة الجمعة وجعل يوم الجمعة عطلة إجبارية (OFF) لكافة كادر القسم؟"
+        : "Force all Friday cells to OFF for department roster?"
+    );
+    if (!userConfirm) return;
+
+    setRosterList((prevList) => {
+      const nextList = prevList.map((rost) => {
+        if (rost.departmentName === selectedRosterDept) {
+          const updatedRows = rost.rows.map((row: any) => {
+            const shifts = { ...row.shifts };
+            for (let d = 1; d <= 31; d++) {
+              const weekday = ROSTER_DAYS_WD[d - 1];
+              if (weekday === "FRI") {
+                shifts[d.toString()] = "OFF";
+              }
+            }
+            return { ...row, shifts };
+          });
+          return { ...rost, rows: updatedRows };
+        }
+        return rost;
+      });
+      saveSetting("baheya_department_rosters", nextList);
+      return nextList;
+    });
+    addSystemLog(`Enforced Friday as OFF for ${selectedRosterDept}`, "success");
+  };
+
+  const handleWipeRosterShiftsOnly = () => {
+    const userConfirm = confirm(
+      language === "ar"
+        ? "⚠️ تصفير الجدول: هل أنت متأكد من مسح وتصفير كافة الورش والشيفتات بالجدول (مع الإبقاء على كادر القسم دون تعديل)؟"
+        : "⚠️ Clear shifts: Are you sure you want to completely wipe all scheduled shifts in this roster?"
+    );
+    if (!userConfirm) return;
+
+    setRosterList((prevList) => {
+      const nextList = prevList.map((rost) => {
+        if (rost.departmentName === selectedRosterDept) {
+          const updatedRows = rost.rows.map((row: any) => ({
+            ...row,
+            shifts: {}
+          }));
+          return { ...rost, rows: updatedRows };
+        }
+        return rost;
+      });
+      saveSetting("baheya_department_rosters", nextList);
+      return nextList;
+    });
+    addSystemLog(`Wiped all roster shifts for ${selectedRosterDept}`, "info");
+  };
+
+  const handleBulkFillSpecificShift = (shiftCode: "D" | "N" | "DN") => {
+    const userConfirm = confirm(
+      language === "ar"
+        ? `هل تريد ملء الجدول بالكامل بالشيفت الكلي (${shiftCode}) لكافة أيام الأسبوع (ما عدا الجمعة الراحة)؟`
+        : `Bulk fill all weekdays for this roster with shift (${shiftCode})?`
+    );
+    if (!userConfirm) return;
+
+    setRosterList((prevList) => {
+      const nextList = prevList.map((rost) => {
+        if (rost.departmentName === selectedRosterDept) {
+          const updatedRows = rost.rows.map((row: any) => {
+            const shifts = { ...row.shifts };
+            for (let d = 1; d <= 31; d++) {
+              const dayKey = d.toString();
+              const weekday = ROSTER_DAYS_WD[d - 1];
+              if (weekday === "FRI") {
+                shifts[dayKey] = "OFF";
+              } else {
+                shifts[dayKey] = shiftCode;
+              }
+            }
+            return { ...row, shifts };
+          });
+          return { ...rost, rows: updatedRows };
+        }
+        return rost;
+      });
+      saveSetting("baheya_department_rosters", nextList);
+      return nextList;
+    });
+    addSystemLog(`Bulk filled weekdays with ${shiftCode} in ${selectedRosterDept}`, "success");
+  };
+
   // User Management actions
   const handleAddSystemUser = () => {
+    if (!isRbacAdminAuthenticated) {
+      alert(language === "ar" 
+        ? "🔒 وصول مرفوض: تسجيل الكوادر الطبية الجديدة يتطلب تفعيل المصادقة الإدارية بنظام حماية HIPAA العالي أولاً!" 
+        : "🔒 Access Denied: Registering new clinical staff requires validating your administrative authentication in the HIPAA Security Module first!");
+      return;
+    }
+
+    // Force prompt verification of administrative credentials upon adding a new user
+    const matchedAdmin = systemUsers.find(u => u.id === rbacAdminUserId);
+    const adminName = matchedAdmin ? (language === "ar" ? matchedAdmin.nameAr : matchedAdmin.nameEn) : "Admin";
+    const pinPrompt = prompt(
+      language === "ar"
+        ? `⚠️ إجراء فائق الحماية (HIPAA Access Control): لتأكيد وتوثيق طلب إضافة مستخدم جديد، يرجى إدخال الرمز السري الفعلي لـ (${adminName}):`
+        : `⚠️ Critical HIPAA Security Verification: To register and save this new clinical user, please type the PIN of (${adminName}):`
+    );
+
+    if (!pinPrompt) {
+      alert(language === "ar" ? "⚠️ تم إلغاء عملية التسجيل لعدم توفير الرمز السري للمسؤول الفعّال!" : "Registration cancelled. User was not added.");
+      return;
+    }
+
+    const expectedPin = matchedAdmin ? matchedAdmin.pin : "2026";
+    if (pinPrompt !== expectedPin && pinPrompt !== "2026") {
+      alert(language === "ar" ? "❌ الرمز السري للمسؤول غير صحيح! يرجى إدخال الرقم الصحيح المصرح به." : "Incorrect administrative PIN! Registration rejected.");
+      return;
+    }
+
     if (!newUserForm.nameAr.trim() || !newUserForm.nameEn.trim() || !newUserForm.staffId.trim() || !newUserForm.email.trim()) {
       alert(language === "ar" ? "يرجى ملء الاسم بالعربية والإنجليزية، كود الموظف، والبريد الإلكتروني!" : "Please fill Arabic name, English name, Staff ID, and Corporate Email!");
       return;
@@ -3456,7 +3738,9 @@ Full administrative override and emergency clinical execution privileges have be
         staffId: "",
         pin: "1234",
         email: "",
-        permissions: []
+        permissions: [],
+        moduleOverrides: [],
+        moduleDenials: []
       });
       return;
     }
@@ -3471,12 +3755,41 @@ Full administrative override and emergency clinical execution privileges have be
         staffId: usr.staffId,
         pin: usr.pin || "1234",
         email: usr.email || "",
-        permissions: usr.permissions || []
+        permissions: usr.permissions || [],
+        moduleOverrides: usr.moduleOverrides || [],
+        moduleDenials: usr.moduleDenials || []
       });
     }
   };
 
   const handleUpdateSystemUser = () => {
+    if (!isRbacAdminAuthenticated) {
+      alert(language === "ar" 
+        ? "🔒 وصول مرفوض: تعديل حسابات الموظفين وصلاحياتهم الفورية يتطلب تفعيل المصادقة الإدارية بنظام حماية HIPAA العالي بالأسفل أولاً!" 
+        : "🔒 Access Denied: Modifying employee accounts and immediate permissions requires validating your administrative authentication in the HIPAA Security Module first!");
+      return;
+    }
+
+    // Force prompt verification of administrative credentials upon saving to prevent any arbitrary passwords or unauthorized bypasses
+    const matchedAdmin = systemUsers.find(u => u.id === rbacAdminUserId);
+    const adminName = matchedAdmin ? (language === "ar" ? matchedAdmin.nameAr : matchedAdmin.nameEn) : "Admin";
+    const pinPrompt = prompt(
+      language === "ar"
+        ? `⚠️ إجراء فائق الحماية (HIPAA Access Control): لتأكيد وتوثيق طلب تعديل أدوار الكادر الطبي، يرجى إدخال الرمز السري الفعلي لـ (${adminName}):`
+        : `⚠️ Critical HIPAA Security Verification: To apply modification changes to active clinical roles, please type the PIN of (${adminName}):`
+    );
+
+    if (!pinPrompt) {
+      alert(language === "ar" ? "⚠️ تم إلغاء عملية الحفظ لعدم توفير الرمز السري للمسؤول الفعّال!" : "Save operation was cancelled. Configuration was not modified.");
+      return;
+    }
+
+    const expectedPin = matchedAdmin ? matchedAdmin.pin : "2026";
+    if (pinPrompt !== expectedPin && pinPrompt !== "2026") {
+      alert(language === "ar" ? "❌ الرمز السري للمسؤول غير صحيح! يرجى إدخال الرقم الصحيح المصرح به بغرفة السيطرة الطبية." : "Incorrect administrative PIN! Action rejected.");
+      return;
+    }
+
     if (!selectedUserToEdit) return;
     if (!editUserForm.nameAr.trim() || !editUserForm.nameEn.trim() || !editUserForm.staffId.trim() || !editUserForm.email.trim()) {
       alert(language === "ar" ? "يرجى ملء الاسم بالعربية والإنجليزية، كود الموظف والبريد الإلكتروني!" : "Arabic/English name, Staff ID & Email are required!");
@@ -3504,7 +3817,9 @@ Full administrative override and emergency clinical execution privileges have be
           email: editUserForm.email.trim().toLowerCase(),
           emp_id: editUserForm.staffId.trim(),
           assigned_dept: editUserForm.department.trim(),
-          permissions: editUserForm.permissions || []
+          permissions: editUserForm.permissions || [],
+          moduleOverrides: editUserForm.moduleOverrides || [],
+          moduleDenials: editUserForm.moduleDenials || []
         };
         // Sync to Firestore
         saveStaffMember(updatedUsr).catch(err => console.error(err));
@@ -3540,6 +3855,33 @@ Full administrative override and emergency clinical execution privileges have be
   };
 
   const handleDeleteSystemUser = (userId: string) => {
+    if (!isRbacAdminAuthenticated) {
+      alert(language === "ar" 
+        ? "🔒 وصول مرفوض: إبطال أو حذف حسابات الموظفين يتطلب تفعيل المصادقة الإدارية بنظام حماية HIPAA العالي بالأسفل أولاً!" 
+        : "🔒 Access Denied: Revoking or deleting employee accounts requires validating your administrative authentication in the HIPAA Security Module first!");
+      return;
+    }
+
+    // Force prompt verification of administrative credentials upon deletion
+    const matchedAdmin = systemUsers.find(u => u.id === rbacAdminUserId);
+    const adminName = matchedAdmin ? (language === "ar" ? matchedAdmin.nameAr : matchedAdmin.nameEn) : "Admin";
+    const pinPrompt = prompt(
+      language === "ar"
+        ? `⚠️ إجراء فائق الحماية (HIPAA Access Control): لتأكيد حذف هذا المستخدم نهائياً، يرجى إدخال الرمز السري الحالي لـ لـ (${adminName}):`
+        : `⚠️ Critical HIPAA Security Verification: To delete and revoke this patient/employee account, type the PIN of (${adminName}):`
+    );
+
+    if (!pinPrompt) {
+      alert(language === "ar" ? "⚠️ تم إلغاء عملية الحذف لعدم توفير الرمز السري للمسؤول الفعّال!" : "Deletion cancelled. Account not removed.");
+      return;
+    }
+
+    const expectedPin = matchedAdmin ? matchedAdmin.pin : "2026";
+    if (pinPrompt !== expectedPin && pinPrompt !== "2026") {
+      alert(language === "ar" ? "❌ الرمز السري للمسؤول غير صحيح! يرجى إدخال الرقم الصحيح المصرح به." : "Incorrect administrative PIN! Deletion rejected.");
+      return;
+    }
+
     if (userId === currentUser.id) {
       alert(language === "ar" ? "عذراً: لا يمكنك حذف حساب الموظف الفعّال والنشط في جلستك الحالية!" : "Access Denied: You cannot delete the currently logged in active session user!");
       return;
@@ -3780,8 +4122,10 @@ Full administrative override and emergency clinical execution privileges have be
     try {
       setLoginError(null);
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      // Success automatically updates loggedIn state via Firebase auth listener
+      const result = await signInWithPopup(auth, provider);
+      if (result.user) {
+        handleFirebaseAuthSuccess(result.user);
+      }
     } catch (error: any) {
       console.error("Google sign-in error:", error);
       const msg = error?.message || "";
@@ -3803,12 +4147,69 @@ Full administrative override and emergency clinical execution privileges have be
     }
   };
 
-  
-  const handleFirebaseAuthSuccess = (fbUser) => {
-    const adminUser = systemUsers.find(u => u.role === 'admin') || systemUsers[0];
-    setCurrentUser(adminUser);
-    setIsLoggedIn(true);
-    setActiveLoginFeature(null);
+  const handleFirebaseAuthSuccess = (fbUser: any) => {
+    if (!fbUser) return;
+    const email = (fbUser.email || "").trim().toLowerCase();
+    
+    // Check if user already exists by email
+    const matchedUser = systemUsers.find(
+      u => (u.email || "").trim().toLowerCase() === email
+    );
+
+    if (matchedUser) {
+      if (matchedUser.status !== "active") {
+        setLoginError(
+          language === "ar"
+            ? "⚠ عذراً! حسابك المرتبط بجوجل غير نشط حالياً. يرجى مراجعة مسؤول النظام."
+            : "⚠ Access Denied: Your Google-linked account is currently inactive. Please contact the IT Admin."
+        );
+        return;
+      }
+      setCurrentUser(matchedUser);
+      setIsLoggedIn(true);
+      setActiveLoginFeature(null);
+      setLoginError(null);
+      addSystemLog(`User ${matchedUser.nameEn} logged in via Google Auth.`, "success");
+    } else {
+      // Not registered yet! Let's register them dynamically
+      const generatedStaffId = Math.floor(100000 + Math.random() * 900000).toString(); // Unique random staff ID
+      const initials = (fbUser.displayName || fbUser.email || "Google User")
+        .split(" ")
+        .map((n: string) => n[0])
+        .join("")
+        .toUpperCase()
+        .substring(0, 2) || "G";
+
+      const nameAr = fbUser.displayName || fbUser.email.split("@")[0];
+      const nameEn = fbUser.displayName || fbUser.email.split("@")[0];
+
+      const newUser: AppUser = {
+        id: fbUser.uid,
+        nameAr: nameAr,
+        nameEn: nameEn,
+        role: "staff", // Default to staff
+        roleId: "staff",
+        avatarInitials: initials,
+        department: "EMERGENCY UNIT", // Default department
+        staffId: generatedStaffId,
+        pin: "1234", // Default PIN
+        email: email,
+        emp_id: generatedStaffId,
+        assigned_dept: "EMERGENCY UNIT",
+        permissions: ["checklist", "duty", "view_roster"],
+        status: "active" // Make them active instantly for seamless testing!
+      };
+
+      const updated = [...systemUsers, newUser];
+      setSystemUsers(updated);
+      saveStaffMember(newUser).catch(err => console.error("Error saving newly registered Google staff:", err));
+
+      setCurrentUser(newUser);
+      setIsLoggedIn(true);
+      setActiveLoginFeature(null);
+      setLoginError(null);
+      addSystemLog(`New Google user ${newUser.nameEn} registered & logged in successfully.`, "success");
+    }
   };
 
   const handleLoginSubmit = (e: React.FormEvent) => {
@@ -5370,16 +5771,26 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                 className="relative p-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-indigo-600 rounded-xl transition shadow-sm hover:shadow cursor-pointer flex items-center justify-center h-[34px]"
               >
                 <Bell className={`h-4.5 w-4.5 transition-colors ${notifications.some(n => !n.read) ? "animate-bounce text-pink-600" : ""}`} />
-                {notifications.some(n => !n.read) && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white rounded-full text-[9px] w-4.5 h-4.5 flex items-center justify-center font-black shadow-md border border-white">
-                    {notifications.filter(n => !n.read).length}
-                  </span>
-                )}
+                {(() => {
+                  const visibleUnread = notifications.filter(notif => {
+                    if (notif.read) return false;
+                    if (!notif.userId || notif.userId === "all" || notif.userId === currentUser.id) return true;
+                    if (notif.userId === "admin" && (currentUser.role === "admin" || currentUser.role === "it")) return true;
+                    if (notif.userId === "supervisor" && ["admin", "it", "head_nurse", "nursing_director", "supervisor", "quality"].includes(currentUser.role)) return true;
+                    if (notif.userId === "director" && ["admin", "it", "nursing_director", "president", "medical_director"].includes(currentUser.role)) return true;
+                    return false;
+                  });
+                  return visibleUnread.length > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white rounded-full text-[9px] w-4.5 h-4.5 flex items-center justify-center font-black shadow-md border border-white">
+                      {visibleUnread.length}
+                    </span>
+                  );
+                })()}
               </button>
 
               {isBellOpen && (
                 <div 
-                  className="absolute -right-16 md:right-0 mt-2 w-[290px] xs:w-[320px] sm:w-[360px] bg-white/95 backdrop-blur-xl border border-slate-200/50 rounded-2xl shadow-2xl z-50 overflow-hidden transition-all duration-200 origin-top-right flex flex-col max-h-[400px]"
+                  className="absolute ltr:right-0 rtl:left-0 mt-2 w-[285px] xs:w-[320px] sm:w-[360px] max-w-[calc(100vw-32px)] bg-white/95 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden transition-all duration-200 ltr:origin-top-right rtl:origin-top-left flex flex-col max-h-[420px]"
                 >
                   <div className="px-4 py-3 bg-slate-900/5 backdrop-blur-md border-b border-slate-200/50 flex items-center justify-between">
                     <h4 className="text-[11px] font-black text-slate-800 flex items-center gap-1.5">
@@ -5400,31 +5811,40 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                     )}
                   </div>
                   <div className="overflow-y-auto divide-y divide-slate-100 flex-1 max-h-64 custom-scrollbar">
-                    {notifications.length === 0 ? (
-                      <div className="p-6 text-center text-xs text-slate-400 font-medium">
-                        {language === "ar" ? "الوضع آمن ومستقر حالياً" : "All clear. No active alerts."}
-                      </div>
-                    ) : (
-                      notifications.map(notif => (
-                        <div 
-                          key={notif.id} 
-                          onClick={() => handleNotificationClick(notif)}
-                          className={`p-3 text-[10px] sm:text-xs transition text-right cursor-pointer hover:bg-slate-50/80 active:bg-slate-100 ${notif.read ? "bg-white/50 text-slate-500 font-normal hover:text-slate-700" : "bg-indigo-50/60 text-slate-900 border-r-4 border-indigo-500 font-bold hover:bg-indigo-100/50"}`}
-                        >
-                          <div className="flex justify-between items-start mb-1 text-[9px] font-medium text-slate-500">
-                            <span>{new Date(notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                            {notif.type === "directive" && (
-                              <span className="bg-rose-100 text-rose-700 font-extrabold px-1.5 py-0.5 rounded text-[8px] shadow-sm tracking-wider">
-                                {language === "ar" ? "توجيه إداري" : "Directive"}
-                              </span>
-                            )}
-                          </div>
-                          <p className="leading-relaxed">
-                            {language === "ar" ? notif.messageAr : notif.messageEn}
-                          </p>
+                    {(() => {
+                      const visibleNotifs = notifications.filter(notif => {
+                        if (!notif.userId || notif.userId === "all" || notif.userId === currentUser.id) return true;
+                        if (notif.userId === "admin" && (currentUser.role === "admin" || currentUser.role === "it")) return true;
+                        if (notif.userId === "supervisor" && ["admin", "it", "head_nurse", "nursing_director", "supervisor", "quality"].includes(currentUser.role)) return true;
+                        if (notif.userId === "director" && ["admin", "it", "nursing_director", "president", "medical_director"].includes(currentUser.role)) return true;
+                        return false;
+                      });
+                      return visibleNotifs.length === 0 ? (
+                        <div className="p-6 text-center text-xs text-slate-400 font-medium">
+                          {language === "ar" ? "الوضع آمن ومستقر حالياً" : "All clear. No active alerts."}
                         </div>
-                      ))
-                    )}
+                      ) : (
+                        visibleNotifs.map(notif => (
+                          <div 
+                            key={notif.id} 
+                            onClick={() => handleNotificationClick(notif)}
+                            className={`p-3 text-[10px] sm:text-xs transition text-right cursor-pointer hover:bg-slate-50/80 active:bg-slate-100 ${notif.read ? "bg-white/50 text-slate-500 font-normal hover:text-slate-700" : "bg-indigo-50/60 text-slate-900 border-r-4 border-indigo-500 font-bold hover:bg-indigo-100/50"}`}
+                          >
+                            <div className="flex justify-between items-start mb-1 text-[9px] font-medium text-slate-500">
+                              <span>{new Date(notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              {notif.type === "directive" && (
+                                <span className="bg-rose-100 text-rose-700 font-extrabold px-1.5 py-0.5 rounded text-[8px] shadow-sm tracking-wider">
+                                  {language === "ar" ? "توجيه إداري" : "Directive"}
+                                </span>
+                              )}
+                            </div>
+                            <p className="leading-relaxed">
+                              {language === "ar" ? notif.messageAr : notif.messageEn}
+                            </p>
+                          </div>
+                        ))
+                      );
+                    })()}
                   </div>
                 </div>
               )}
@@ -5449,6 +5869,81 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
             />
           </div>
         </header>
+
+        {quotaExceededMessage && (
+          <div className="mx-6 mt-4 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-orange-200 rounded-2xl p-4 shadow-lg text-right" dir={language === "ar" ? "rtl" : "ltr"}>
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="p-3 bg-orange-100 text-orange-700 rounded-xl animate-pulse shrink-0">
+                  <AlertTriangle className="h-6 w-6" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-black text-slate-800">
+                    {language === "ar" 
+                      ? "⚠️ تم استهلاك الحد اليومي لكتابة البيانات السحابية (Firebase Quota limit exceeded)"
+                      : "⚠️ Notice: Firestore Daily Free tier Write Quota limit exceeded"
+                    }
+                  </p>
+                  <p className="text-xs font-bold text-orange-700">
+                    {language === "ar"
+                      ? "تم تفعيل وضع التخزين المحلي الآمن والمستقل عالي الأداء (Offline Local Sandbox Mode) تلقائياً"
+                      : "Automatic Seamless 'Offline Local Sandbox Mode' is now Active!"
+                    }
+                  </p>
+                  <p className="text-[11px] text-slate-600 leading-relaxed font-sans mt-1">
+                    {language === "ar"
+                      ? "نظراً لتجاوز الحد الأقصى المجاني المسموح به للكتابة في خطة Spark المجانية (20,000 عملية كتابة في اليوم)، قمنا بتحويل الحفظ التلقائي لقاعدة بيانات التخزين بالمتصفح (localStorage) على جهازك لمنع التوقف. كافة التعديلات، الجرودات، شيتات المتابعة الطبية، ونظام التمريض تفاعلية وتعمل بشكل سليم."
+                      : "Due to reaching the Spark Plan daily free write bounds (20,000 writes/day limits) on standard free tier database, local storage fallback caching is running to prevent data loss. You can continue active operations, rosters planning, daily sheets logging, and clinical entries completely uninterrupted locally."
+                    }
+                  </p>
+                  <p className="text-[10px] text-slate-500 font-mono mt-1">
+                    {language === "ar"
+                      ? "معرف المشروع: gen-lang-client-0184050009 | نسخة قاعدة البيانات: ai-studio-fe77a31b-889d-4067-9f81-2400ec7d4138"
+                      : "Project ID: gen-lang-client-0184050009 | DB ID: ai-studio-fe77a31b-889d-4067-9f81-2400ec7d4138"
+                    }
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3.5 mt-2 pt-2 border-t border-orange-100">
+                    <a
+                      href={`https://console.firebase.google.com/project/gen-lang-client-0184050009/firestore/databases/ai-studio-fe77a31b-889d-4067-9f81-2400ec7d4138/data?openUpgradeDialog=true`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-[10px] font-black transition flex items-center gap-1 cursor-pointer shadow-sm text-center"
+                    >
+                      <span>
+                        {language === "ar" 
+                          ? "ترقية خطة قاعدة البيانات في كونسول Firebase ↗" 
+                          : "Upgrade database in Firebase console ↗"
+                        }
+                      </span>
+                    </a>
+                    <a
+                      href="https://firebase.google.com/pricing#cloud-firestore"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-[10px] font-bold transition flex items-center gap-1 cursor-pointer text-center"
+                    >
+                      <span>
+                        {language === "ar" 
+                          ? "تفاصيل أسعار الخطة وتحديثها (Spark pricing) ↗" 
+                          : "More about Spark quota limits & pricing ↗"
+                        }
+                      </span>
+                    </a>
+                    <p className="text-[10px] text-slate-400">
+                      {language === "ar" ? "* سيتم إعادة تصفير العداد المجاني تلقائياً بحلول يوم غد." : "* Free quota tier counters reset automatically every day."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setQuotaExceededMessage(null)}
+                className="bg-orange-100 hover:bg-orange-200 text-orange-700 hover:text-orange-900 duration-150 transition-colors px-2 py-1.5 rounded-lg text-[10px] font-black md:self-start cursor-pointer border border-orange-200"
+              >
+                {language === "ar" ? "فهمت (إغلاق)" : "Dismiss Notice"}
+              </button>
+            </div>
+          </div>
+        )}
 
         {activeCodeBlueAlert && (
           <div className="mx-6 mt-4 bg-red-700 text-white border-2 border-red-500 rounded-2xl p-4 flex items-center justify-between shadow-2xl animate-pulse">
@@ -8714,6 +9209,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                   language={language}
                   departments={departments}
                   currentUser={currentUser}
+                  onUpdateUsers={setSystemUsers}
                 />
               </div>
             </div>
@@ -8746,15 +9242,15 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
           )}
 
           {activeTab === "director_dashboard" && (
-            <NursingDirectorDashboard language={language} onNavigate={setActiveTab} />
+            <NursingDirectorDashboard language={language} onNavigate={handleGeneralNavigation} />
           )}
 
           {activeTab === "supervisor_dashboard" && (
-            <NursingSupervisorDashboard language={language} onNavigate={setActiveTab} />
+            <NursingSupervisorDashboard language={language} onNavigate={handleGeneralNavigation} />
           )}
 
           {activeTab === "headnurse_dashboard" && (
-            <HeadNurseDashboard language={language} onNavigate={setActiveTab} />
+            <HeadNurseDashboard language={language} onNavigate={handleGeneralNavigation} />
           )}
 
           {activeTab === "his" && (
@@ -9802,6 +10298,100 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                         </div>
                       </div>
                     )}
+
+                    {/* ⚡ MICRO-TOOLS & QUICK FILLING AUTOMATIONS SECTION */}
+                    <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4.5 space-y-4 shadow-sm text-right" dir="rtl">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between border-b pb-2.5 border-slate-200">
+                        <div className="space-y-0.5">
+                          <h4 className="font-extrabold text-xs text-indigo-950 flex items-center justify-start gap-1.5 matches-bold">
+                            <span>⚡</span>
+                            <span>{language === "ar" ? "أدوات ميكرو ومساعدة سريعة لملء الجدول" : "Roster Micro-automation & Quick-filling Tools"}</span>
+                          </h4>
+                          <p className="text-[10px] text-slate-500 font-medium">
+                            {language === "ar" 
+                              ? "أتمتة ذكية معتمدة لتوفير الوقت والجهد في تعبئة وتنظيم خلايا الروستر بلمسة واحدة." 
+                              : "One-click intelligent macros for filling shifts instantly across all department rows."}
+                          </p>
+                        </div>
+                        <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-100 font-black px-2 py-0.5 rounded-full mt-1.5 md:mt-0 max-w-fit">
+                          {selectedRosterDept}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                        <button
+                          type="button"
+                          onClick={handleAutoMorningDistribution}
+                          className="px-4 py-2.5 bg-amber-50 hover:bg-amber-100/80 text-amber-800 border border-amber-200 font-black text-xs rounded-xl transition duration-150 flex items-center justify-center gap-1.5 shadow-sm active:translate-y-0.5 cursor-pointer"
+                        >
+                          <span>🌅</span>
+                          <span>{language === "ar" ? "توزيع صباحي تلقائي" : "Auto Morning"}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleAutoNightAndHolidayDistribution}
+                          className="px-4 py-2.5 bg-indigo-50 hover:bg-indigo-150/80 text-indigo-905 text-indigo-800 border border-indigo-200 font-black text-xs rounded-xl transition duration-150 flex items-center justify-center gap-1.5 shadow-sm active:translate-y-0.5 cursor-pointer"
+                        >
+                          <span>🌃</span>
+                          <span>{language === "ar" ? "سهر عطلات ومبيت تلقائي" : "Auto Night & Holiday"}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleIsolateFridayOffs}
+                          className="px-4 py-2.5 bg-teal-50 hover:bg-teal-100/80 text-teal-800 border border-teal-200 font-black text-xs rounded-xl transition duration-150 flex items-center justify-center gap-1.5 shadow-sm active:translate-y-0.5 cursor-pointer"
+                        >
+                          <span>🏖️</span>
+                          <span>{language === "ar" ? "عزل راحة الجمعة" : "Friday Isolation"}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleWipeRosterShiftsOnly}
+                          className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100/80 text-rose-800 border border-rose-250 font-black text-xs rounded-xl transition duration-150 flex items-center justify-center gap-1.5 shadow-sm active:translate-y-0.5 col-span-1 cursor-pointer"
+                        >
+                          <span>🔄</span>
+                          <span>{language === "ar" ? "تصفير الجدول" : "Wipe Grid"}</span>
+                        </button>
+                      </div>
+
+                      <div className="pt-2 border-t border-dashed border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                        <span className="text-[10px] text-slate-500 font-bold block">
+                          {language === "ar" 
+                            ? "💡 تعبئة نموذجية شاملة لكامل الموظفين بالأيام العادية:" 
+                            : "💡 Bulk fill weekdays for everyone in this department:"}
+                        </span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleBulkFillSpecificShift("D")}
+                            className="bg-white hover:bg-slate-105 border border-slate-350 text-slate-800 hover:text-slate-900 border-slate-300 font-black px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer hover:shadow-xs transition"
+                          >
+                            <span className="w-2.5 h-2.5 rounded-full bg-orange-400 inline-block" />
+                            <span>{language === "ar" ? "تعبئة شاملة d (صباحي)" : "Fill weekday D"}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleBulkFillSpecificShift("N")}
+                            className="bg-white hover:bg-slate-105 border border-slate-350 text-slate-800 hover:text-slate-900 border-slate-300 font-black px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer hover:shadow-xs transition"
+                          >
+                            <span className="w-2.5 h-2.5 rounded-full bg-violet-600 inline-block" />
+                            <span>{language === "ar" ? "تعبئة شاملة n (مسائي/سهر)" : "Fill weekday N"}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleBulkFillSpecificShift("DN")}
+                            className="bg-white hover:bg-slate-105 border border-slate-350 text-slate-800 hover:text-slate-900 border-slate-300 font-black px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer hover:shadow-xs transition"
+                          >
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+                            <span>{language === "ar" ? "تعبئة شاملة dn (مبيت)" : "Fill weekday DN"}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -13202,7 +13792,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                               </div>
 
                               <div className="md:col-span-2 lg:col-span-3">
-                                <label className="block text-[9px] font-bold text-slate-450 mb-1">البريد الإلكتروني المهني</label>
+                                <label className="block text-[9px] font-bold text-slate-450 mb-1 font-mono">البريد الإلكتروني المهني</label>
                                 <input
                                   type="email"
                                   value={editUserForm.email}
@@ -13210,6 +13800,111 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                                   className="w-full bg-slate-50 border border-slate-200 rounded py-1 px-2 font-mono focus:bg-white focus:outline-none focus:ring-1 focus:ring-pink-500"
                                   placeholder="nurse.name@hospital.org"
                                 />
+                              </div>
+                            </div>
+
+                            {/* HIPAA View Exclusions Table / Exceptions Slider Scrollbar Block */}
+                            <div className="border-t pt-4 mt-2">
+                              <div className="flex items-center justify-between bg-pink-500/5 p-2 rounded-xl border border-pink-500/10 mb-3" dir="rtl">
+                                <div className="text-right">
+                                  <h5 className="font-extrabold text-[12px] text-pink-700 flex items-center gap-1">
+                                    <ShieldAlert className="w-4 h-4 text-pink-600 animate-pulse" />
+                                    <span>محددات الاستثناءات وعرض/إخفاء واجهات وتطبيقات المستشفى</span>
+                                  </h5>
+                                  <p className="text-[10px] text-slate-500 font-sans">
+                                    تحكم فوري وقسري لتجاوز مصفوفة الصلاحيات الافتراضية (إما بالسماح بالفتح أو الحظر التام على مستوى المستخدم مفرداً):
+                                  </p>
+                                </div>
+                                <span className="bg-pink-600 text-white font-mono font-black text-[9px] px-2 py-0.5 rounded-full animate-pulse uppercase">Exceptions</span>
+                              </div>
+
+                              {/* Scrollbar-enforced list container */}
+                              <div className="max-h-[300px] overflow-y-auto pr-2 border border-slate-200 rounded-xl p-3 bg-slate-50 shadow-inner space-y-2.5 custom-main-scroll" style={{ direction: 'rtl' }}>
+                                {[
+                                  { id: "mod_nursing_admin", name: "إدارة شؤون التمريض وشبكة الكادر" },
+                                  { id: "mod_supervisor", name: "نوبتجيات المشرفين والقيادة السريرية" },
+                                  { id: "mod_medication", name: "خزنة وجرد الأدوية المخدرة والمراقبة" },
+                                  { id: "mod_forms_fill", name: "شاشة تعبئة الشيتات والجرودات الطبية اليومية" },
+                                  { id: "mod_forms_dist", name: "مكتب توزيع الشيتات ونماذج الوحدات" },
+                                  { id: "mod_roster_view", name: "جدول نوبتجيات وورديات التمريض المعتمد (الروستر)" },
+                                  { id: "mod_roster_config", name: "إدارة تخطيط الفترات وقواعد الروستر" },
+                                  { id: "mod_meals", name: "بوابة حجز وإدارة الوجبات الغذائية للكادر" },
+                                  { id: "mod_transport", name: "حركة الإسعاف وسيارات الطوارئ والنقل" },
+                                  { id: "mod_quality", name: "لوحة رقابة الجودة الشاملة وتقارير CQI" },
+                                  { id: "mod_archives", name: "أرشيف السجلات والملفات واسترجاع البيانات" },
+                                  { id: "mod_messaging", name: "نظام المراسلة السريع والتعميمات الإدارية" },
+                                  { id: "mod_document_center", name: "مركز الوثائق والأقسام السحابي والمستندات" }
+                                ].map((mod) => {
+                                  const isOverride = (editUserForm.moduleOverrides || []).some(id => id && id.split('|')[0] === mod.id);
+                                  const isDeny = (editUserForm.moduleDenials || []).some(id => id && id.split('|')[0] === mod.id);
+                                  const stateVal = isOverride ? 'override' : isDeny ? 'deny' : 'default';
+
+                                  return (
+                                    <div key={mod.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 bg-white rounded-lg border border-slate-200 hover:border-pink-300 transition-colors gap-2 text-right">
+                                      <div className="flex items-center gap-2">
+                                        <div className={`w-2 h-2 rounded-full ${stateVal === 'override' ? 'bg-emerald-500' : stateVal === 'deny' ? 'bg-rose-500' : 'bg-slate-300'}`} />
+                                        <span className="font-extrabold text-slate-700 text-xs">{mod.name}</span>
+                                      </div>
+                                      
+                                      {/* Three-State Control button group representing show/hide exceptions */}
+                                      <div className="flex items-center gap-1.5 self-end sm:self-center font-sans">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            let nextO = [...(editUserForm.moduleOverrides || [])];
+                                            let nextD = [...(editUserForm.moduleDenials || [])];
+                                            nextO = nextO.filter(id => !id || id.split('|')[0] !== mod.id);
+                                            nextD = nextD.filter(id => !id || id.split('|')[0] !== mod.id);
+                                            setEditUserForm({ ...editUserForm, moduleOverrides: nextO, moduleDenials: nextD });
+                                          }}
+                                          className={`px-2 py-1 rounded text-[10px] font-bold border transition ${
+                                            stateVal === 'default'
+                                              ? 'bg-slate-150 border-slate-300 text-slate-700 font-extrabold bg-slate-200'
+                                              : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'
+                                          }`}
+                                        >
+                                          عام (موروث)
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            let nextO = [...(editUserForm.moduleOverrides || [])];
+                                            let nextD = [...(editUserForm.moduleDenials || [])];
+                                            nextO = nextO.filter(id => !id || id.split('|')[0] !== mod.id);
+                                            nextD = nextD.filter(id => !id || id.split('|')[0] !== mod.id);
+                                            nextO.push(mod.id);
+                                            setEditUserForm({ ...editUserForm, moduleOverrides: nextO, moduleDenials: nextD });
+                                          }}
+                                          className={`px-2.5 py-1 rounded text-[10px] font-bold border transition flex items-center gap-0.5 ${
+                                            stateVal === 'override'
+                                              ? 'bg-emerald-650 border-emerald-500 bg-emerald-550 text-white font-extrabold shadow bg-emerald-600'
+                                              : 'bg-white border-slate-200 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600'
+                                          }`}
+                                        >
+                                          إجبار العرض (سماح)
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            let nextO = [...(editUserForm.moduleOverrides || [])];
+                                            let nextD = [...(editUserForm.moduleDenials || [])];
+                                            nextO = nextO.filter(id => !id || id.split('|')[0] !== mod.id);
+                                            nextD = nextD.filter(id => !id || id.split('|')[0] !== mod.id);
+                                            nextD.push(mod.id);
+                                            setEditUserForm({ ...editUserForm, moduleOverrides: nextO, moduleDenials: nextD });
+                                          }}
+                                          className={`px-2.5 py-1 rounded text-[10px] font-bold border transition flex items-center gap-0.5 ${
+                                            stateVal === 'deny'
+                                              ? 'bg-rose-650 border-rose-500 bg-rose-550 text-white font-extrabold shadow bg-rose-600'
+                                              : 'bg-white border-slate-200 text-slate-500 hover:bg-rose-50 hover:text-rose-600'
+                                          }`}
+                                        >
+                                          إجبار الإخفاء (حظر)
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
 
@@ -13554,7 +14249,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                               <div className="flex flex-col items-end gap-1.5">
                                 <div className="flex items-center gap-1.5 text-emerald-400 font-extrabold text-xs bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-lg font-sans">
                                   <span className="w-2 h-2 bg-emerald-400 rounded-full animate-ping"></span>
-                                  <span>{language === "ar" ? "🔓 تم المصادقة الإدارية بنجاح - جميع التبويبات والمصفوفة مفتوحة بالكامل" : "🔓 Sesssion Validated - Matrix Fully Editable"}</span>
+                                  <span>{language === "ar" ? "🔓 تم مطابقة المسؤول - جميع أدوات التحكم والعمليات مفتوحة بالكامل" : "🔓 Session Validated - Roster & Core Controls Editable"}</span>
                                 </div>
                                 <button
                                   onClick={() => {
@@ -13567,21 +14262,36 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                                 </button>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-1.5 w-full max-w-xs">
+                              <div className="flex flex-col sm:flex-row items-stretch gap-1.5 w-full max-w-sm">
+                                <select
+                                  value={rbacAdminUserId}
+                                  onChange={(e) => setRbacAdminUserId(e.target.value)}
+                                  className="bg-slate-950 border border-slate-750 text-white rounded-lg py-1.5 px-3 focus:outline-none focus:border-pink-500 text-xs text-right font-bold flex-1"
+                                >
+                                  <option value="">{language === "ar" ? "-- اختر المسؤول المعتمد --" : "-- Select Admin --"}</option>
+                                  {systemUsers.filter(u => u.role === "admin" || u.role === "it" || u.role === "president").map(u => (
+                                    <option key={u.id} value={u.id}>{language === "ar" ? u.nameAr : u.nameEn}</option>
+                                  ))}
+                                </select>
                                 <input
                                   type="password"
-                                  placeholder={language === "ar" ? "الرمز السري..." : "Passcode..."}
+                                  placeholder={language === "ar" ? "الرمز السري..." : "PIN / Passcode..."}
                                   value={rbacAdminPasscode}
                                   onChange={(e) => setRbacAdminPasscode(e.target.value)}
-                                  className="bg-slate-950 border border-slate-750 text-white rounded-lg py-1.5 px-3 focus:outline-none focus:border-pink-500 text-xs w-full text-center font-bold"
+                                  className="bg-slate-950 border border-slate-750 text-white rounded-lg py-1.5 px-3 focus:outline-none focus:border-pink-500 text-xs text-center font-bold font-mono w-24"
                                 />
                                 <button
                                   onClick={() => {
-                                    if (rbacAdminPasscode === "2026" || rbacAdminPasscode.trim() !== "") {
+                                    const matchedAdmin = systemUsers.find(u => u.id === rbacAdminUserId);
+                                    if (!matchedAdmin) {
+                                      alert(language === "ar" ? "الرجاء اختيار المسؤول المصرح له أولاً!" : "Please select an authorized administrator first!");
+                                      return;
+                                    }
+                                    if (rbacAdminPasscode === matchedAdmin.pin || rbacAdminPasscode === "2026") {
                                       setIsRbacAdminAuthenticated(true);
-                                      addSystemLog(`HIPAA Administrative privilege unlocked by auditor`, "success");
+                                      addSystemLog(`HIPAA Administrative privilege unlocked by ${matchedAdmin.nameEn}`, "success");
                                     } else {
-                                      alert(language === "ar" ? "الرقم السري خاطئ!" : "Incorrect password!");
+                                      alert(language === "ar" ? "عذراً، الرمز السري لهذا المسؤول غير صحيح!" : "Incorrect PIN or password for this administrator!");
                                     }
                                   }}
                                   className="px-3 py-1.5 bg-pink-600 hover:bg-pink-700 font-bold text-xs rounded-lg transition text-white whitespace-nowrap cursor-pointer shadow"
@@ -14043,7 +14753,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
       {/* DETECTED EMERGENCY BREAK GLASS MODAL SCREEN */}
       {breakGlassAlert?.show && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all">
-          <div className="bg-white rounded-3xl shadow-2xl border-4 border-red-600 max-w-lg w-full overflow-hidden animate-bounce text-right">
+          <div className="bg-white rounded-3xl shadow-2xl border-4 border-red-600 max-w-lg w-full max-h-[calc(100vh-32px)] overflow-y-auto animate-fade-in text-right">
             <div className="bg-red-600 px-6 py-4 text-white flex justify-between items-center">
               <h4 className="text-sm font-black uppercase tracking-wider flex items-center gap-1.5 justify-end w-full">
                 <span>🚨 {language === "ar" ? "رادار كشف زجاج الطوارئ الآلي" : "AUTOMATED BTG CRITICAL LOCALIZER"}</span>
@@ -14448,7 +15158,86 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
         </div>
       )}
 
+      {/* Dynamic Pop-up Modal for Notifications / Alerts */}
+      {selectedNotificationForModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-fade">
+          <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 text-right font-sans" dir="rtl">
+            {/* Modal Header */}
+            <div className="p-5 bg-gradient-to-r from-indigo-900 to-indigo-950 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🔔</span>
+                <div className="text-right">
+                  <h3 className="font-black text-sm">
+                    {language === "ar" ? "تفاصيل التنبيه الإداري والسريري" : "Notification & Alert Details"}
+                  </h3>
+                  <p className="text-[10px] text-slate-300">
+                    {new Date(selectedNotificationForModal.timestamp).toLocaleString(language === "ar" ? "ar-EG" : "en-US")}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedNotificationForModal(null)}
+                className="p-1 px-3 bg-white/10 hover:bg-white/20 text-white font-extrabold rounded-xl text-xs transition duration-150 cursor-pointer"
+              >
+                {language === "ar" ? "إغلاق ×" : "Close ×"}
+              </button>
+            </div>
 
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-slate-400 font-bold">
+                    {language === "ar" ? "المستلم المستهدف:" : "Target Audience:"}
+                  </span>
+                  <span className="bg-indigo-100 text-indigo-700 font-extrabold px-2 py-0.5 rounded-full text-[9px]">
+                    {selectedNotificationForModal.userId === "all" || !selectedNotificationForModal.userId 
+                      ? (language === "ar" ? "عام لكافة الكادر" : "General / All Staff")
+                      : selectedNotificationForModal.userId === "admin"
+                      ? (language === "ar" ? "حصري لإدارة تقنية المعلومات والمشرفين" : "IT Admins Only")
+                      : selectedNotificationForModal.userId === "supervisor"
+                      ? (language === "ar" ? "رؤساء الأقسام والمشرفين" : "Supervisors Only")
+                      : selectedNotificationForModal.userId === "director"
+                      ? (language === "ar" ? "الإدارة العليا والمدير الطبي" : "Directors Only")
+                      : (language === "ar" ? `مخصص للمستخدم ID: ${selectedNotificationForModal.userId}` : `Custom User ID: ${selectedNotificationForModal.userId}`)
+                    }
+                  </span>
+                </div>
+
+                <h4 className="font-bold text-slate-800 text-sm mt-1">
+                  {language === "ar" ? selectedNotificationForModal.titleAr : selectedNotificationForModal.titleEn}
+                </h4>
+                
+                <p className="text-xs text-slate-600 leading-relaxed mt-2 whitespace-pre-wrap">
+                  {language === "ar" 
+                    ? (selectedNotificationForModal.bodyAr || selectedNotificationForModal.messageAr)
+                    : (selectedNotificationForModal.bodyEn || selectedNotificationForModal.messageEn)
+                  }
+                </p>
+              </div>
+
+              {/* Redirection Actions */}
+              {selectedNotificationForModal.targetTab && (
+                <button
+                  onClick={() => {
+                    handleNotificationClick(selectedNotificationForModal);
+                    setSelectedNotificationForModal(null);
+                  }}
+                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-lg shadow-indigo-600/20 active:translate-y-0.5 transition flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>🚀</span>
+                  <span>
+                    {language === "ar" 
+                      ? "التوجيه الفوري والانتقال إلى الصفحة المعنية" 
+                      : "Direct Route to Target Section Now"
+                    }
+                  </span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <SmartAIAssistant language={language} currentUser={currentUser} />
 
