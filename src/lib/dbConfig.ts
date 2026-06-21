@@ -1,11 +1,11 @@
 // dbConfig.ts
 
-export type DbProvider = "FIREBASE" | "SUPABASE" | "POCKETBASE" | "LOCAL_HOST";
+export type DbProvider = "FIREBASE" | "SUPABASE" | "POCKETBASE" | "LOCAL_HOST" | "MQTT" | "SOCKET_IO_REDIS";
 
 // Central dynamic provider setting (in-memory, strictly no localStorage for patient data!)
-let currentProvider: DbProvider = "FIREBASE";
+let currentProvider: DbProvider = (typeof window !== "undefined" && localStorage.getItem("active_db_provider") as DbProvider) || "FIREBASE";
 
-export let ACTIVE_DB_PROVIDER: DbProvider = "FIREBASE";
+export let ACTIVE_DB_PROVIDER: DbProvider = currentProvider;
 
 export function getActiveDbProvider(): DbProvider {
   if (typeof window !== "undefined" && (window as any).ACTIVE_DB_PROVIDER_OVERRIDE) {
@@ -18,6 +18,7 @@ export function setActiveDbProvider(provider: DbProvider) {
   currentProvider = provider;
   ACTIVE_DB_PROVIDER = provider;
   if (typeof window !== "undefined") {
+    localStorage.setItem("active_db_provider", provider);
     (window as any).ACTIVE_DB_PROVIDER_OVERRIDE = provider;
     // Dispatch custom event to notify components around the app to refresh their subscribers immediately
     window.dispatchEvent(new CustomEvent("db-provider-changed", { detail: provider }));
@@ -62,11 +63,25 @@ export const DB_PROVIDERS_CONFIG = {
     apiUrl: "http://127.0.0.1:3000/api/local_hospital",
     requestTimeout: 5000, // Added as requested
     useSecureWs: false     // Added as requested
+  },
+  MQTT: {
+      nameAr: "MQTT (EMQX - IoT Stream)",
+      nameEn: "MQTT (EMQX Cluster)",
+      brokerUrl: "mqtt://127.0.0.1:1883",
+      clientId: "klinik-node-01",
+      statusUrl: "http://127.0.0.1:8083"
+  },
+  SOCKET_IO_REDIS: {
+      nameAr: "Socket.io مع Redis (Realtime Pub/Sub)",
+      nameEn: "Socket.io & Redis Adapter",
+      serverUrl: "http://127.0.0.1:3000",
+      redisUrl: "redis://127.0.0.1:6379",
+      statusUrl: "http://127.0.0.1:3000/health"
   }
 };
 
 export const switchEnvironment = (provider: DbProvider, newSettings: any = {}) => {
-  if (["FIREBASE", "SUPABASE", "POCKETBASE", "LOCAL_HOST"].includes(provider)) {
+  if (["FIREBASE", "SUPABASE", "POCKETBASE", "LOCAL_HOST", "MQTT", "SOCKET_IO_REDIS"].includes(provider)) {
     setActiveDbProvider(provider);
     if (newSettings && Object.keys(newSettings).length > 0) {
       const targetConfig: any = DB_PROVIDERS_CONFIG[provider];

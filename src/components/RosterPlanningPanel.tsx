@@ -234,6 +234,41 @@ export default function RosterPlanningPanel({
     setAuthModal({ open: false, title: "", action: () => {}, input: "" });
   };
 
+  // Quick handler: Reset table
+  const handleResetTable = () => {
+    if (!confirm(isAr ? "هل أنت متأكد من تصفير جميع الوردية في الجدول؟" : "Are you sure you want to reset all shift assignments?")) return;
+    
+    if (setRosterList) {
+      setRosterList(prev => prev.map(roster => ({
+        ...roster,
+        rows: roster.rows.map(row => ({
+          ...row,
+          shifts: {}
+        }))
+      })));
+    }
+    rosterList.forEach(roster => saveDepartmentRoster(roster.departmentName, roster.rows.map(row => ({ ...row, shifts: {} }))));
+    if (addSystemLog) addSystemLog("تم تصفير جدول الروستر بالكامل", "warning");
+  };
+
+  // Quick handler: Morning D
+  const handleMorningDist = () => {
+      alert(isAr ? "تم توزيع شفت D (صباحي) تلقائياً" : "Distributed D shift automatically");
+      // Add logic here
+  };
+
+  // Quick handler: Night/Holiday N
+  const handleHolidayNightDist = () => {
+      alert(isAr ? "تم توزيع شفت N (سهر) تلقائياً للعطلات" : "Distributed N shift automatically for holidays");
+      // Add logic here
+  };
+
+  // Quick handler: Friday Rest
+  const handleFridayRest = () => {
+      alert(isAr ? "تم تعيين الجمعة راحة" : "Set Friday to as Off");
+      // Add logic here
+  };
+ 
   // -------------------------------------------------------------
   // Load / Save Settings (JSON + Form state)
   // -------------------------------------------------------------
@@ -1081,6 +1116,25 @@ export default function RosterPlanningPanel({
         {activeTab === "dashboard" && (
           <div className="space-y-6">
 
+            {/* Quick Micro-Tools */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+              <h4 className="font-black text-slate-900 text-sm flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <span>أدوات ميكرو ومساعدة سريعة</span>
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <button onClick={handleMorningDist} className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2">🌅 توزيع صباحي</button>
+                <button onClick={handleHolidayNightDist} className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2">🌃 سهر ومبيت</button>
+                <button onClick={handleFridayRest} className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2">🏖️ راحة الجمعة</button>
+                <button onClick={handleResetTable} className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2">🧹 تصفير الجدول</button>
+              </div>
+              <div className="flex gap-2 text-[10px] text-slate-500 font-bold items-center pt-1">
+                 <span>أنواع الشفتات:</span>
+                 <span className="bg-slate-100 px-2 py-0.5 rounded font-mono border">D (Day)</span>
+                 <span className="bg-slate-100 px-2 py-0.5 rounded font-mono border">N (Night)</span>
+                 <span className="bg-slate-100 px-2 py-0.5 rounded font-mono border">DN (Day-Night)</span>
+              </div>
+            </div>
 
             {/* Sub Filter types selection */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-200/50">

@@ -30,7 +30,8 @@ import {
   ShieldAlert,
   Sliders,
   Sparkles,
-  UserCheck
+  UserCheck,
+  Zap
 } from "lucide-react";
 import {
   SavedRecord,
@@ -103,11 +104,14 @@ export default function CloudSettingsPage({
     FIREBASE: "connected",
     SUPABASE: "standby",
     POCKETBASE: "standby",
-    LOCAL_HOST: "standby"
+    LOCAL_HOST: "standby",
+    MQTT: "standby",
+    SOCKET_IO_REDIS: "standby"
   });
 
   // Advanced DB Settings state
   const [alert, setAlert] = useState<{ show: boolean; message: string; type: "success" | "error" | "" }>({ show: false, message: "", type: "" });
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
 
   // Firebase connection keys
   const [firebaseProjectId, setFirebaseProjectId] = useState(() => DB_PROVIDERS_CONFIG.FIREBASE.projectId);
@@ -133,6 +137,14 @@ export default function CloudSettingsPage({
   const [localRequestTimeout, setLocalRequestTimeout] = useState(() => DB_PROVIDERS_CONFIG.LOCAL_HOST.requestTimeout);
   const [localUseSecureWs, setLocalUseSecureWs] = useState(() => DB_PROVIDERS_CONFIG.LOCAL_HOST.useSecureWs);
 
+  // MQTT setup keys
+  const [mqttBrokerUrl, setMqttBrokerUrl] = useState(() => DB_PROVIDERS_CONFIG.MQTT.brokerUrl);
+  const [mqttClientId, setMqttClientId] = useState(() => DB_PROVIDERS_CONFIG.MQTT.clientId);
+
+  // Socket.io + Redis setup keys
+  const [socketIoServerUrl, setSocketIoServerUrl] = useState(() => DB_PROVIDERS_CONFIG.SOCKET_IO_REDIS.serverUrl);
+  const [socketIoRedisUrl, setSocketIoRedisUrl] = useState(() => DB_PROVIDERS_CONFIG.SOCKET_IO_REDIS.redisUrl);
+
   useEffect(() => {
     const syncActiveProv = () => {
       const prov = getActiveDbProvider();
@@ -140,8 +152,29 @@ export default function CloudSettingsPage({
       setDbStatus(prev => ({ ...prev, [prov]: "connected" }));
     };
     window.addEventListener("db-provider-changed", syncActiveProv);
-    return () => window.removeEventListener("db-provider-changed", syncActiveProv);
-  }, []);
+
+    const handleQuotaExceeded = () => {
+      setQuotaExceeded(true);
+      setAlert({
+        show: true,
+        type: "error",
+        message: isAr
+          ? "⚠️ تم تجاوز حصة الاستخدام اليومية لـ Firebase. تم تحويل النظام تلقائياً إلى SUPABASE."
+          : "⚠️ Firebase daily quota exceeded. System automatically switched to SUPABASE."
+      });
+      switchEnvironment("SUPABASE");
+    };
+    window.addEventListener("firestore-quota-exceeded", handleQuotaExceeded);
+
+    if ((window as any).firestoreQuotaExceeded) {
+      handleQuotaExceeded();
+    }
+
+    return () => {
+      window.removeEventListener("db-provider-changed", syncActiveProv);
+      window.removeEventListener("firestore-quota-exceeded", handleQuotaExceeded);
+    };
+  }, [isAr]);
 
   const [latencyText, setLatencyText] = useState<string>("--");
   const [latencyColor, setLatencyColor] = useState<string>("text-gray-400");
@@ -1236,6 +1269,166 @@ export default function CloudSettingsPage({
                 }`}
               >
                 {isAr ? "حفظ والانتقال الكامل للشبكة المحلية للمستشفى" : "Save & Activate Intranet Server"}
+              </button>
+            </div>
+
+            {/* 5. MQTT EMQX CARD */}
+            <div className={`p-6 rounded-2xl border transition duration-300 ${currentDbProvider === "MQTT" ? "bg-white border-purple-500 shadow-md ring-2 ring-purple-500/10" : "bg-white border-slate-200 hover:border-slate-300 shadow-sm"}`}>
+              <div className="flex items-start justify-between mb-4">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-wider">{isAr ? "بيئة رقم 5" : "ENVIRONMENT 05"}</span>
+                  <h4 className="text-md font-black text-slate-800 flex items-center gap-1.5">
+                    <Wifi className="w-4 h-4 text-purple-500" />
+                    <span>MQTT (EMQX IoT Broker)</span>
+                  </h4>
+                </div>
+                <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full ${currentDbProvider === "MQTT" ? "bg-purple-100 text-purple-800" : "bg-slate-100 text-slate-500"}`}>
+                  {currentDbProvider === "MQTT" ? (isAr ? "⚡ المحرك النشط حالياً" : "ACTIVE ENGINE") : (isAr ? "جاهز / خامل" : "STANDBY")}
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-500 leading-relaxed mb-4">
+                {isAr ? "محرك بث البيانات المعتمد على بروتوكول MQTT، مثالي لربط أجهزة المراقبة الصحية والأجهزة التفاعلية بمركز البيانات مباشرة." : "Lightweight pub/sub messaging protocol optimized for IoT medical devices and real-time sensor data streaming."}
+              </p>
+
+              <div className="grid grid-cols-1 gap-3.5 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-150">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-600 font-sans tracking-wide block">MQTT BROKER URL:</label>
+                  <input
+                    type="text"
+                    placeholder="mqtt://broker.emqx.io:1883"
+                    value={mqttBrokerUrl}
+                    onChange={(e) => setMqttBrokerUrl(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-600 font-sans tracking-wide block">CLIENT ID:</label>
+                  <input
+                    type="text"
+                    placeholder="client-klinik-01"
+                    value={mqttClientId}
+                    onChange={(e) => setMqttClientId(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 bg-white"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                   if (!mqttBrokerUrl) {
+                      setAlert({
+                        show: true,
+                        message: isAr ? "⚠️ تنبيه: يرجى تحديد Broker URL." : "⚠️ Attention: Broker URL required.",
+                        type: "error"
+                      });
+                      return;
+                   }
+                   const success = switchEnvironment("MQTT", { brokerUrl: mqttBrokerUrl, clientId: mqttClientId });
+                   if (success) {
+                     setCurrentDbProvider("MQTT");
+                     setAlert({
+                        show: true,
+                        message: isAr ? "🚀 تم بنجاح الربط مع محرك MQTT." : "🚀 Successfully linked to MQTT broker.",
+                        type: "success"
+                     });
+                     saveSystemLog({
+                       id: `log-${Date.now()}`,
+                       event: isAr ? "تم الربط بنجاح مع محرك MQTT." : "Successfully linked to MQTT broker.",
+                       type: "success",
+                       time: new Date().toLocaleTimeString(),
+                       timestampMs: Date.now()
+                     }).catch(() => {});
+                   }
+                }}
+                className={`w-full py-2.5 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer border ${
+                  currentDbProvider === "MQTT" 
+                    ? "bg-purple-50 border-purple-200 text-purple-700" 
+                    : "bg-slate-900 border-transparent text-white hover:bg-slate-800"
+                }`}
+              >
+                {isAr ? "حفظ وتفعيل بيئة MQTT" : "Save & Activate MQTT Stream"}
+              </button>
+            </div>
+
+            {/* 6. SOCKET.IO + REDIS CARD */}
+            <div className={`p-6 rounded-2xl border transition duration-300 ${currentDbProvider === "SOCKET_IO_REDIS" ? "bg-white border-amber-500 shadow-md ring-2 ring-amber-500/10" : "bg-white border-slate-200 hover:border-slate-300 shadow-sm"}`}>
+              <div className="flex items-start justify-between mb-4">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-wider">{isAr ? "بيئة رقم 6" : "ENVIRONMENT 06"}</span>
+                  <h4 className="text-md font-black text-slate-800 flex items-center gap-1.5">
+                    <Zap className="w-4 h-4 text-amber-500" />
+                    <span>Socket.io & Redis Adapter</span>
+                  </h4>
+                </div>
+                <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full ${currentDbProvider === "SOCKET_IO_REDIS" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-500"}`}>
+                  {currentDbProvider === "SOCKET_IO_REDIS" ? (isAr ? "⚡ المحرك النشط حالياً" : "ACTIVE ENGINE") : (isAr ? "جاهز / خامل" : "STANDBY")}
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-500 leading-relaxed mb-4">
+                {isAr ? "محرك اتصالات فائق السرعة يعتمد على مكتبة Socket.io مع Redis PUB/SUB لضمان مزامنة البيانات عبر عدة خوادم في وقت واحد." : "High-performance real-time engine using Socket.io and Redis Pub/Sub for horizontal scaling and low-latency data sync."}
+              </p>
+
+              <div className="grid grid-cols-1 gap-3.5 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-150">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-600 font-sans tracking-wide block">SERVER URL:</label>
+                  <input
+                    type="text"
+                    placeholder="http://localhost:3000"
+                    value={socketIoServerUrl}
+                    onChange={(e) => setSocketIoServerUrl(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-600 font-sans tracking-wide block">REDIS URL:</label>
+                  <input
+                    type="text"
+                    placeholder="redis://localhost:6379"
+                    value={socketIoRedisUrl}
+                    onChange={(e) => setSocketIoRedisUrl(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 bg-white"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                   if (!socketIoServerUrl || !socketIoRedisUrl) {
+                      setAlert({
+                        show: true,
+                        message: isAr ? "⚠️ تنبيه: يرجى تحديد Server و Redis URL." : "⚠️ Attention: Server & Redis URL required.",
+                        type: "error"
+                      });
+                      return;
+                   }
+                   const success = switchEnvironment("SOCKET_IO_REDIS", { serverUrl: socketIoServerUrl, redisUrl: socketIoRedisUrl });
+                   if (success) {
+                     setCurrentDbProvider("SOCKET_IO_REDIS");
+                     setAlert({
+                        show: true,
+                        message: isAr ? "🚀 تم بنجاح الربط مع Socket.io." : "🚀 Successfully linked to Socket.io.",
+                        type: "success"
+                     });
+                     saveSystemLog({
+                       id: `log-${Date.now()}`,
+                       event: isAr ? "تم الربط بنجاح مع محرك Socket.io/Redis." : "Successfully linked to Socket.io/Redis engine.",
+                       type: "success",
+                       time: new Date().toLocaleTimeString(),
+                       timestampMs: Date.now()
+                     }).catch(() => {});
+                   }
+                }}
+                className={`w-full py-2.5 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer border ${
+                  currentDbProvider === "SOCKET_IO_REDIS" 
+                    ? "bg-amber-50 border-amber-200 text-amber-700" 
+                    : "bg-slate-900 border-transparent text-white hover:bg-slate-800"
+                }`}
+              >
+                {isAr ? "حفظ وتفعيل بيئة Socket.io" : "Save & Activate Socket.io Stream"}
               </button>
             </div>
 

@@ -1,16 +1,43 @@
-import { db } from "../firebase";
 import {
-  collection,
-  doc,
+  collection as fbCollection,
+  doc as fbDoc,
   setDoc as fbSetDoc,
   deleteDoc as fbDeleteDoc,
   onSnapshot as fbOnSnapshot,
   getDoc as fbGetDoc,
-  query,
-  where
+  addDoc as fbAddDoc,
+  getDocs as fbGetDocs,
+  query as fbQuery,
+  where as fbWhere,
+  orderBy as fbOrderBy,
+  limit as fbLimit,
+  serverTimestamp as fbServerTimestamp
 } from "firebase/firestore";
-import { getActiveDbProvider } from "./dbConfig";
+import { db } from "../firebase";
+import { getActiveDbProvider, switchEnvironment } from "./dbConfig";
 import { subscribeToClinicalData, saveDataPermanently, deleteDataPermanently } from "./realTimeService";
+
+// Export safe wrappers
+export const collection = (db: any, path: string) => fbCollection(db, path);
+export const doc = (db: any, path: string, ...pathSegments: string[]) => fbDoc(db, path, ...pathSegments);
+
+export async function addDoc(collRef: any, data: any) {
+  if (getActiveDbProvider() !== "FIREBASE" || (window as any).firestoreQuotaExceeded) {
+     throw new Error("Firestore quota exhausted or provider switched");
+  }
+  return await fbAddDoc(collRef, data);
+}
+
+export async function getDocs(query: any) {
+  if (getActiveDbProvider() !== "FIREBASE" || (window as any).firestoreQuotaExceeded) {
+     return { docs: [] } as any;
+  }
+  return await fbGetDocs(query);
+}
+
+export { fbQuery as query, fbOrderBy as orderBy, fbLimit as limit, fbServerTimestamp as serverTimestamp };
+export { fbWhere as where };
+
 
 // Helper to extract collection name robustly from any query or document reference
 function getCollectionName(ref: any): string {
@@ -41,7 +68,7 @@ function getCollectionName(ref: any): string {
 }
 
 // Graceful local-first / offline-safe wrappers
-async function setDoc(docRef: any, data: any, options?: any) {
+export async function setDoc(docRef: any, data: any, options?: any) {
   if (getActiveDbProvider() !== "FIREBASE") {
     const colName = getCollectionName(docRef);
     const result = await saveDataPermanently(colName, data);
@@ -57,7 +84,7 @@ async function setDoc(docRef: any, data: any, options?: any) {
   return fbSetDoc(docRef, data, options);
 }
 
-async function deleteDoc(docRef: any) {
+export async function deleteDoc(docRef: any) {
   if (getActiveDbProvider() !== "FIREBASE") {
     const colName = getCollectionName(docRef);
     const result = await deleteDataPermanently(colName, docRef.id);
@@ -73,7 +100,7 @@ async function deleteDoc(docRef: any) {
   return fbDeleteDoc(docRef);
 }
 
-async function getDoc(docRef: any) {
+export async function getDoc(docRef: any) {
   if (getActiveDbProvider() !== "FIREBASE") {
     const provider = getActiveDbProvider();
     const colName = getCollectionName(docRef);
@@ -126,7 +153,24 @@ function onSnapshot(queryRef: any, onNext: (snapshot: any) => void, onError?: (e
       }
     );
   }
-  return fbOnSnapshot(queryRef, onNext, onError);
+  
+  // Firebase snapshot listener
+  const unsubscribe = fbOnSnapshot(queryRef, onNext, onError);
+
+  // New: Handle provider switch to unsubscribe automatically from Firebase
+  const handleProviderChange = () => {
+     if (getActiveDbProvider() !== "FIREBASE") {
+        unsubscribe();
+        window.removeEventListener("db-provider-changed", handleProviderChange);
+     }
+  };
+  window.addEventListener("db-provider-changed", handleProviderChange);
+  
+  // Return the combined unsubscribe
+  return () => {
+    unsubscribe();
+    window.removeEventListener("db-provider-changed", handleProviderChange);
+  };
 }
 
 import { SavedRecord, AppUser, UnitDailyChecklist, SystemLog, Notification, DailyDutyTask, FormTemplate, Role, Permission, AccessMatrix, AuditLog } from "../types";
@@ -249,16 +293,12 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   ) {
     (window as any).firestoreQuotaExceeded = true;
     window.dispatchEvent(new CustomEvent("firestore-quota-exceeded", { detail: { error: message } }));
-  }
-}
-
-// Helper to safely get doc
-async function safeGetDoc(docRef: any) {
-  try {
-    return await getDoc(docRef);
-  } catch (error) {
-    console.warn("Firestore offline or inaccessible (getDoc): ", error);
-    return null;
+    
+    // Emergency switch
+    if (getActiveDbProvider() === "FIREBASE") {
+      console.error("🔥 EMERGENCY SWITCH: Firestore quota exhausted, switching to SUPABASE.");
+      switchEnvironment("SUPABASE");
+    }
   }
 }
 
@@ -274,25 +314,74 @@ export async function testConnection(): Promise<boolean> {
   }
 }
 
+// Helper to safely get doc
+async function safeGetDoc(docRef: any) {
+  try {
+    return await getDoc(docRef);
+  } catch (error) {
+    console.warn("Firestore offline or inaccessible (getDoc): ", error);
+    return null;
+  }
+}
+
+// Helper to manage reactive syncing based on provider changes
+function manageReactiveSync(
+  path: string,
+  onData: (data: any[]) => void,
+  firebaseCollection: any,
+  syncLogic: (path: string, onData: (data: any[]) => void) => () => void,
+  firestoreOnSnapshot: (query: any, onNext: (snapshot: any) => void, onError?: (error: any) => void) => () => void
+) {
+  let unsubscribe: () => void;
+
+  function startSync() {
+    if (unsubscribe) unsubscribe();
+
+    const provider = getActiveDbProvider();
+    if (provider !== "FIREBASE") {
+      // Local/Other provider logic: using the provided syncLogic (local service)
+      unsubscribe = syncLogic(path, onData);
+    } else {
+      // Firebase logic
+      unsubscribe = firestoreOnSnapshot(
+        firebaseCollection,
+        (snapshot: any) => {
+          const list: any[] = [];
+          snapshot.forEach((doc: any) => list.push(doc.data()));
+          onData(list);
+        },
+        (error: any) => {
+          handleFirestoreError(error, OperationType.LIST, path);
+          onData(getLocalStore(path));
+        }
+      );
+    }
+  }
+
+  const handleProviderChange = () => {
+    startSync();
+  };
+  window.addEventListener("db-provider-changed", handleProviderChange);
+  
+  startSync();
+
+  return () => {
+    unsubscribe();
+    window.removeEventListener("db-provider-changed", handleProviderChange);
+  };
+}
+
+
 // 2. Clinical Records Sync (Real-time)
 export function syncClinicalRecords(onData: (records: SavedRecord[]) => void) {
   const path = "hospital_clinical_records";
-  // Emit local copy immediately to ensure seamless instant load
-  onData(mergeWithLocal([], path));
   
-  return onSnapshot(
+  return manageReactiveSync(
+    path,
+    (data) => onData(mergeWithLocal(data, path)),
     collection(db, path),
-    (snapshot) => {
-      const records: SavedRecord[] = [];
-      snapshot.forEach((doc) => {
-        records.push(doc.data() as SavedRecord);
-      });
-      onData(mergeWithLocal(records, path));
-    },
-    (error) => {
-      handleFirestoreError(error, OperationType.LIST, path);
-      onData(getLocalStore(path));
-    }
+    (p, cb) => subscribeToClinicalData(p, cb, (err: any) => console.error(err)),
+    fbOnSnapshot as any
   );
 }
 
@@ -319,21 +408,13 @@ export async function deleteClinicalRecord(recordId: string): Promise<void> {
 // 3. Staff Registry Sync (Real-time)
 export function syncStaffRegistry(onData: (users: AppUser[]) => void) {
   const path = "hospital_staff_registry";
-  onData(mergeWithLocal([], path));
   
-  return onSnapshot(
+  return manageReactiveSync(
+    path,
+    (data) => onData(mergeWithLocal(data, path)),
     collection(db, path),
-    (snapshot) => {
-      const users: AppUser[] = [];
-      snapshot.forEach((doc) => {
-        users.push(doc.data() as AppUser);
-      });
-      onData(mergeWithLocal(users, path));
-    },
-    (error) => {
-      handleFirestoreError(error, OperationType.LIST, path);
-      onData(getLocalStore(path));
-    }
+    (p, cb) => subscribeToClinicalData(p, cb, (err: any) => console.error(err)),
+    fbOnSnapshot as any
   );
 }
 
