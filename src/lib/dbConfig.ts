@@ -92,12 +92,24 @@ export const DB_PROVIDERS_CONFIG = {
   }
 };
 
+// After DB_PROVIDERS_CONFIG definition, check for persisted overrides
+Object.keys(DB_PROVIDERS_CONFIG).forEach(provider => {
+  const saved = localStorage.getItem(`db_settings_${provider}`);
+  if (saved) {
+    try {
+      (DB_PROVIDERS_CONFIG as any)[provider] = JSON.parse(saved);
+    } catch(e) {}
+  }
+});
+
 export const switchEnvironment = (provider: DbProvider, newSettings: any = {}) => {
   if (["FIREBASE", "SUPABASE", "POCKETBASE", "APPWRITE", "LOCAL_HOST", "MQTT", "SOCKET_IO_REDIS", "NULL_DB"].includes(provider)) {
     setActiveDbProvider(provider);
     if (newSettings && Object.keys(newSettings).length > 0) {
       const targetConfig: any = DB_PROVIDERS_CONFIG[provider];
       DB_PROVIDERS_CONFIG[provider] = { ...targetConfig, ...newSettings };
+      // Persist these custom settings
+      localStorage.setItem(`db_settings_${provider}`, JSON.stringify(DB_PROVIDERS_CONFIG[provider]));
     }
     return true;
   }

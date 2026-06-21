@@ -80,10 +80,13 @@ export async function addDoc(collRef: any, data: any) {
 
 export async function getDocs(query: any) {
   if (getActiveDbProvider() !== "FIREBASE") {
+      const provider = getActiveDbProvider();
+      if (provider === "NULL_DB") {
+        return { docs: [] } as any;
+      }
       const colName = getCollectionName(query);
       // For now, let's use a similar approach to getDoc for simplicity or see if realTimeService has a getDocs equivalent
       try {
-        const provider = getActiveDbProvider();
         const response = await fetch(`/api/db/${provider.toLowerCase()}/${colName}`);
         if (response.ok) {
            const json = await response.json();
@@ -196,6 +199,9 @@ export async function deleteDoc(docRef: any) {
 export async function getDoc(docRef: any) {
   if (getActiveDbProvider() !== "FIREBASE") {
     const provider = getActiveDbProvider();
+    if (provider === "NULL_DB") {
+        return { exists: () => false, data: () => null } as any;
+    }
     const colName = getCollectionName(docRef);
     try {
       const response = await fetch(`/api/db/${provider.toLowerCase()}/${colName}`);
@@ -243,7 +249,8 @@ export function onSnapshot(queryRef: any, onNext: (snapshot: any) => void, onErr
             data.forEach((item: any) => {
               callback({
                 data: () => item,
-                id: item.id
+                id: item.id,
+                exists: () => true
               });
             });
           }

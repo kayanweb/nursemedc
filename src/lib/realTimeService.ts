@@ -83,6 +83,12 @@ export function subscribeToClinicalData<T>(
   // Fetch initial list from the Express live server
   const fetchCurrentList = async () => {
     if (isUnsubscribed) return;
+    if (provider === "NULL_DB") {
+      const localData = getLocalStore(collectionName);
+      onDataUpdate(localData as T[]);
+      return;
+    }
+
     try {
       const response = await fetch(`/api/db/${provider.toLowerCase()}/${collectionName}`);
       if (!response.ok) {
