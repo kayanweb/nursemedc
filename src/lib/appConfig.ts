@@ -4,6 +4,6 @@ export interface AppConfig {
 }
 
 export const defaultConfig: AppConfig = {
-  institutionNameAr: "مؤسسة بهية",
-  institutionNameEn: "Baheya Foundation"
+  institutionNameAr: "مؤسسة المستشفى",
+  institutionNameEn: "Hospital Foundation"
 };

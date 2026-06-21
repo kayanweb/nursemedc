@@ -25,6 +25,23 @@
   }
 }
 
+/* Custom elegant scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9; /* slate-100 */
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1; /* slate-300 */
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8; /* slate-400 */
+}
+
 /* Print specific styles to produce exact replicas */
 @media print {
   /* Hide all non-printable browser UI, sidebars, dashboard elements */

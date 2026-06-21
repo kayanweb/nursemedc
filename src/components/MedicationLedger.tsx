@@ -121,7 +121,7 @@ export default function MedicationLedger({ language }: MedicationLedgerProps) {
 
   // Safe fetch approved medicines and IDC logs from real Firestore
   useEffect(() => {
-    const qApproved = query(collection(db, "baheya_approved_medications"));
+    const qApproved = query(collection(db, "hospital_approved_medications"));
     const unsubApproved = onSnapshot(qApproved, (snapshot) => {
       const list: any[] = [];
       snapshot.forEach((doc) => {
@@ -132,7 +132,7 @@ export default function MedicationLedger({ language }: MedicationLedgerProps) {
       console.warn("Real-time approved drugs list offline fallback triggered:", err);
     });
 
-    const qIdc = query(collection(db, "baheya_idc_logs"));
+    const qIdc = query(collection(db, "hospital_idc_logs"));
     const unsubIdc = onSnapshot(qIdc, (snapshot) => {
       const list: any[] = [];
       snapshot.forEach((doc) => {
@@ -276,7 +276,7 @@ export default function MedicationLedger({ language }: MedicationLedgerProps) {
     if (!medication) return;
     setSavingApproved(true);
     try {
-      await addDoc(collection(db, "baheya_approved_medications"), {
+      await addDoc(collection(db, "hospital_approved_medications"), {
         originalQuery: medication.search_result.original_query,
         correctedName: medication.search_result.corrected_name_trade,
         genericName: medication.search_result.generic_name,
@@ -303,7 +303,7 @@ export default function MedicationLedger({ language }: MedicationLedgerProps) {
   const deleteApprovedMedication = async (id: string) => {
     if (!confirm(isAr ? "هل أنت متأكد من حذف هذا الدواء المعتمد؟" : "Are you sure you want to delete this approved medication?")) return;
     try {
-      await deleteDoc(doc(db, "baheya_approved_medications", id));
+      await deleteDoc(doc(db, "hospital_approved_medications", id));
     } catch (e) {
       alert("Error deleting record.");
     }
@@ -399,7 +399,7 @@ export default function MedicationLedger({ language }: MedicationLedgerProps) {
 
     setSavingIdc(true);
     try {
-      await addDoc(collection(db, "baheya_idc_logs"), {
+      await addDoc(collection(db, "hospital_idc_logs"), {
         patientName: idcPatientName,
         mrn: idcMRN,
         medication: idcMedName,
@@ -430,7 +430,7 @@ export default function MedicationLedger({ language }: MedicationLedgerProps) {
   const deleteIdcLog = async (id: string) => {
     if (!confirm(isAr ? "حذف هذا السجل التوثيقي للتحقق الثنائي؟" : "Delete this IDC verification trail?")) return;
     try {
-      await deleteDoc(doc(db, "baheya_idc_logs", id));
+      await deleteDoc(doc(db, "hospital_idc_logs", id));
     } catch (e) {
       alert("Error.");
     }

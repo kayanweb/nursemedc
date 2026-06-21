@@ -323,7 +323,7 @@ export default function ProfileView({ user, language, hospitalSettings, systemUs
   // Load records and sync from database
   useEffect(() => {
     try {
-      const recordsCached = JSON.parse(localStorage.getItem("baheya_medical_records") || "[]");
+      const recordsCached = JSON.parse(localStorage.getItem("hospital_medical_records") || "[]");
       const userRecords = recordsCached.filter((rc: any) => rc.authorId === user.id || rc.authorNameEn === user.nameEn);
       setMetrics({
         archivedCount: userRecords.length || 14,

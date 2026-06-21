@@ -181,7 +181,7 @@ export default function NursingSupervisorDashboard({ language, onNavigate }: Pro
                         {isAr ? "شيت مرور ومستندات السوبرفايزر اليومي" : "Daily Supervisor Rounding Suite"}
                       </h4>
                       <p className="text-[10px] text-slate-500 font-bold leading-relaxed">
-                        {isAr ? "شامل: ورقة توزيع المهام المعتمدة، تعداد طاقم التمريض، حراك المرضى والأسرة والتدقيق الكامل لعيادات بهية." : "Verified copies: Assignment worksheet, beds census, nursing team count and diagnostic unit logs."}
+                        {isAr ? "شامل: ورقة توزيع المهام المعتمدة، تعداد طاقم التمريض، حراك المرضى والأسرة والتدقيق الكامل لعيادات المستشفى." : "Verified copies: Assignment worksheet, beds census, nursing team count and diagnostic unit logs."}
                       </p>
                     </div>
                     <button 

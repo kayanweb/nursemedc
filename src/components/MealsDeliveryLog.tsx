@@ -28,7 +28,7 @@ export default function MealsDeliveryLog({ language, rosterList, departments }: 
   const [showArchive, setShowArchive] = useState(false);
   
   useEffect(() => {
-    const saved = localStorage.getItem("baheya_meals_archive");
+    const saved = localStorage.getItem("hospital_meals_archive");
     if (saved) {
       try { setArchive(JSON.parse(saved)); } catch(e) {}
     }
@@ -47,7 +47,7 @@ export default function MealsDeliveryLog({ language, rosterList, departments }: 
     };
     const updated = [newRecord, ...archive];
     setArchive(updated);
-    localStorage.setItem("baheya_meals_archive", JSON.stringify(updated));
+    localStorage.setItem("hospital_meals_archive", JSON.stringify(updated));
     alert(isAr ? "تم حفظ الكشف بنجاح في الأرشيف!" : "Sheet saved to archive successfully!");
   };
 
@@ -64,7 +64,7 @@ export default function MealsDeliveryLog({ language, rosterList, departments }: 
     if (window.confirm(isAr ? "تأكيد حذف السجل؟" : "Confirm delete?")) {
       const updated = archive.filter(a => a.id !== id);
       setArchive(updated);
-      localStorage.setItem("baheya_meals_archive", JSON.stringify(updated));
+      localStorage.setItem("hospital_meals_archive", JSON.stringify(updated));
     }
   };
 
@@ -123,7 +123,7 @@ export default function MealsDeliveryLog({ language, rosterList, departments }: 
               </span>
               <div className="text-right">
                 <span className="font-sans font-black text-slate-800 text-xs block leading-none">
-                  {isAr ? (settings.institutionNameAr || "مؤسسة بهية") : (settings.institutionNameEn || "Baheya Foundation")}
+                  {isAr ? (settings.institutionNameAr || "مؤسسة المستشفى") : (settings.institutionNameEn || "Hospital Foundation")}
                 </span>
                 <span className="text-[8px] font-bold text-pink-700 block mt-1 tracking-wider leading-none">
                   {isAr ? "نظام تغذية الكادر" : "NURSE MEAL LOG"}
@@ -490,7 +490,7 @@ export default function MealsDeliveryLog({ language, rosterList, departments }: 
                   </span>
                   <div className="text-right">
                     <span className="font-sans font-black text-slate-800 text-xs block leading-none">
-                      {isAr ? (settings.institutionNameAr || "مؤسسة بهية") : (settings.institutionNameEn || "Baheya Foundation")}
+                      {isAr ? (settings.institutionNameAr || "مؤسسة المستشفى") : (settings.institutionNameEn || "Hospital Foundation")}
                     </span>
                     <span className="text-[8px] font-bold text-pink-700 block mt-1 tracking-wider leading-none">
                       {isAr ? "نظام تغذية الكادر" : "NURSE MEAL LOG"}

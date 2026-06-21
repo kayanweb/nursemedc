@@ -60,6 +60,10 @@ import {
   Receipt,
   Microscope,
   Folder,
+  Brain,
+  Sparkles,
+  Menu,
+  CalendarCheck,
 } from "lucide-react";
 import { 
   GoogleAuthProvider, 
@@ -114,6 +118,9 @@ import LISRISDashboard from "./components/LISRISDashboard";
 import WardNurseDashboard from "./components/WardNurseDashboard";
 import OperatingTheaterBoard from "./components/OperatingTheaterBoard";
 import HospitalInformationSystem from "./components/HospitalInformationSystem";
+import SmartAIAssistant from "./components/SmartAIAssistant";
+import EmployeeEvaluationSystem from "./components/EmployeeEvaluationSystem";
+import InfectionControlHub from "./components/InfectionControlHub";
 import { FORM_TEMPLATES, createNewRecord, getItemsForTemplate } from "./data/templates";
 import { generatePDF } from "./lib/pdfGenerator";
 import { DynamicProfessionalLogo } from "./components/DynamicProfessionalLogo";
@@ -183,7 +190,7 @@ import { useFirestoreSync, useFirestoreSetting } from "./hooks/useFirestoreSync"
 // Secure Clinical Gate: Redirect all local persistent caches to sessionStorage for real-time security. 
 // This ensures ZERO patient clinical data or credential logs persist on the local host drive once the browser tab is closed.
 
-// 4 Core Mock Users for Baheya Hospital Access Rules matching the requested design
+// 4 Core Mock Users for Hospital Access Rules matching the requested design
 const BASE_MOCK_USERS: AppUser[] = [
   {
     id: "user-it",
@@ -440,7 +447,7 @@ DEPT_NAMES_MOCK.forEach(dept => {
     department: dept,
     staffId: `40102`,
     pin: "4011",
-    email: `nurse.b.${dept.toLowerCase().replace(/\s+/g, "")}@baheya.org`
+    email: `nurse.b.${dept.toLowerCase().replace(/\s+/g, "")}@hospital.org`
   });
 });
 
@@ -656,18 +663,18 @@ export const SystemSettingsContext = React.createContext<{
   setHospitalSettings: (settings: any) => void;
 }>({
   hospitalSettings: {
-    nameAr: "مؤسسة بهية",
-    taglineAr: "في ضهر كل ست مصرية",
-    nameEn: "Baheya Foundation",
-    taglineEn: "Breast Cancer Screening & Treatment",
-    address: "الهرم / الشيخ زايد، الجيزة، مصر",
-    emergencyPhone: "19745",
-    footerAr: "قسم الجودة ومراقبة المعايير الطبية بهية - تقرير إلكتروني موثق بموجب المعايير الدولية",
-    footerEn: "Baheya Quality & Clinical Standards Unit - Certified System Performance Report",
-    appHeaderAr: "نظام الجودة السريري لبهية",
-    appHeaderEn: "Baheya Clinical Quality System",
-    appFooterAr: "جميع الحقوق محفوظة لمؤسسة بهية © 2026",
-    appFooterEn: "All Rights Reserved to Baheya Foundation © 2026",
+    nameAr: "المستشفى",
+    taglineAr: "رعاية وعناية",
+    nameEn: "Hospital",
+    taglineEn: "Care and healing",
+    address: "العنوان",
+    emergencyPhone: "123",
+    footerAr: "قسم الجودة ومراقبة المعايير الطبية - تقرير إلكتروني موثق بموجب المعايير الدولية",
+    footerEn: "Quality & Clinical Standards Unit - Certified System Performance Report",
+    appHeaderAr: "نظام الجودة السريري",
+    appHeaderEn: "Clinical Quality System",
+    appFooterAr: "جميع الحقوق محفوظة للمستشفى © 2026",
+    appFooterEn: "All Rights Reserved © 2026",
     accreditationBodyAr: "الهيئة العامة للاعتماد والرقابة الصحية",
     accreditationBodyEn: "General Authority for Healthcare Accreditation and Regulation (GAHAR)",
     appVersion: "1.0.0",
@@ -676,15 +683,15 @@ export const SystemSettingsContext = React.createContext<{
     userInstructionsEn: "Please fill in the data carefully to ensure patient safety.",
     roles: ["admin", "nurse", "doctor"],
     jobTitles: ["Head Nurse", "General Practitioner", "Staff Nurse"],
-    portalTitleAr: "بوابة بهية الرقمية",
-    portalTitleEn: "Baheya Digital Portal",
-    premiumTitleAr: "نماذج بهية المميزة",
-    premiumTitleEn: "Baheya Premium Forms",
+    portalTitleAr: "البوابة الرقمية",
+    portalTitleEn: "Digital Portal",
+    premiumTitleAr: "النماذج المميزة",
+    premiumTitleEn: "Premium Forms",
     themeMode: "light",
     themeColor: "pink",
     timezone: "Africa/Cairo",
     dateFormat: "DD/MM/YYYY hh:mm A",
-    tenants: [{ name: "مستشفى بهية الرئيسي (الشيخ زايد)", legalId: "BHY-MAIN-1001", taxId: "543-210-987" }]
+    tenants: [{ name: "المستشفى الرئيسي", legalId: "HOSP-MAIN-1001", taxId: "543-210-987" }]
   },
   setHospitalSettings: () => {},
 });
@@ -726,7 +733,7 @@ export default function App() {
     themeColor: "pink",
     timezone: "Africa/Cairo",
     dateFormat: "DD/MM/YYYY hh:mm A",
-    tenants: [{ name: "مستشفى بهية الرئيسي (الشيخ زايد)", legalId: "BHY-MAIN-1001", taxId: "543-210-987" }]
+    tenants: [{ name: "المستشفى الرئيسي", legalId: "HOSP-MAIN-1001", taxId: "543-210-987" }]
   });
 
   return (
@@ -794,6 +801,7 @@ function AppContent() {
   const [ledgerViewMode, setLedgerViewMode] = useState<"weekly" | "monthly">("weekly");
   const [dayFocus, setDayFocus] = useState<"all" | number>("all"); // Show all 31 days or focus on a single day
   const [language, setLanguage] = useState<"ar" | "en">("ar");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [breakGlassAlert, setBreakGlassAlert] = useState<{ show: boolean; msgAr: string; msgEn: string; dept: string } | null>(null);
   const [isBellOpen, setIsBellOpen] = useState(false);
 
@@ -1339,7 +1347,7 @@ function AppContent() {
   const [rbacAdminPasscode, setRbacAdminPasscode] = useState<string>("");
 
   // IT Console States
-  const [alertWebhookUrl, setAlertWebhookUrl] = useState<string>("https://api.baheya.org/v1/alerts");
+  const [alertWebhookUrl, setAlertWebhookUrl] = useState<string>("https://api.hospital.org/v1/alerts");
   const [liveServerPort, setLiveServerPort] = useState<string>("8080");
   const [webhookTestStatus, setWebhookTestStatus] = useState<string>("IDLE");
   const [pingSweepStatus, setPingSweepStatus] = useState<string>("IDLE");
@@ -1440,18 +1448,18 @@ Full administrative override and emergency clinical execution privileges have be
 
   // Settings Forms state
   const [settingsForm, setSettingsForm] = useState({
-    nameAr: "مؤسسة بهية",
-    taglineAr: "في ضهر كل ست مصرية",
-    nameEn: "Baheya Foundation",
-    taglineEn: "Breast Cancer Screening & Treatment",
-    address: "الهرم / الشيخ زايد، الجيزة، مصر",
-    emergencyPhone: "19745",
-    footerAr: "قسم الجودة ومراقبة المعايير الطبية بهية - تقرير إلكتروني موثق بموجب المعايير الدولية",
-    footerEn: "Baheya Quality & Clinical Standards Unit - Certified System Performance Report",
-    appHeaderAr: "نظام الجودة السريري لبهية",
-    appHeaderEn: "Baheya Clinical Quality System",
-    appFooterAr: "جميع الحقوق محفوظة لمؤسسة بهية © 2026",
-    appFooterEn: "All Rights Reserved to Baheya Foundation © 2026",
+    nameAr: "المستشفى",
+    taglineAr: "رعاية وعناية",
+    nameEn: "Hospital",
+    taglineEn: "Care and healing",
+    address: "العنوان",
+    emergencyPhone: "123",
+    footerAr: "قسم الجودة ومراقبة المعايير الطبية - تقرير إلكتروني موثق بموجب المعايير الدولية",
+    footerEn: "Quality & Clinical Standards Unit - Certified System Performance Report",
+    appHeaderAr: "نظام الجودة السريري",
+    appHeaderEn: "Clinical Quality System",
+    appFooterAr: "جميع الحقوق محفوظة للمستشفى © 2026",
+    appFooterEn: "All Rights Reserved © 2026",
     accreditationBodyAr: "الهيئة العامة للاعتماد والرقابة الصحية",
     accreditationBodyEn: "General Authority for Healthcare Accreditation and Regulation (GAHAR)",
     appVersion: "1.0.0",
@@ -1460,10 +1468,10 @@ Full administrative override and emergency clinical execution privileges have be
     userInstructionsEn: "Please fill in the data carefully to ensure patient safety.",
     roles: ["admin", "nurse", "doctor"],
     jobTitles: ["Head Nurse", "General Practitioner", "Staff Nurse"],
-    portalTitleAr: "بوابة بهية الرقمية",
-    portalTitleEn: "Baheya Digital Portal",
-    premiumTitleAr: "نماذج بهية المميزة",
-    premiumTitleEn: "Baheya Forms Premium",
+    portalTitleAr: "البوابة الرقمية",
+    portalTitleEn: "Digital Portal",
+    premiumTitleAr: "النماذج المميزة",
+    premiumTitleEn: "Premium Forms",
     loginMethods: {
       hospital_id: true,
       employee_code: true,
@@ -1581,7 +1589,9 @@ Full administrative override and emergency clinical execution privileges have be
     { id: "mod_wsd_console", nameAr: "💻 لوحة الإدارة والدعم والبرمجة الأكاديمية (WSD CONSOLE)", nameEn: "WSD Academic Console" },
     { id: "mod_profile", nameAr: "الصفحة الشخصية", nameEn: "Profile View" },
     { id: "mod_medical_tools", nameAr: "الأدوات والآلات الحسابية الطبية (NEW)", nameEn: "Medical Tools & Calculators" },
-    { id: "mod_messaging", nameAr: "المراسلات والطلبات", nameEn: "Messaging & Requests" }
+    { id: "mod_messaging", nameAr: "المراسلات والطلبات", nameEn: "Messaging & Requests" },
+    { id: "mod_evaluations", nameAr: "نظام التقييم للموظفين", nameEn: "Employee Evaluations" },
+    { id: "mod_infection_control", nameAr: "مكافحة العدوى", nameEn: "Infection Control Hub" }
   ]);
 
   const [accessMatrix, setAccessMatrix] = useFirestoreSync<any>(syncAccessMatrix, []);
@@ -1639,7 +1649,9 @@ Full administrative override and emergency clinical execution privileges have be
         { id: "mod_wsd_console", nameAr: "💻 لوحة الإدارة والدعم والبرمجة الأكاديمية (WSD CONSOLE)", nameEn: "WSD Academic Console" },
         { id: "mod_profile", nameAr: "الصفحة الشخصية", nameEn: "Profile View" },
         { id: "mod_medical_tools", nameAr: "الأدوات والآلات الحسابية الطبية (NEW)", nameEn: "Medical Tools & Calculators" },
-        { id: "mod_messaging", nameAr: "المراسلات والطلبات", nameEn: "Messaging & Requests" }
+        { id: "mod_messaging", nameAr: "المراسلات والطلبات", nameEn: "Messaging & Requests" },
+        { id: "mod_evaluations", nameAr: "نظام التقييم للموظفين", nameEn: "Employee Evaluations" },
+        { id: "mod_infection_control", nameAr: "مكافحة العدوى", nameEn: "Infection Control Hub" }
       ];
       defaultPermissions.forEach(p => savePermission(p).catch(e => console.error("Error seeding permission", e)));
     }
@@ -1680,7 +1692,9 @@ Full administrative override and emergency clinical execution privileges have be
         mod_wsd_console: ["admin", "it", "medical_director"],
         mod_profile: ["staff", "head_nurse", "quality", "president", "admin", "it", "clinical_pharmacist", "medical_director", "infection_control", "consultant", "hmo", "chief_of_staff", "audit_auditor"],
         mod_medical_tools: ["staff", "head_nurse", "clinical_pharmacist", "consultant", "medical_director", "quality", "president", "supervisor", "hmo"],
-        mod_messaging: ["staff", "head_nurse", "quality", "president", "admin", "it", "clinical_pharmacist", "medical_director", "infection_control", "consultant", "hmo", "chief_of_staff", "audit_auditor"]
+        mod_messaging: ["staff", "head_nurse", "quality", "president", "admin", "it", "clinical_pharmacist", "medical_director", "infection_control", "consultant", "hmo", "chief_of_staff", "audit_auditor"],
+        mod_evaluations: ["head_nurse", "supervisor", "admin", "nursing_director", "medical_director", "president"],
+        mod_infection_control: ["infection_control", "quality", "medical_director", "president", "head_nurse", "supervisor", "admin"]
       };
 
       const itemsToSave: any[] = [];
@@ -2043,12 +2057,10 @@ Full administrative override and emergency clinical execution privileges have be
   useEffect(() => {
     if (!systemUsersLoaded) return;
     if (systemUsers.length > 0) {
-      saveSetting("baheya_system_users", systemUsers);
       if (currentUser?.id) {
         const found = systemUsers.find(u => u.id === currentUser.id);
         if (found) {
           setCurrentUser(found);
-          saveSetting("baheya_current_user_object", found);
         }
       }
     } else {
@@ -2062,17 +2074,12 @@ Full administrative override and emergency clinical execution privileges have be
   // Reactive side-effects to synchronize dailyChecklists changes without duplicate snapshot listeners
   useEffect(() => {
     if (!dailyChecklistsLoaded) return;
-    if (dailyChecklists.length > 0) {
-      saveSetting("baheya_daily_checklists", dailyChecklists);
-    }
   }, [dailyChecklists, dailyChecklistsLoaded]);
 
   // Reactive side-effects to synchronize rosterList changes without duplicate snapshot listeners
   useEffect(() => {
     if (!rosterListLoaded) return;
-    if (rosterList.length > 0) {
-      saveSetting("baheya_department_rosters", rosterList);
-    } else {
+    if (rosterList.length === 0) {
       // Generate defaults
       const defaultRosters: any[] = [
         {
@@ -2143,16 +2150,13 @@ Full administrative override and emergency clinical execution privileges have be
         saveDepartmentRoster(rost).catch(err => console.error(err));
       });
       rawSetRosterList(nextRosters);
-      saveSetting("baheya_department_rosters", nextRosters);
     }
   }, [rosterList, rosterListLoaded]);
 
   // Reactive side-effects to synchronize rosterWishes changes without duplicate snapshot listeners
   useEffect(() => {
     if (!rosterWishesLoaded) return;
-    if (rosterWishes.length > 0) {
-      saveSetting("baheya_roster_wishes", rosterWishes);
-    } else {
+    if (rosterWishes.length === 0) {
       const nextWishes = [
         {
           id: "wish-1",
@@ -2173,7 +2177,6 @@ Full administrative override and emergency clinical execution privileges have be
         saveRosterWish(w).catch(err => console.error(err));
       });
       rawSetRosterWishes(nextWishes);
-      saveSetting("baheya_roster_wishes", nextWishes);
     }
   }, [rosterWishes, rosterWishesLoaded]);
 
@@ -2346,6 +2349,7 @@ Full administrative override and emergency clinical execution privileges have be
     const updated = notifications.map(n => n.id === notif.id ? { ...n, read: true } : n);
     setNotifications(updated);
     saveSetting("baheya_notifications", updated);
+    setIsBellOpen(false);
 
     // 2. Determine redirection based on target properties or fallback to content matching
     if (notif.targetTab) {
@@ -3153,7 +3157,7 @@ Full administrative override and emergency clinical execution privileges have be
         emp_id: cleanCode,
         nameAr: newRosterEmpNameAr.trim(),
         nameEn: newRosterEmpNameEn.trim(),
-        email: `${cleanCode.toLowerCase().replace("bhg-", "")}@baheya.org`,
+        email: `${cleanCode.toLowerCase().replace("bhg-", "")}@hospital.org`,
         role: newRosterEmpRole as UserRole,
         department: selectedRosterDept,
         pin: pinToUse,
@@ -4146,7 +4150,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
     // Check if we have templates
     if (allAvailableTemplates.length === 0) return;
     
-    // Seed 3 realistic historical medical audit records for Baheya Foundation
+    // Seed 3 realistic historical medical audit records for Hospital Foundation
     const seed1: SavedRecord = {
       id: "rec-mock-1",
       templateId: allAvailableTemplates[0]?.id || "temp-crashcart",
@@ -4207,87 +4211,138 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
 
   if (!isLoggedIn) {
     return (
-      <div className={`min-h-screen bg-slate-100 flex flex-col justify-center items-center p-4 font-sans ${language === "ar" ? "rtl" : "ltr"}`} dir={language === "ar" ? "rtl" : "ltr"} style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.8), rgba(255,255,255,0.8)), url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?q=80&w=2000&auto=format&fit=crop')", backgroundSize: 'cover' }}>
-        {/* Header containing Language Switcher and System Identifier */}
-        <div className="absolute top-0 w-full flex justify-between px-6 py-3 text-xs text-slate-800 font-semibold bg-white/50 backdrop-blur-sm border-b border-white/20 no-print">
-          <div className="flex items-center gap-2">
-            <span>{new Date().toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
-          </div>
-          <div className="flex gap-4">
-            <button onClick={() => setLanguage("en")} className={`hover:underline cursor-pointer ${language === "en" ? "font-bold underline" : ""}`}>English</button>
-            <button onClick={() => setLanguage("ar")} className={`hover:underline cursor-pointer ${language === "ar" ? "font-bold underline" : ""}`}>Arabic</button>
-            <button className="hover:underline cursor-pointer opacity-70">Spanish</button>
-          </div>
-        </div>
-
-        {/* Central Card container */}
-        <div className="w-full max-w-lg bg-white/90 backdrop-blur-xl p-8 rounded-3xl border border-white/50 shadow-2xl space-y-6 text-center animate-fade">
-          {/* Branded Central Header */}
-          <div className="flex flex-col items-center gap-2.5">
-            <div className="flex justify-center mb-1 select-none">
-              <DynamicProfessionalLogo 
-                nameAr={hospitalSettings.nameAr} 
-                nameEn={hospitalSettings.nameEn} 
-                taglineAr={hospitalSettings.taglineAr} 
-                taglineEn={hospitalSettings.taglineEn} 
-                size="xl" 
-                isAr={language === "ar"}
-                hideText={true} 
-              />
+      <div className={`min-h-screen bg-white flex w-full font-sans ${language === "ar" ? "rtl" : "ltr"}`} dir={language === "ar" ? "rtl" : "ltr"}>
+        
+        {/* Left/Right Side Background Image Cover (Hidden on Mobile) */}
+        {!recoveryMode && loginTab === "login" && (
+          <div className="hidden lg:flex lg:w-1/2 relative bg-slate-900 overflow-hidden items-center justify-center">
+            <div className="absolute inset-0 z-0">
+               <img 
+                 src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?q=80&w=2000&auto=format&fit=crop" 
+                 className="w-full h-full object-cover opacity-60 mix-blend-overlay"
+                 alt="Hospital Background"
+               />
+               <div className="absolute inset-0 bg-gradient-to-tr from-slate-900/90 via-slate-900/50 to-transparent"></div>
+               <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-slate-950 to-transparent"></div>
             </div>
-            <div>
-              <h1 className="text-4xl font-bold text-slate-800 tracking-tight flex items-center justify-center">
-                {hospitalSettings.portalTitleEn || "Kayan"}
-              </h1>
-              <p className="text-xs text-slate-600 mt-1 uppercase tracking-widest leading-tight">
-                {hospitalSettings.premiumTitleEn || "Complete Medical System"}
-              </p>
-              <div className="border-t border-slate-300 my-4 w-20 mx-auto"></div>
-              <h2 className="text-lg font-semibold text-slate-800 mt-2">
-                {language === "ar" ? hospitalSettings.welcomeTitleAr || "مرحباً بعودتك، يا محترف الرعاية الصحية" : hospitalSettings.welcomeTitleEn || "Welcome Back, Healthcare Professional"}
-              </h2>
-              <p className="text-[11px] text-slate-600 mt-1">
-                {language === "ar" ? hospitalSettings.welcomeSubtitleAr || "سجل الدخول للوصول إلى سجلات المرضى والمواعيد وأدوات النظام." : hospitalSettings.welcomeSubtitleEn || "Sign in to access your Patient Records, Appointments, and System Tools."}
-              </p>
-            </div>
-          </div>
-
-          <div className="border-t border-slate-100 pt-5 space-y-4">
-            {/* Custom Tab Switcher for Login / Signup */}
-            {!recoveryMode && (
-              <div className="grid grid-cols-2 p-1.5 bg-slate-100 rounded-xl border border-slate-200 no-print gap-1 select-none">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLoginTab("login");
-                    setLoginError(null);
-                  }}
-                  className={`py-2 rounded-lg text-[11px] font-black tracking-tight transition-all cursor-pointer ${
-                    loginTab === "login"
-                      ? "bg-white text-slate-900 shadow-sm border border-slate-200"
-                      : "text-slate-500 hover:text-slate-805"
-                  }`}
-                >
-                  {language === "ar" ? "🔑 تسجيل دخول كادر" : "🔑 Staff Log In"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLoginTab("signup");
-                    setLoginError(null);
-                  }}
-                  className={`py-2 rounded-lg text-[11px] font-black tracking-tight transition-all cursor-pointer ${
-                    loginTab === "signup"
-                      ? "bg-white text-slate-800 shadow-sm border border-slate-200"
-                      : "text-slate-500 hover:text-slate-805"
-                  }`}
-                >
-                  {language === "ar" ? "📝 إنشاء حساب جديد" : "📝 Create Account"}
-                </button>
+            
+            <div className="relative z-10 w-full max-w-lg p-12 text-white text-start">
+              <div className="mb-6 flex">
+                <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-md border border-white/20">
+                  <DynamicProfessionalLogo 
+                    nameAr={hospitalSettings.nameAr} 
+                    nameEn={hospitalSettings.nameEn} 
+                    taglineAr={hospitalSettings.taglineAr} 
+                    taglineEn={hospitalSettings.taglineEn} 
+                    size="lg" 
+                    isAr={language === "ar"}
+                    hideText={true} 
+                  />
+                </div>
               </div>
-            )}
+              <h1 className="text-4xl lg:text-5xl font-black tracking-tight mb-4 text-white leading-tight">
+                {hospitalSettings.portalTitleEn || "Kayan Health"}
+              </h1>
+              <p className="text-lg text-slate-300 mb-8 max-w-md leading-relaxed font-light">
+                {language === "ar" ? hospitalSettings.welcomeSubtitleAr || "نحو رعاية طبية آمنة وممتازة وجودة مستدامة في نظام متكامل." : hospitalSettings.welcomeSubtitleEn || "Towards Safe, Quality & Standardized Patient Care in one unified ecosystem."}
+              </p>
 
-            {recoveryMode ? (
+              <div className="space-y-4 pt-6 border-t border-white/10 text-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/30 text-blue-300">
+                    <ShieldAlert className="w-4 h-4" />
+                  </div>
+                  <span className="text-slate-300">{language === "ar" ? "بوابة معتمدة وآمنة" : "Certified Secure Gateway"}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 text-emerald-300">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  <span className="text-slate-300">{language === "ar" ? "وصول مباشر للسجلات الطبية" : "Live EMR & HIS Sync"}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Form Container Side */}
+        <div className={`w-full ${recoveryMode || loginTab !== "login" ? 'lg:w-full max-w-2xl mx-auto' : 'lg:w-1/2'} flex flex-col items-center justify-center p-6 sm:p-12 md:p-16 relative bg-white`}>
+          
+          {/* Header containing Language Switcher */}
+          <div className="absolute top-0 w-full flex justify-between px-6 md:px-12 py-4 text-xs text-slate-500 font-semibold no-print">
+            <div className="hidden sm:block">
+              {new Date().toLocaleString(language === "ar" ? 'ar-EG' : 'en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+            </div>
+            <div className="flex gap-4">
+              <button onClick={() => setLanguage("en")} className={`hover:text-slate-900 transition ${language === "en" ? "text-slate-900 font-bold" : ""}`}>EN</button>
+              <button onClick={() => setLanguage("ar")} className={`hover:text-slate-900 transition ${language === "ar" ? "text-slate-900 font-bold" : ""}`}>عربي</button>
+            </div>
+          </div>
+
+          <div className="w-full max-w-md animate-fade-in space-y-8">
+            
+            {/* Mobile/Compact Header Logo (Hidden on large screens when split layout) */}
+            <div className={`${!recoveryMode && loginTab === "login" ? 'lg:hidden' : ''} flex flex-col items-center text-center pb-2`}>
+              <div className="mb-4">
+                <DynamicProfessionalLogo 
+                  nameAr={hospitalSettings.nameAr} 
+                  nameEn={hospitalSettings.nameEn} 
+                  taglineAr={hospitalSettings.taglineAr} 
+                  taglineEn={hospitalSettings.taglineEn} 
+                  size="xl" 
+                  isAr={language === "ar"}
+                  hideText={true} 
+                />
+              </div>
+              <h1 className="text-3xl font-bold text-slate-800 tracking-tight">
+                {language === "ar" ? "تسجيل الدخول" : "Welcome Back"}
+              </h1>
+              <p className="text-xs text-slate-500 mt-2 max-w-xs mx-auto leading-relaxed">
+                {language === "ar" ? hospitalSettings.welcomeSubtitleAr || "أدخل بيانات الاعتماد للمتابعة" : "Enter your credentials to access the clinical system"}
+              </p>
+            </div>
+
+            <div className={`${(!recoveryMode && loginTab === "login") ? 'hidden lg:block' : 'hidden'} text-start pb-2`}>
+              <h2 className="text-3xl font-black text-slate-900">Sign In</h2>
+              <p className="text-sm text-slate-500 mt-1">Access your personalized workspace</p>
+            </div>
+
+            <div className="space-y-6">
+              {/* Custom Tab Switcher for Login / Signup */}
+              {!recoveryMode && (
+                <div className="flex p-1 bg-slate-100/80 rounded-xl border border-slate-200/60 no-print">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginTab("login");
+                      setLoginError(null);
+                    }}
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-bold tracking-tight transition-all cursor-pointer ${
+                      loginTab === "login"
+                        ? "bg-white text-blue-900 shadow-sm border border-slate-200"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    {language === "ar" ? "تسجيل دخول" : "Staff Log In"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginTab("signup");
+                      setLoginError(null);
+                    }}
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-bold tracking-tight transition-all cursor-pointer ${
+                      loginTab === "signup"
+                        ? "bg-white text-blue-900 shadow-sm border border-slate-200"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    {language === "ar" ? "إنشاء حساب" : "Create Account"}
+                  </button>
+                </div>
+              )}
+
+              {recoveryMode ? (
               /* Passcode Retrieval & Reset via Corporate email form */
               <form onSubmit={recoveryStep === "enter_email" ? handleRequestRecoveryInput : handleCompletePINReset} className="space-y-4 text-right">
                 <div className="bg-pink-50 p-3 rounded-xl text-xs font-sans border border-pink-150/60 leading-relaxed text-slate-700 flex flex-col gap-1">
@@ -4316,7 +4371,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                         setRecoveryError(null);
                       }}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-center font-mono text-xs text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-pink-500"
-                      placeholder="nurse.name@baheya.org"
+                      placeholder="nurse.name@hospital.org"
                     />
                   </div>
                 ) : (
@@ -4723,11 +4778,13 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                 </div>
               </div>
             )}
+            </div>
+
           </div>
 
-          <div className="border-t border-slate-100 pt-4 flex flex-col gap-1 items-center justify-center text-[9px] text-slate-400 font-mono">
-            <span>{hospitalSettings.nameEn} Medical Cloud Storage Client v5.0</span>
-            <span>{language === "ar" ? "بوابة معتمدة للجرودات والسياسات الطبية" : "Bilingual Electronic Healthcare Ledger Guard"}</span>
+          <div className="mt-8 pt-6 w-full max-w-sm mx-auto border-t border-slate-100 flex flex-col gap-1 items-center justify-center text-[10px] text-slate-400 font-mono text-center">
+            <span>{hospitalSettings.nameEn || "Kayan"} Medical Cloud Storage Client v5.0</span>
+            <span>{language === "ar" ? "بوابة معتمدة للرعاية السريرية" : "Certified Clinical Care Gateway"}</span>
           </div>
         </div>
       </div>
@@ -4749,7 +4806,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
               🚨 قفل الطوارئ الكلي نشط - LOCKDOWN ENGINE ACTIVE
             </h1>
             <p className="text-xs text-slate-300 leading-relaxed">
-              تم تفعيل وضع الإغلاق الكلي الفوري لجميع واجهات بهية وسحب الجلسات بواسطة الإدارة لدواعي السلامة والامتثال السيبراني ومكافحة الانحراف.
+              تم تفعيل وضع الإغلاق الكلي الفوري لجميع الواجهات وسحب الجلسات بواسطة الإدارة لدواعي السلامة والامتثال السيبراني ومكافحة الانحراف.
             </p>
           </div>
 
@@ -4785,23 +4842,15 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
   return (
     <div className={`min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans ${language === "ar" ? "rtl" : "ltr"} print:block print:min-h-0 print:h-auto print:p-0 print:m-0`} dir={language === "ar" ? "rtl" : "ltr"}>
       
-      <aside className="no-print w-full md:w-64 bg-slate-900 text-slate-100 flex flex-col border-b md:border-b-0 md:border-r border-slate-800 shrink-0 md:sticky md:top-0 md:h-screen md:overflow-y-auto">
-        <div className="p-5 border-b border-slate-800">
-          <div className="flex items-center gap-3">
-            <DynamicProfessionalLogo 
-              nameAr={hospitalSettings.nameAr} 
-              nameEn={hospitalSettings.nameEn} 
-              taglineAr={hospitalSettings.taglineAr} 
-              taglineEn={hospitalSettings.taglineEn} 
-              size="sm" 
-              isAr={language === "ar"}
-              hideText={true} 
-            />
-            <div>
-              <h1 className="text-sm font-bold text-white font-sans">{language === "ar" ? hospitalSettings.portalTitleAr : hospitalSettings.portalTitleEn}</h1>
-              <p className="text-[10px] text-slate-400 uppercase tracking-tighter">{language === "ar" ? hospitalSettings.premiumTitleAr : hospitalSettings.premiumTitleEn}</p>
-            </div>
+      <aside className={`no-print ${isSidebarOpen ? "w-full md:w-64" : "hidden"} bg-slate-900 text-slate-100 flex flex-col border-b md:border-b-0 md:border-r border-slate-800 shrink-0 md:sticky md:top-0 md:h-screen md:overflow-y-auto`}>
+        <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+          <div>
+            <h1 className="text-sm font-bold text-white font-sans">{language === "ar" ? hospitalSettings.portalTitleAr : hospitalSettings.portalTitleEn}</h1>
+            <p className="text-[10px] text-slate-400 uppercase tracking-tighter">{language === "ar" ? hospitalSettings.premiumTitleAr : hospitalSettings.premiumTitleEn}</p>
           </div>
+          <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-slate-400 hover:text-white">
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
         {/* ACCESS MANAGEMENT: Interactive User & Admin switcher */}
@@ -5162,38 +5211,51 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 print:block print:min-w-full print:w-full print:p-0 print:m-0">
         
-        {/* Top Header Bar - Hides completely on Print */}
-        <header className="no-print bg-gradient-to-r from-white via-slate-50 to-pink-50/25 border-b border-slate-200 flex flex-col md:flex-row items-center justify-between px-8 py-4.5 gap-4 shadow-sm z-10 text-right">
-          <div 
-            onClick={() => setActiveTab("duty")}
-            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition select-none group"
-            title={language === "ar" ? "الرئيسية والمتابعة اليومية" : "Go to Dashboard Home"}
-          >
-            <DynamicProfessionalLogo 
-              nameAr={hospitalSettings.nameAr} 
-              nameEn={hospitalSettings.nameEn} 
-              taglineAr={hospitalSettings.taglineAr} 
-              taglineEn={hospitalSettings.taglineEn} 
-              size="md" 
-              isAr={language === "ar"}
-              hideText={true} 
-            />
-            <div>
-              <h2 className="text-sm md:text-base font-black text-slate-900 flex items-center gap-2 justify-end md:justify-start">
-                <HeartPulse className="h-4.5 w-4.5 text-pink-600 animate-pulse group-hover:scale-110 transition-transform" />
-                <span className="group-hover:text-pink-750 transition-colors">{language === "ar" ? hospitalSettings.appHeaderAr : hospitalSettings.appHeaderEn}</span>
-              </h2>
-              <p className="text-[10px] md:text-[11px] text-slate-500 mt-0.5 font-sans leading-none">
-                {language === "ar" ? hospitalSettings.taglineAr : hospitalSettings.taglineEn}
-              </p>
+        {/* Top Header Bar - Highly Advanced Glassmorphism */}
+        <header className="no-print sticky top-0 bg-white/70 backdrop-blur-xl border-b border-white/50 flex flex-col md:flex-row items-center justify-between px-6 py-3 gap-4 shadow-[0_4px_30px_rgba(0,0,0,0.05)] z-40 text-right transition-all">
+          <div className="flex items-center gap-3">
+            {!isSidebarOpen && (
+              <button 
+                onClick={() => setIsSidebarOpen(true)}
+                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition"
+                title={language === "ar" ? "فتح القائمة الجانبية" : "Open Sidebar"}
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+            )}
+            <div 
+              onClick={() => setActiveTab("duty")}
+              className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition select-none group"
+              title={language === "ar" ? "الرئيسية والمتابعة اليومية" : "Go to Dashboard Home"}
+            >
+              <div className="relative">
+                <DynamicProfessionalLogo 
+                  nameAr={hospitalSettings.nameAr} 
+                  nameEn={hospitalSettings.nameEn} 
+                  taglineAr={hospitalSettings.taglineAr} 
+                  taglineEn={hospitalSettings.taglineEn} 
+                  size="md" 
+                  isAr={language === "ar"}
+                  hideText={true} 
+                />
+                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white animate-pulse"></div>
+              </div>
+              <div>
+                <h2 className="text-sm md:text-base font-black text-transparent bg-clip-text bg-gradient-to-l from-indigo-900 to-pink-600 flex items-center gap-2 justify-end md:justify-start">
+                  <HeartPulse className="h-4.5 w-4.5 text-pink-600 group-hover:scale-125 transition-transform duration-300" />
+                  <span className="group-hover:text-transparent transition-colors">{language === "ar" ? "الواجهة المركزية المدعمة متقدمة الذكاء" : "Advanced AI-Powered Central Interface"}</span>
+                </h2>
+                <p className="text-[10px] md:text-[11px] text-slate-500 mt-0.5 font-bold leading-none tracking-wide">
+                  {language === "ar" ? "تعمل معززات الذكاء الاصطناعي السريرية في الخلفية لدعمك" : "AI Clinical Enhancers running in background"}
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Center/Right alignment with active user details and actions */}
           <div className="flex flex-wrap items-center gap-2.5 justify-end w-full md:w-auto">
-            {/* Live Date/Time dynamic clock badge */}
-            <div className="bg-white border border-slate-200 text-slate-700 text-[10px] font-mono px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm">
-              <Clock className="w-3.5 h-3.5 text-pink-600 animate-pulse" />
+            {/* Live Clock */}
+            <div className="bg-slate-50/80 backdrop-blur-sm border border-slate-200/50 text-slate-700 text-[10px] font-mono px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
+              <Clock className="w-3.5 h-3.5 text-indigo-600 animate-spin-slow" />
               <span className="font-bold">
                 {currentTime.toLocaleDateString(language === "ar" ? "ar-EG" : "en-US", {
                   weekday: "short",
@@ -5210,73 +5272,70 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
               </span>
             </div>
 
-            {/* Shift Tracker Badge (Customizable Active Shift Selector) */}
+            {/* Smart Shift Tracker badge */}
             <div 
-              className="bg-slate-900 border border-slate-800 text-[10px] font-mono rounded-lg flex items-center px-1.5 py-1.5 shadow-sm text-slate-100"
-              title={language === "ar" ? "اضغط لتعديل وردية العمل النشطة لتعبئة الجرد اليومي" : "Click to select active duty shift period for checklists"}
+              className="bg-gradient-to-r from-slate-900 to-slate-800 border border-slate-700 text-[10px] font-mono rounded-xl flex items-center px-1.5 py-1.5 shadow-md shadow-slate-900/20 text-slate-100"
             >
               <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span>
-                <span className="font-bold text-[9px] uppercase tracking-wider text-slate-400">
-                  {language === "ar" ? "الوردية النشطة:" : "Active Shift:"}
+                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-[ping_1.5s_ease-in-out_infinite]"></span>
+                <span className="font-bold text-[9px] uppercase tracking-wider text-slate-300">
+                  {language === "ar" ? "وردية تلقائية:" : "Auto-Shift:"}
                 </span>
                 <select 
                   value={selectedShift}
                   disabled={true}
-                  title={language === "ar" ? "قفل أمان النظام: الوردية النشطة يتم تحديدها تلقائياً بالكامل في الوقت الحقيقي بمطابقة معايير الرقابة الصحية" : "HIPAA Security Lock: Active shift is auto-determined in real-time by the central clock"}
-                  className="bg-slate-950 text-pink-500 font-extrabold text-xs rounded border border-slate-750 px-2 py-0.5 outline-none cursor-not-allowed opacity-80 font-sans"
+                  className="bg-black/20 text-emerald-400 font-extrabold text-xs rounded border border-white/5 px-2 py-0.5 outline-none cursor-not-allowed font-sans backdrop-blur-sm"
                 >
                   {CLINICAL_SHIFTS.map(cs => (
-                    <option key={cs.id} value={cs.id} className="bg-slate-900 text-white text-xs font-sans font-bold">{cs.id}</option>
+                    <option key={cs.id} value={cs.id}>{cs.id}</option>
                   ))}
                 </select>
               </div>
             </div>
 
-            {/* Logged-In Employee assigned shift today (Roster link) */}
+            {/* User Shift Details */}
             <div 
-              className="bg-pink-50 border border-pink-200 text-[10px] font-sans rounded-lg flex items-center px-3 py-1.5 shadow-sm text-pink-900 select-none animate-pulse"
-              title={language === "ar" ? `ورديتك المقررة اليوم بالرسمي ل${hospitalSettings.nameAr}` : `Your assigned ${hospitalSettings.nameEn} shift today`}
+              className="bg-indigo-50/80 backdrop-blur border border-indigo-100 text-[10px] font-sans rounded-xl flex items-center px-3 py-1.5 shadow-sm text-indigo-900 select-none animate-pulse"
             >
               <div className="flex items-center gap-1.5 font-bold">
-                <Calendar className="w-3.5 h-3.5 text-pink-600" />
+                <Calendar className="w-3.5 h-3.5 text-indigo-600" />
                 <span>
-                  {language === "ar" ? "شفت الموظفة اليوم:" : "Your Shift Today:"}
+                  {language === "ar" ? "وردية الموظف:" : "Your Shift:"}
                 </span>
-                <span className="text-white bg-pink-600 px-1.5 py-0.5 rounded text-[10px]">
+                <span className="text-white bg-indigo-600 px-1.5 py-0.5 rounded text-[10px] shadow-[0_0_8px_rgba(79,70,229,0.4)]">
                   {getCurrentUserShiftToday()}
                 </span>
               </div>
             </div>
 
-            {/* Break-The-Glass Ward Auto-Sensor */}
+            {/* Admin Override */}
             {currentUser.role === "admin" && (
               <button
                 onClick={handleBreakGlassAutoDetect}
-                className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 animate-pulse text-white font-extrabold text-[10px] py-1.5 px-3 rounded-lg shadow-sm border border-red-700/50 hover:shadow transition-all whitespace-nowrap cursor-pointer"
-                title={language === "ar" ? "اضغط الكسر التلقائي: استشعار ذكي وتحديد فوري لغرفة الطوارئ المتأزمة" : "Press to trigger auto-detection sensor for current critical ward"}
+                className="flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 animate-pulse text-white font-extrabold text-[10px] py-1.5 px-3 rounded-xl shadow-lg shadow-rose-600/30 border border-rose-500/50 hover:shadow-xl hover:-translate-y-0.5 transition-all whitespace-nowrap cursor-pointer"
+                title={language === "ar" ? "اضغط الكسر التلقائي" : "Auto Break-Glass Sensor"}
               >
-                <span>🛡️ كسر زجاج الطوارئ (مستشعر ذكي)</span>
+                <span>🛡️ استشعار الأزمات (AI)</span>
               </button>
             )}
 
             <button
               onClick={() => setLanguage(language === "ar" ? "en" : "ar")}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 rounded-lg text-xs font-black transition shadow-sm cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-black transition shadow-sm hover:shadow cursor-pointer"
             >
-              <ArrowLeftRight className="h-3.5 w-3.5 text-pink-500" />
-              {language === "ar" ? "English" : "العربية"}
+              <ArrowLeftRight className="h-3.5 w-3.5 text-indigo-500" />
+              {language === "ar" ? "EN" : "عربي"}
             </button>
 
-            {/* Prominent 🔔 Alert Bell to broadcast nurse submissions and system alerts */}
+            {/* Smart Notification Bell */}
             <div className="relative">
               <button
                 onClick={() => setIsBellOpen(!isBellOpen)}
-                className="relative p-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 rounded-lg text-xs font-black transition shadow-sm cursor-pointer flex items-center justify-center h-[30px]"
+                className="relative p-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-indigo-600 rounded-xl transition shadow-sm hover:shadow cursor-pointer flex items-center justify-center h-[34px]"
               >
-                <Bell className={`h-4 w-4 text-pink-600 ${notifications.some(n => !n.read) ? "animate-bounce" : ""}`} />
+                <Bell className={`h-4.5 w-4.5 transition-colors ${notifications.some(n => !n.read) ? "animate-bounce text-pink-600" : ""}`} />
                 {notifications.some(n => !n.read) && (
-                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white rounded-full text-[8px] w-4 h-4 flex items-center justify-center font-bold animate-pulse leading-none border border-white">
+                  <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white rounded-full text-[9px] w-4.5 h-4.5 flex items-center justify-center font-black shadow-md border border-white">
                     {notifications.filter(n => !n.read).length}
                   </span>
                 )}
@@ -5284,12 +5343,12 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
 
               {isBellOpen && (
                 <div 
-                  className="absolute left-0 mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-xl z-50 text-right overflow-hidden transition-all duration-200 origin-top-left flex flex-col max-h-[350px]"
-                  style={{ direction: language === "ar" ? "rtl" : "ltr" }}
+                  className="absolute left-0 mt-2 w-80 bg-white/90 backdrop-blur-xl border border-slate-200/50 rounded-2xl shadow-2xl z-50 overflow-hidden transition-all duration-200 origin-top-left flex flex-col max-h-[350px]"
                 >
-                  <div className="px-4 py-3 bg-gradient-to-r from-pink-50 to-white border-b border-slate-100 flex items-center justify-between gap-2">
-                    <h4 className="text-[11px] font-black text-slate-800">
-                      {language === "ar" ? "🔔 الإشعارات ومستجدات القسم" : "🔔 Hospital Ward Alerts"}
+                  <div className="px-4 py-3 bg-slate-900/5 backdrop-blur-md border-b border-slate-200/50 flex items-center justify-between">
+                    <h4 className="text-[11px] font-black text-slate-800 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                      {language === "ar" ? "تنبيهات الذكاء الاستباقي" : "Proactive Alerts"}
                     </h4>
                     {notifications.some(n => !n.read) && (
                       <button
@@ -5298,43 +5357,35 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                           setNotifications(marked);
                           saveSetting("baheya_notifications", marked);
                         }}
-                        className="text-[9px] text-pink-600 hover:text-pink-850 font-extrabold"
+                        className="text-[9px] text-indigo-600 hover:text-indigo-800 font-extrabold"
                       >
-                        {language === "ar" ? "مقروء الكل" : "Mark all read"}
+                        {language === "ar" ? "مقروء" : "Read all"}
                       </button>
                     )}
                   </div>
-                  <div className="overflow-y-auto divide-y divide-slate-100 flex-1 max-h-64">
+                  <div className="overflow-y-auto divide-y divide-slate-100 flex-1 max-h-64 custom-scrollbar">
                     {notifications.length === 0 ? (
-                      <div className="p-6 text-center text-xs text-slate-400">
-                        {language === "ar" ? "لا توجد تنبيهات حالية" : "No recent alerts"}
+                      <div className="p-6 text-center text-xs text-slate-400 font-medium">
+                        {language === "ar" ? "الوضع آمن ومستقر حالياً" : "All clear. No active alerts."}
                       </div>
                     ) : (
                       notifications.map(notif => (
                         <div 
                           key={notif.id} 
                           onClick={() => handleNotificationClick(notif)}
-                          className={`p-3 text-[10px] sm:text-xs transition text-right cursor-pointer hover:bg-slate-50/80 active:bg-slate-100 ${notif.read ? "bg-white text-slate-500 font-normal hover:text-slate-700" : "bg-pink-50/40 text-slate-900 border-r-2 border-pink-500 font-bold hover:bg-pink-100/50"}`}
+                          className={`p-3 text-[10px] sm:text-xs transition text-right cursor-pointer hover:bg-slate-50/80 active:bg-slate-100 ${notif.read ? "bg-white/50 text-slate-500 font-normal hover:text-slate-700" : "bg-indigo-50/60 text-slate-900 border-r-4 border-indigo-500 font-bold hover:bg-indigo-100/50"}`}
                         >
-                          <div className="flex justify-between items-start mb-1 text-[9px] font-medium text-slate-400">
+                          <div className="flex justify-between items-start mb-1 text-[9px] font-medium text-slate-500">
                             <span>{new Date(notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                             {notif.type === "directive" && (
-                              <span className="bg-rose-100 text-rose-700 font-extrabold px-1.5 py-0.5 rounded text-[8px]">
+                              <span className="bg-rose-100 text-rose-700 font-extrabold px-1.5 py-0.5 rounded text-[8px] shadow-sm tracking-wider">
                                 {language === "ar" ? "توجيه إداري" : "Directive"}
                               </span>
                             )}
                           </div>
-                          <p className="leading-relaxed hover:text-pink-650 transition">
+                          <p className="leading-relaxed">
                             {language === "ar" ? notif.messageAr : notif.messageEn}
                           </p>
-                          <div className="mt-1.5 flex items-center justify-between text-[9px] text-pink-500 font-semibold">
-                            <span>{language === "ar" ? "اضغط هنا للانتقال ➔" : "Click to view section ➔"}</span>
-                            {!notif.read && (
-                              <span className="bg-pink-100 text-pink-700 text-[8px] font-extrabold px-1 rounded-sm">
-                                {language === "ar" ? "جديد" : "New"}
-                              </span>
-                            )}
-                          </div>
                         </div>
                       ))
                     )}
@@ -5343,12 +5394,14 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
               )}
             </div>
 
+            {/* Smart Access Buttons Group Removed from here */}
+
             <button
               onClick={() => handleCreateNew(selectedTemplate.id)}
-              className="bg-pink-600 hover:bg-pink-700 text-white px-4 py-1.5 rounded-lg font-extrabold text-xs flex items-center gap-1.5 shadow-md transition"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-xl font-extrabold text-xs flex items-center gap-1.5 shadow-lg shadow-indigo-600/30 hover:shadow-xl hover:-translate-y-0.5 transition-all border border-indigo-500"
             >
               <Plus className="h-4 w-4" />
-              <span>{language === "ar" ? "إنشاء مستند جديد" : "New Ledger Link"}</span>
+              <span>{language === "ar" ? "إنشاء ذكي" : "Smart Ledger"}</span>
             </button>
             
             <input
@@ -5587,25 +5640,80 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
               <div className="space-y-6 animate-fade text-right" dir={language === "ar" ? "rtl" : "ltr"}>
                 
                 {/* 1. Header Banner */}
-                <div className="bg-gradient-to-l from-slate-900 via-slate-800 to-pink-950 text-white p-6 rounded-2xl shadow-md border border-slate-700/50 flex flex-col md:flex-row items-center justify-between gap-6">
-                  <div className="space-y-1.5 flex-1 select-none">
-                    <div className="bg-pink-505/20 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-pink-300 font-extrabold text-[10px] uppercase tracking-wide border border-pink-500/30">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                      {language === "ar" ? "البوابة الطبية النشطة لكامل المستشفى" : "HOSPITAL WIDE CORE GATEWAY - ACTIVE"}
+                <div className="bg-gradient-to-l from-slate-900 via-slate-800 to-pink-950 text-white p-6 rounded-2xl shadow-md border border-slate-700/50 flex flex-col gap-6">
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="space-y-1.5 flex-1 select-none">
+                      <div className="bg-pink-505/20 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-pink-300 font-extrabold text-[10px] uppercase tracking-wide border border-pink-500/30">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                        {language === "ar" ? "البوابة الطبية النشطة لكامل المستشفى" : "HOSPITAL WIDE CORE GATEWAY - ACTIVE"}
+                      </div>
+                      <h2 className="text-lg font-black tracking-tight text-white">
+                        {language === "ar" ? "بوابة الوحدات الطبية والشيك ليست والديوتي اليومي" : "Unit Clinical Gateways & Daily Duty Checklist Control"}
+                      </h2>
+                      <p className="text-xs text-slate-300 leading-relaxed font-sans max-w-2xl">
+                        {language === "ar" 
+                          ? `واجهة تفتيش الرعاية السريرية المعتمدة لروتين تمريض وأرشفة ${hospitalSettings.nameAr || "المؤسسة"}. يقوم الممرضون بالمجموعات والجرودات الصباحية اليومية وتصديق استمارة الواجب، بينما تدقق مديرة التمريض والمشرف يدوياً بنقرة خروج واحدة.`
+                          : `Standardized clinical audit interface for ${hospitalSettings.nameEn} nurses. Staff execute physical checking tasks, sign daily sheets off, and nursing directors certify compliance metrics with structured logs.`}
+                      </p>
                     </div>
-                    <h2 className="text-lg font-black tracking-tight text-white">
-                      {language === "ar" ? "بوابة الوحدات الطبية والشيك ليست والديوتي اليومي" : "Unit Clinical Gateways & Daily Duty Checklist Control"}
-                    </h2>
-                    <p className="text-xs text-slate-300 leading-relaxed font-sans max-w-2xl">
-                      {language === "ar" 
-                        ? `واجهة تفتيش الرعاية السريرية المعتمدة لروتين تمريض وأرشفة ${hospitalSettings.nameAr || "المؤسسة"}. يقوم الممرضون بالمجموعات والجرودات الصباحية اليومية وتصديق استمارة الواجب، بينما تدقق مديرة التمريض والمشرف يدوياً بنقرة خروج واحدة.`
-                        : `Standardized clinical audit interface for ${hospitalSettings.nameEn} nurses. Staff execute physical checking tasks, sign daily sheets off, and nursing directors certify compliance metrics with structured logs.`}
-                    </p>
+                    <div className="flex flex-col items-center justify-center p-3 bg-white/5 rounded-xl border border-white/10 font-mono text-center select-none shrink-0">
+                      <Calendar className="h-5 w-5 text-pink-400 mb-1" />
+                      <span className="text-xs font-bold text-pink-200 uppercase">{language === "ar" ? "تاريخ اليوم" : "Today's Date"}</span>
+                      <span className="text-sm font-black text-white mt-0.5">{todayString}</span>
+                    </div>
                   </div>
-                  <div className="flex flex-col items-center justify-center p-3 bg-white/5 rounded-xl border border-white/10 font-mono text-center select-none shrink-0">
-                    <Calendar className="h-5 w-5 text-pink-400 mb-1" />
-                    <span className="text-xs font-bold text-pink-200 uppercase">{language === "ar" ? "تاريخ اليوم" : "Today's Date"}</span>
-                    <span className="text-sm font-black text-white mt-0.5">{todayString}</span>
+
+                  {/* Smart Tools Quick Access Grid */}
+                  <div className="pt-4 border-t border-white/10 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-2">
+                    <button onClick={() => setActiveTab("ward")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-emerald-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+                      <BedDouble className="h-6 w-6 text-emerald-400 group-hover:scale-110 transition-transform transform" />
+                      <span className="text-[10px] font-bold text-slate-300 group-hover:text-emerald-100 uppercase tracking-widest leading-tight text-center">{language === "ar" ? "المرضى والأقسام الداخلي" : "Ward & Patients"}</span>
+                    </button>
+                    <button onClick={() => setActiveTab("medication_ledger")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-pink-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+                      <Pill className="h-6 w-6 text-pink-400 group-hover:scale-110 transition-transform transform" />
+                      <span className="text-[10px] font-bold text-slate-300 group-hover:text-pink-100 uppercase tracking-widest leading-tight text-center">{language === "ar" ? "متابعة عهد الأدوية" : "Medication Ledger"}</span>
+                    </button>
+                    <button onClick={() => setActiveTab("roster")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-blue-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+                      <CalendarCheck className="h-6 w-6 text-blue-400 group-hover:scale-110 transition-transform transform" />
+                      <span className="text-[10px] font-bold text-slate-300 group-hover:text-blue-100 uppercase tracking-widest leading-tight text-center">{language === "ar" ? "الروستر وجدول النبطشيات" : "Roster Ledger"}</span>
+                    </button>
+                    <button onClick={() => setActiveTab("messaging")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+                      <MessageSquare className="h-6 w-6 text-amber-400 group-hover:scale-110 transition-transform transform" />
+                      <span className="text-[10px] font-bold text-slate-300 group-hover:text-amber-100 uppercase tracking-widest leading-tight text-center">{language === "ar" ? "المراسلات والنداء الاستباقي" : "Communication"}</span>
+                    </button>
+                    <button onClick={() => setActiveTab("medical_tools")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-rose-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+                      <Stethoscope className="h-6 w-6 text-rose-400 group-hover:scale-110 transition-transform transform" />
+                      <span className="text-[10px] font-bold text-slate-300 group-hover:text-rose-100 uppercase tracking-widest leading-tight text-center">{language === "ar" ? "أدوات الذكاء السريرية" : "Clinical Tools"}</span>
+                    </button>
+                    <button onClick={() => setActiveTab("document_center")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-indigo-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+                      <Folder className="h-6 w-6 text-indigo-400 group-hover:scale-110 transition-transform transform" />
+                      <span className="text-[10px] font-bold text-slate-300 group-hover:text-indigo-100 uppercase tracking-widest leading-tight text-center">{language === "ar" ? "مركز الوثائق المركزي" : "Document Center"}</span>
+                    </button>
+                    
+                    <button onClick={() => setActiveTab("pharmacy")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-teal-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+                      <Microscope className="h-6 w-6 text-teal-400 group-hover:scale-110 transition-transform transform" />
+                      <span className="text-[10px] font-bold text-slate-300 group-hover:text-teal-100 uppercase tracking-widest leading-tight text-center">{language === "ar" ? "الصيدلية والمخازن" : "Pharmacy"}</span>
+                    </button>
+                    <button onClick={() => setActiveTab("billing")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-yellow-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+                      <Receipt className="h-6 w-6 text-yellow-400 group-hover:scale-110 transition-transform transform" />
+                      <span className="text-[10px] font-bold text-slate-300 group-hover:text-yellow-100 uppercase tracking-widest leading-tight text-center">{language === "ar" ? "الفواتير والتأمين" : "Billing"}</span>
+                    </button>
+                    <button onClick={() => setActiveTab("ot")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-purple-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+                      <Scissors className="h-6 w-6 text-purple-400 group-hover:scale-110 transition-transform transform" />
+                      <span className="text-[10px] font-bold text-slate-300 group-hover:text-purple-100 uppercase tracking-widest leading-tight text-center">{language === "ar" ? "غرف العمليات" : "Operations"}</span>
+                    </button>
+                    <button onClick={() => setActiveTab("transport")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-lime-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+                      <ArrowLeftRight className="h-6 w-6 text-lime-400 group-hover:scale-110 transition-transform transform" />
+                      <span className="text-[10px] font-bold text-slate-300 group-hover:text-lime-100 uppercase tracking-widest leading-tight text-center">{language === "ar" ? "حركة ونقل المرضى" : "Transport"}</span>
+                    </button>
+                    <button onClick={() => setActiveTab("meals")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-orange-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+                      <Coffee className="h-6 w-6 text-orange-400 group-hover:scale-110 transition-transform transform" />
+                      <span className="text-[10px] font-bold text-slate-300 group-hover:text-orange-100 uppercase tracking-widest leading-tight text-center">{language === "ar" ? "التغذية والوجبات" : "Meals & Nutrition"}</span>
+                    </button>
+                    <button onClick={() => setActiveTab("analytics")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+                      <TrendingUp className="h-6 w-6 text-cyan-400 group-hover:scale-110 transition-transform transform" />
+                      <span className="text-[10px] font-bold text-slate-300 group-hover:text-cyan-100 uppercase tracking-widest leading-tight text-center">{language === "ar" ? "تحليلات الأداء والمؤشرات" : "Analytics"}</span>
+                    </button>
                   </div>
                 </div>
 
@@ -6810,7 +6918,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                         <div className="absolute top-6 left-6 rotate-[-12deg] border-[3px] border-red-600 text-red-600 bg-white/95 px-4 py-2 rounded-lg font-mono text-[10px] uppercase font-bold tracking-tight text-center select-none shadow-md border-double border-4 z-30 avoid-break print:left-3 print:top-6">
                           <div className="border-b border-red-600 pb-0.5 mb-1 font-bold tracking-widest text-[8px] flex items-center justify-center gap-1">
                             <HeartPulse className="h-3 w-3" />
-                            <span>BAHEYA QUALITY</span>
+                            <span>CLINICAL QUALITY</span>
                           </div>
                           <div className="text-[12px] font-black text-red-600 leading-none">
                             CERTIFIED AUDIT
@@ -7919,7 +8027,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                     </div>
 
                     <div className="border-t pt-3 mt-4 text-[9px] text-slate-400 flex items-center justify-between">
-                      <span>BAHEYA CQI COMMAND-ALERTS CLOUD WORKSPACE</span>
+                      <span>CQI COMMAND-ALERTS CLOUD WORKSPACE</span>
                       <span>تحديث مستمر ●</span>
                     </div>
                   </div>
@@ -8197,7 +8305,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                             disabled={pingSweepStatus === "RUNNING"}
                             className="w-full py-2 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-xs font-bold text-emerald-400 rounded-lg transition cursor-pointer flex items-center justify-center gap-1"
                           >
-                            <span>{pingSweepStatus === "RUNNING" ? "جاري المسح الاتصالي بالملي ثانية..." : "📡 فحص اتصال أقسام بهية (LAN Ping Sweep)"}</span>
+                            <span>{pingSweepStatus === "RUNNING" ? "جاري المسح الاتصالي بالملي ثانية..." : "📡 فحص اتصال الأقسام (LAN Ping Sweep)"}</span>
                           </button>
 
                           {/* Latencies bars */}
@@ -8269,7 +8377,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                       )}
                     </div>
                     <div className="text-[10px] text-slate-500 text-left pt-1 select-none font-mono">
-                      SYSTEM INTEGRATION ENGINE ONLINE - INTEGRITY VALIDATED &bull; SECURE LOCAL & HOST SHA256 BLOCK: 0x9999-BAHEYA
+                      SYSTEM INTEGRATION ENGINE ONLINE - INTEGRITY VALIDATED &bull; SECURE LOCAL & HOST SHA256 BLOCK: 0x9999-HOSPITAL
                     </div>
                   </div>
                 </div>
@@ -8312,7 +8420,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                       <div className="flex items-center gap-1.5 justify-end">
                         <span className="bg-emerald-100 text-emerald-800 text-[9px] px-2 py-0.5 rounded font-black">STABLE SUITE</span>
                         <h3 className="font-extrabold text-slate-800 flex items-center gap-2">
-                          <span>مختبر ومحاكي قواعد حماية بيانات بهية (Developer Rules Auditor)</span>
+                          <span>مختبر ومحاكي قواعد حماية البيانات (Developer Rules Auditor)</span>
                           <span className="text-pink-600">🧪</span>
                         </h3>
                       </div>
@@ -8545,7 +8653,25 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
             </div>
           )}
 
-          {/* TAB 2.6: Approved Nursing Schedule Shift Roster (طبق الأصل من المطبوع والمعتمد لبهية) */}
+          {activeTab === "evaluations" && (
+            <EmployeeEvaluationSystem
+              currentUser={currentUser}
+              systemUsers={systemUsers}
+              language={language}
+              hospitalSettings={hospitalSettings}
+            />
+          )}
+
+          {activeTab === "infection_control" && (
+            <InfectionControlHub
+              currentUser={currentUser}
+              systemUsers={systemUsers}
+              language={language}
+              hospitalSettings={hospitalSettings}
+            />
+          )}
+
+          {/* TAB 2.6: Approved Nursing Schedule Shift Roster (طبق الأصل من المطبوع والمعتمد) */}
           {activeTab === "it_panel" && itSubTab === "rbac" && (
             <div className="p-6 bg-slate-50 min-h-screen space-y-6">
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
@@ -9261,7 +9387,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                                 <path id="cnoSealPath" d="M 12,50 A 38,38 0 1,1 88,50" fill="none" />
                                 <text className="text-[7.5px] font-extrabold fill-emerald-800" letterSpacing="0.8">
                                   <textPath href="#cnoSealPath" startOffset="50%" textAnchor="middle">
-                                    {(hospitalSettings.nameAr || "مؤسسة بهية").slice(0, 30)}
+                                    {(hospitalSettings.nameAr || "المستشفى").slice(0, 30)}
                                   </textPath>
                                 </text>
                                 <text x="50" y="47" className="text-[6.5px] font-black fill-emerald-950 text-center" textAnchor="middle">
@@ -9335,7 +9461,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                                 <path id="dirSealPath" d="M 12,50 A 38,38 0 1,1 88,50" fill="none" />
                                 <text className="text-[7.5px] font-extrabold fill-rose-800" letterSpacing="0.8">
                                   <textPath href="#dirSealPath" startOffset="50%" textAnchor="middle">
-                                    {(hospitalSettings.nameAr || "مؤسسة بهية").slice(0, 30)}
+                                    {(hospitalSettings.nameAr || "المستشفى").slice(0, 30)}
                                   </textPath>
                                 </text>
                                 <text x="50" y="47" className="text-[6.5px] font-black fill-rose-900 text-center" textAnchor="middle">
@@ -10178,6 +10304,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                                 { id: "A", labelAr: "A ظهر", color: "bg-amber-550 border-amber-450 hover:bg-amber-600 text-white" },
                                 { id: "D", labelAr: "D يوم كامل", color: "bg-teal-550 border-teal-450 hover:bg-teal-600 text-white" },
                                 { id: "N", labelAr: "N نايت", color: "bg-violet-650 border-violet-550 hover:bg-violet-750 text-white" },
+                                { id: "DN", labelAr: "DN 24 ساعة", color: "bg-fuchsia-600 border-fuchsia-500 hover:bg-fuchsia-700 text-white" },
                                 { id: "OFF", labelAr: "OFF أوف", color: "bg-gray-550 border-gray-450 hover:bg-gray-600 text-white" },
                                 { id: "AL", labelAr: "AL سنوية", color: "bg-emerald-650 border-emerald-550 hover:bg-emerald-700 text-white" },
                                 { id: "DELETE", labelAr: "❌ مسح الرغبة", color: "bg-rose-600 border-rose-500 hover:bg-rose-700 text-white" },
@@ -11162,7 +11289,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                     {language === "ar" ? "إعداد النظام المؤسسي" : "HOSPITAL CONFIG"}
                   </div>
                   <h3 className="font-extrabold text-base text-pink-100 flex items-center gap-1.5 font-sans">
-                    <span>{language === "ar" ? "النماذج وقائمة مؤسسة بهية" : "Clinical Templates Architecture"}</span>
+                    <span>{language === "ar" ? "النماذج وقائمة المستشفى" : "Clinical Templates Architecture"}</span>
                     <Settings className="h-4.5 w-4.5 text-pink-500 shrink-0" />
                   </h3>
                 </div>
@@ -12075,7 +12202,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                               <div className="flex justify-center py-2.5 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                                 <div className="text-center">
                                   <span className="text-[14px] inline-block mb-0.5">🎖️</span>
-                                  <span className="block text-[9px] text-slate-400 font-black tracking-widest">BAHEYA CLINICAL AUDIT DEPT</span>
+                                  <span className="block text-[9px] text-slate-400 font-black tracking-widest">CLINICAL AUDIT DEPT</span>
                                   <span className="inline-block mt-1 text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full">
                                     ✓ {language === "ar" ? "معتمد ومطابق لـ JCI" : "JCI ACCREDITED COMPLIANT"}
                                   </span>
@@ -12805,7 +12932,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                               value={newUserForm.email}
                               onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
                               className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-pink-500"
-                              placeholder="e.g. nurse.fatima@baheya.org"
+                              placeholder="e.g. nurse.fatima@hospital.org"
                             />
                           </div>
                         </div>
@@ -12927,7 +13054,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                                   value={editUserForm.email}
                                   onChange={(e) => setEditUserForm({ ...editUserForm, email: e.target.value })}
                                   className="w-full bg-slate-50 border border-slate-200 rounded py-1 px-2 font-mono focus:bg-white focus:outline-none focus:ring-1 focus:ring-pink-500"
-                                  placeholder="nurse.name@baheya.org"
+                                  placeholder="nurse.name@hospital.org"
                                 />
                               </div>
                             </div>
@@ -13176,7 +13303,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                             </h4>
                             <p className="text-[10px] text-slate-500 leading-tight mt-1.5">
                               {language === "ar" 
-                                ? "أدخل رمز المصادقة الإدارية لتعديل الأدوار والمهام التفصيلية وجدول مصفوفة العبور (Access Matrix) مباشرة بالوقت الفعلي في أول تفعيل هجين بمستشفيات بهية:" 
+                                ? "أدخل رمز المصادقة الإدارية لتعديل الأدوار والمهام التفصيلية وجدول مصفوفة العبور (Access Matrix) مباشرة بالوقت الفعلي في أول تفعيل هجين بالمستشفيات:" 
                                 : "Enter administrative passcode to configure roles, actions, and the access matrix connected to Firestore natively in real-time:"}
                             </p>
                           </div>
@@ -13443,7 +13570,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                           className="p-2.5 bg-pink-955/20 bg-pink-950/40 hover:bg-pink-900/40 text-pink-300 border border-pink-700/40 rounded-lg text-right font-bold transition flex items-center justify-between cursor-pointer"
                         >
                           <span className="h-2 w-2 rounded-full bg-pink-500"></span>
-                          <span>{language === "ar" ? `الوردي الكلاسيكي (${hospitalSettings.nameAr || "بهية"})` : `Classic ${hospitalSettings.nameEn || "Baheya"} Rose`}</span>
+                          <span>{language === "ar" ? `الوردي الكلاسيكي (${hospitalSettings.nameAr || "المستشفى"})` : `Classic ${hospitalSettings.nameEn || "Hospital"} Rose`}</span>
                         </button>
 
                         <button
@@ -13619,8 +13746,8 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
 
         {/* Persistent Status Footer - Hides on Print */}
         <footer className="no-print bg-slate-900 border-t border-slate-800 text-slate-300 py-4 text-center text-xs sticky bottom-0 w-full z-15">
-          <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
+          <div className="max-w-[95%] mx-auto px-4 flex flex-col xl:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3 shrink-0">
               <div className="w-8 h-8 rounded-lg bg-pink-600/20 border border-pink-500/50 flex items-center justify-center shrink-0">
                 <HeartPulse className="h-4 w-4 text-pink-500" />
               </div>
@@ -13632,6 +13759,40 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                   {language === "ar" ? hospitalSettings.accreditationBodyAr : hospitalSettings.accreditationBodyEn} | {language === "ar" ? "إصدار:" : "Version:"} {hospitalSettings.appVersion} | {hospitalSettings.revisionDate}
                 </span>
               </div>
+            </div>
+
+            {/* Smart Access Buttons Group - Integrated in Footer */}
+            <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 p-1.5 rounded-full shadow-inner shrink-0 scale-90 md:scale-100">
+              <button
+                onClick={() => {
+                  const mainContent = document.getElementById("main-content-dashboard");
+                  mainContent ? mainContent.scrollTo({ top: 0, behavior: 'smooth' }) : window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white p-2 rounded-full transition-all border border-slate-600 hover:border-slate-400 shadow-sm"
+                title={language === "ar" ? "صعود لأعلى (ذكي)" : "Smart Scroll Up"}
+              >
+                <svg className="w-4 h-4 hover:-translate-y-0.5 transition duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 15l7-7 7 7"></path></svg>
+              </button>
+
+              <button
+                onClick={() => window.dispatchEvent(new Event("open-ai-assistant"))}
+                className="bg-gradient-to-tr from-indigo-600 to-rose-600 hover:from-indigo-500 hover:to-rose-500 text-white p-2 px-5 rounded-full shadow-lg hover:shadow-indigo-500/50 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 border border-indigo-400/30"
+                title={language === "ar" ? "المساعد الأكاديمي والمدعمات الـ20" : "Smart AI Assistants (20 Tools)"}
+              >
+                <Brain className="w-4 h-4 animate-pulse" />
+                <span className="font-black text-xs tracking-wide">{language === "ar" ? "المساعد الأكاديمي (AI)" : "Smart Assistant"}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  const mainContent = document.getElementById("main-content-dashboard");
+                  mainContent ? mainContent.scrollTo({ top: mainContent.scrollHeight, behavior: 'smooth' }) : window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                }}
+                className="bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white p-2 rounded-full transition-all border border-slate-600 hover:border-slate-400 shadow-sm"
+                title={language === "ar" ? "نزول لأسفل (ذكي)" : "Smart Scroll Down"}
+              >
+                <svg className="w-4 h-4 hover:translate-y-0.5 transition duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path></svg>
+              </button>
             </div>
 
             <div className="flex flex-col items-end gap-1 font-mono text-right shrink-0">
@@ -14130,6 +14291,11 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
           </div>
         </div>
       )}
+
+
+
+      <SmartAIAssistant language={language} currentUser={currentUser} />
+
     </div>
   );
 }

@@ -256,13 +256,13 @@ export default function SupervisorDailySuite({ language }: Props) {
   };
 
   const handleResetToDefaults = () => {
-    if (window.confirm(isAr ? "هل أنت متأكد من استعادة بيانات بهية النموذجية الأصلية؟" : "Reset current worksheet to default template?")) {
+    if (window.confirm(isAr ? "هل أنت متأكد من استعادة بيانات المستشفى النموذجية الأصلية؟" : "Reset current worksheet to default template?")) {
       setAssignment(MOCK_ASSIGNMENT_INITIAL);
       setDailyReport(MOCK_DAILY_REPORT_INITIAL);
       setCensus(MOCK_NURSING_CENSUS_INITIAL);
       setChecklists(MOCK_CHECKLISTS_OBSERVATIONS_INITIAL);
       setClinicalIndicators(MOCK_CLINICAL_INDICATORS_INITIAL);
-      toast.info(isAr ? "تم استرداد قوالب النماذج الأصلية بنجاح!" : "Original Baheya templates loaded!");
+      toast.info(isAr ? "تم استرداد قوالب النماذج الأصلية بنجاح!" : "Original Hospital templates loaded!");
     }
   };
 
@@ -270,7 +270,7 @@ export default function SupervisorDailySuite({ language }: Props) {
   const printAreaRef = useRef<HTMLDivElement>(null);
   const handlePrintForm = useReactToPrint({
     contentRef: printAreaRef,
-    documentTitle: `Baheya_Supervisor_Suite_${activeFormTab}_${new Date().toISOString().split('T')[0]}`,
+    documentTitle: `Hospital_Supervisor_Suite_${activeFormTab}_${new Date().toISOString().split('T')[0]}`,
   });
 
   // Dynamic Add Event execution depending on active tab
@@ -402,8 +402,8 @@ export default function SupervisorDailySuite({ language }: Props) {
 
   // Structured sidebar item array 
   const formsNavigationMenu = [
-    { id: "assignment" as const, titleAr: "ورقة توزيع المهام والمشرف", titleEn: "Supervisor Assignment Sheet", badge: "01", descAr: "توزيع ممرضي الأجنحة والورديات الصباحية والمسائية لكافة مباني بهية", descEn: "Day/night nursing shift allocation and supervisors schedule across all blocks." },
-    { id: "dailyReport" as const, titleAr: "التقرير الإحصائي للاسرة والعيادات", titleEn: "Daily Hospital Bed Sensus", badge: "02", descAr: "عيادات اليوم الخارجية والخلايا الاحصائية ومجموع مراجعي بهية", descEn: "Executive outpatient census, medical clinics volumes, and total beds stats." },
+    { id: "assignment" as const, titleAr: "ورقة توزيع المهام والمشرف", titleEn: "Supervisor Assignment Sheet", badge: "01", descAr: "توزيع ممرضي الأجنحة والورديات الصباحية والمسائية لكافة مباني المستشفى", descEn: "Day/night nursing shift allocation and supervisors schedule across all blocks." },
+    { id: "dailyReport" as const, titleAr: "التقرير الإحصائي للاسرة والعيادات", titleEn: "Daily Hospital Bed Sensus", badge: "02", descAr: "عيادات اليوم الخارجية والخلايا الاحصائية ومجموع مراجعي المستشفى", descEn: "Executive outpatient census, medical clinics volumes, and total beds stats." },
     { id: "nursingCensus" as const, titleAr: "تعداد التمريض وأجهزة التنفس", titleEn: "Nursing Census Tracker", badge: "03", descAr: "مستويات التشكيل العملي للأجهزة والتمريض ومؤشرات عجز القوى", descEn: "Departmental nursing actual workforce status versus target ratios." },
     { id: "checklists" as const, titleAr: "ملاحظات جولة تدقيق الأقسام", titleEn: "Ward Audit Observations", badge: "04", descAr: "فحص حرارة الثلاجات وعربات الصدمات وتوافر مستلزمات مكافحة العدوى", descEn: "Compliance checks for medical refrigerators, code-blue crash carts, and IPC guidelines." },
     { id: "clinicalIndicators" as const, titleAr: "الحالات الحرجة والجودة السريرية", titleEn: "Clinical Quality Incidents", badge: "05", descAr: "تسجيل حالات كبار الشخصيات، قرح الفراش، حالات العزل، والرموز الأمنية", descEn: "Log of VIP clients, critical ventilators, hospital-acquired pressure ulcers, and isolation alerts." }
@@ -479,7 +479,7 @@ export default function SupervisorDailySuite({ language }: Props) {
             type="button"
             onClick={handleResetToDefaults}
             className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
-            title={isAr ? "استعادة استمارات بهية الأصلية النموذجية" : "Reset sheets with design template data"}
+            title={isAr ? "استعادة استمارات المستشفى الأصلية النموذجية" : "Reset sheets with design template data"}
           >
             <RefreshCw className="w-3.5 h-3.5" />
             {isAr ? "استعادة القوالب" : "Restore Templates"}
@@ -948,7 +948,7 @@ export default function SupervisorDailySuite({ language }: Props) {
               <div className="border-b-2 border-slate-800 pb-4 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
                   <h1 className="text-xl md:text-2xl font-black text-slate-900 leading-tight">
-                    {isAr ? (settings.institutionNameAr || "مؤسسة بهية للاكتشاف المبكر وعلاج سرطان الثدي") : (settings.institutionNameEn || "Baheya Foundation Breast Cancer Hospital")}
+                    {isAr ? (settings.institutionNameAr || "مؤسسة المستشفى للاكتشاف المبكر وعلاج الأورام") : (settings.institutionNameEn || "Hospital Foundation Cancer Institute")}
                   </h1>
                   <p className="text-xs text-pink-700 font-extrabold mt-1">
                     {isAr ? (settings.taglineAr || "في ضهر كل ست مصرية • نظام إدارة الجودة") : (settings.taglineEn || "Clinical Operations & Nursing Quality Command Suite")}
@@ -1381,7 +1381,7 @@ export default function SupervisorDailySuite({ language }: Props) {
                     {/* Radiotherapy, CT Simulator Scanner and Navigator Units */}
                     <tr className="align-top">
                       <td className="p-2.5 bg-slate-50 border-l border-slate-800 font-black">
-                        <span>Specialized Cancer Care (خدمات بهية الإشعاعية والخاصة)</span>
+                        <span>Specialized Cancer Care (خدمات المستشفى الإشعاعية والخاصة)</span>
                         <span className="text-[10px] text-slate-500 block font-normal">Patient Navigator, Radiotherapy & CT</span>
                       </td>
                       <td className="p-2 border-l border-slate-800 space-y-3">
@@ -1579,7 +1579,7 @@ export default function SupervisorDailySuite({ language }: Props) {
                 <div className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm space-y-4">
                   <h4 className="font-black text-xs text-slate-700 border-b pb-2 flex justify-between items-center bg-slate-50 p-2 rounded">
                     <span>{isAr ? "تفصيل عيادات اليوم (OPD Clinics Sensus)" : "OPD Clinics Patient Count"}</span>
-                    <span className="text-[10px] text-pink-700">Baheya Active Outpatients</span>
+                    <span className="text-[10px] text-pink-700">Active Outpatients</span>
                   </h4>
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     {Object.entries(dailyReport.clinics).map(([k, v]) => (
@@ -1635,7 +1635,7 @@ export default function SupervisorDailySuite({ language }: Props) {
                       {isAr ? "تحليل الكفاءة وإحصاء العمليات المنجزة:" : "System Operational Efficiency Summary:"}
                     </p>
                     <p className="text-[11px] text-slate-300 mt-1 max-w-sm">
-                      {isAr ? "يتم تصدير هذه البيانات بشكل مباشر لتسجيل مؤشرات الامتثال اليومية لدى نظام بهية لتدقيق وإشراف التمريض." : "These metrics sync automatically to clinical quality charts to evaluate daily nursing workflow efficiency."}
+                      {isAr ? "يتم تصدير هذه البيانات بشكل مباشر لتسجيل مؤشرات الامتثال اليومية لدى نظام المستشفى لتدقيق وإشراف التمريض." : "These metrics sync automatically to clinical quality charts to evaluate daily nursing workflow efficiency."}
                     </p>
                   </div>
                 </div>
@@ -2988,7 +2988,7 @@ export default function SupervisorDailySuite({ language }: Props) {
               <span className="inline-block w-40 border-b border-dashed border-slate-500 mx-2"></span>
             </div>
             <div className="text-left font-mono">
-              <span>{isAr ? "نظام معتمد جودة المستشفيات" : "Baheya Certified Clinical Quality system"}</span>
+              <span>{isAr ? "نظام معتمد جودة المستشفيات" : "Hospital Certified Clinical Quality system"}</span>
             </div>
           </div>
 

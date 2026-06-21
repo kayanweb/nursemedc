@@ -221,7 +221,7 @@ export default function SupervisorDashboard({
   // Generate WhatsApp text report for sharing
   const getTeamShareString = () => {
     let header = `*🏥 تقرير توزيع النوبتجية وفرق الطوارئ ليوم ${selectedDate}* \n`;
-    header += `*مركز بهية لعلاج أورام السيدات*\n`;
+    header += `*مركز المستشفى لعلاج أورام السيدات*\n`;
     header += `-------------------------------------------\n\n`;
 
     header += `*🚨 طاقم الكود بلو وجدول الطوارئ اليومي:*\n`;
@@ -257,7 +257,7 @@ export default function SupervisorDashboard({
     });
 
     header += `\n*تم الاعتماد والتحقق بواسطة مشرف التمريض:* ${currentUser.nameAr || currentUser.nameEn}\n`;
-    header += `*نظام بهية للرعاية والتفتيش الذكي 🩺*`;
+    header += `*نظام المستشفى للرعاية والتفتيش الذكي 🩺*`;
     return header;
   };
 
@@ -749,7 +749,7 @@ export default function SupervisorDashboard({
 
                   <div className="p-3 bg-fuchsia-50 border border-fuchsia-100 rounded-xl text-[10px] text-fuchsia-800 font-bold leading-normal">
                     {isAr 
-                      ? "⚠️ يلتزم طاقم الكود بلو بحمل أجهزة الهاتف اللاسلكية واستجابة نداء الطوارئ خلال 3 دقائق كحد أقصى للوصول لأي قسم ببهية." 
+                      ? "⚠️ يلتزم طاقم الكود بلو بحمل أجهزة الهاتف اللاسلكية واستجابة نداء الطوارئ خلال 3 دقائق كحد أقصى للوصول لأي قسم بالمستشفى." 
                       : "⚠️ Med runners and scribe nurses must secure immediate IV trolley preparation and respond within 3 minutes of clinical overhead pager activation."}
                   </div>
 
@@ -809,7 +809,7 @@ export default function SupervisorDashboard({
                   <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl text-[10px] text-amber-800 font-bold leading-normal">
                     {isAr 
                       ? "🔒 تسري هذه الأكواد والتعيينات بشكل حي على شاشة التنبيهات بقسم الطوارئ وفيصل الإدارة طوال الـ 24 ساعة المعتمدة." 
-                      : "🔒 Assignments automatically map into safety monitors across wings to guarantee swift incident command structures in Baheya."}
+                      : "🔒 Assignments automatically map into safety monitors across wings to guarantee swift incident command structures in the hospital."}
                   </div>
 
                 </div>

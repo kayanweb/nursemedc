@@ -5,7 +5,7 @@ import defaultFirebaseConfig from "../firebase-applet-config.json";
 
 let firebaseConfig = defaultFirebaseConfig;
 try {
-  const storedOverride = localStorage.getItem("baheya_firebase_config_override");
+  const storedOverride = localStorage.getItem("hospital_firebase_config_override");
   if (storedOverride) {
     const parsed = JSON.parse(storedOverride);
     if (parsed && parsed.projectId) {

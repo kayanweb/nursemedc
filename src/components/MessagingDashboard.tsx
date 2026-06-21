@@ -716,7 +716,7 @@ function SwapRequestView({
     // Approve wish in list
     const updatedWishes = rosterWishes.map(w => w.id === wish.id ? { ...w, status: "approved" } : w);
     setRosterWishes(updatedWishes);
-    localStorage.setItem("baheya_roster_wishes", JSON.stringify(updatedWishes));
+    localStorage.setItem("hospital_roster_wishes", JSON.stringify(updatedWishes));
 
     // Update roster row
     const nextRosterList = rosterList.map((rost) => {
@@ -750,7 +750,7 @@ function SwapRequestView({
     });
 
     setRosterList(nextRosterList);
-    localStorage.setItem("baheya_department_rosters", JSON.stringify(nextRosterList));
+    localStorage.setItem("hospital_department_rosters", JSON.stringify(nextRosterList));
 
     if (setNotifications) {
       const newNotification = {
@@ -778,7 +778,7 @@ function SwapRequestView({
 
     const updated = rosterWishes.map(w => w.id === wish.id ? { ...w, status: "rejected" } : w);
     setRosterWishes(updated);
-    localStorage.setItem("baheya_roster_wishes", JSON.stringify(updated));
+    localStorage.setItem("hospital_roster_wishes", JSON.stringify(updated));
 
     if (setNotifications) {
       const newNotification = {

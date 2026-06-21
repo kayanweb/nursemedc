@@ -43,7 +43,7 @@ export function generatePDF(
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
-  // Branding Colors matching Baheya theme (deep charcoal, pink accents, silver/slate borders)
+  // Branding Colors matching unified theme (deep charcoal, pink accents, silver/slate borders)
   const primaryColor = [190, 24, 74]; // Slate pink/emerald
   const secondaryColor = [71, 85, 105]; // Slate gray
   const darkSlateColor = [15, 23, 42]; // Slate-900
@@ -213,7 +213,7 @@ export function generatePDF(
       lineWidth: 0.2
     },
     headStyles: {
-      fillColor: [190, 24, 74], // Baheya crimson pink
+      fillColor: [190, 24, 74], // Crimson pink
       textColor: [255, 255, 255],
       fontStyle: "bold",
       align: "center",

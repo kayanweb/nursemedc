@@ -1,0 +1,740 @@
+71:  sendPasswordResetEmail,
+663:  setHospitalSettings: (settings: any) => void;
+696:  setHospitalSettings: () => {},
+699:  const [hospitalSettings, setHospitalSettings] = useState<any>({
+740:    <SystemSettingsContext.Provider value={{ hospitalSettings, setHospitalSettings }}>
+747:  const { hospitalSettings, setHospitalSettings } = React.useContext(SystemSettingsContext);
+751:        setHospitalSettings(settings);
+754:  }, [setHospitalSettings]);
+757:  const [records, setRecords] = useFirestoreSync<SavedRecord>(syncClinicalRecords, []);
+758:  const [customTemplates, setCustomTemplates] = useFirestoreSync<FormTemplate>(syncCustomTemplates, []);
+759:  const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate>(FORM_TEMPLATES[0]);
+760:  const [editingRecord, setEditingRecord] = useState<SavedRecord | null>(null);
+761:  const [rosterFromDay, setRosterFromDay] = useState<number>(1);
+762:  const [rosterToDay, setRosterToDay] = useState<number>(31);
+763:  const [activeCellEdit, setActiveCellEdit] = useState<{
+773:  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+777:    const timer = setInterval(() => {
+779:      setCurrentTime(now);
+786:      setSelectedShift(activeShiftIdNow);
+793:  const [searchQuery, setSearchQuery] = useState("");
+794:  const [selectedHistoryRecord, setSelectedHistoryRecord] = useState<SavedRecord | null>(null);
+795:  const [historyDeptFilter, setHistoryDeptFilter] = useState<string>("");
+796:  const [historyTemplateFilter, setHistoryTemplateFilter] = useState<string>("");
+797:  const [userRegistrySearch, setUserRegistrySearch] = useState("");
+798:  const [userRegistryPage, setUserRegistryPage] = useState(0);
+799:  const [dbStatus, setDbStatus] = useState<"connected" | "syncing" | "error">("connected");
+800:  const [activeTab, setActiveTab] = useState<"editor" | "history" | "settings" | "login_settings" | "about" | "analytics" | "duty" | "it_panel" | "distribution" | "roster" | "messaging" | "cloud_settings" | "roster_config" | "approval" | "profile" | "medical_tools" | "nursing_toolbox" | "supervisor" | "medication_ledger" | "meals" | "director_dashboard" | "supervisor_dashboard" | "headnurse_dashboard" | "transport" | "reception" | "emr" | "pharmacy" | "billing" | "ancillary" | "ward" | "ot" | "hospital_admin" | "manage_templates" | "document_center">("duty");
+801:  const [ledgerViewMode, setLedgerViewMode] = useState<"weekly" | "monthly">("weekly");
+802:  const [dayFocus, setDayFocus] = useState<"all" | number>("all"); // Show all 31 days or focus on a single day
+803:  const [language, setLanguage] = useState<"ar" | "en">("ar");
+804:  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+805:  const [breakGlassAlert, setBreakGlassAlert] = useState<{ show: boolean; msgAr: string; msgEn: string; dept: string } | null>(null);
+806:  const [isBellOpen, setIsBellOpen] = useState(false);
+809:  const [analyticsSubTab, setAnalyticsSubTab] = useState<"kpis" | "sentinel" | "compliance">("kpis");
+810:  const [showIncidentForm, setShowIncidentForm] = useState(false);
+811:  const [newIncidentForm, setNewIncidentForm] = useState({
+823:  const [jciCheckedArray, setJciCheckedArray] = useState<number[]>([1, 2, 4, 5]);
+844:  const [dutyTasks, setDutyTasks] = useFirestoreSync<DailyDutyTask>(syncDutyTasks, FORM_TEMPLATES.map((t) => ({
+854:  const [dailyChecklists, setDailyChecklists, dailyChecklistsLoaded] = useFirestoreSync<UnitDailyChecklist>(syncDailyAudits, []);
+855:  const [dailyDuties, setDailyDuties] = useFirestoreSync<any>(syncDailyDuties, []);
+856:  const [emergencyTeams, setEmergencyTeams] = useFirestoreSync<any>(syncEmergencyTeams, []);
+858:  const [rolePermissions, setRolePermissions] = useState(() => {
+883:  const [selectedDutyDept, setSelectedDutyDept] = useState<string>("EMERGENCY UNIT");
+884:  const [dutyChecklistAnswers, setDutyChecklistAnswers] = useState<Record<string, { done: boolean; note?: string }>>({});
+885:  const [supervisorAuditNoteText, setSupervisorAuditNoteText] = useState<string>("");
+887:  const [newTaskTextAr, setNewTaskTextAr] = useState<string>("");
+888:  const [newTaskTextEn, setNewTaskTextEn] = useState<string>("");
+889:  const [newTaskCategoryAr, setNewTaskCategoryAr] = useState<string>("عام");
+890:  const [newTaskCategoryEn, setNewTaskCategoryEn] = useState<string>("General");
+894:  const [editingGapKey, setEditingGapKey] = useState<string | null>(null);
+895:  const [gapResolutionNote, setGapResolutionNote] = useState<string>("");
+919:  const [selectedShift, setSelectedShift] = useState<string>(() => getActiveShiftId());
+939:  const [rosterAuditLogs, setRosterAuditLogs] = useState<RosterAuditLog[]>([]);
+951:    setRosterAuditLogs(next);
+955:  const [selectedRosterDept, setSelectedRosterDept] = useState<string>("EMERGENCY UNIT");
+956:  const [activeRosterCellEdit, setActiveRosterCellEdit] = useState<{
+964:  const [wishDayKey, setWishDayKey] = useState<string>("16");
+965:  const [wishShift, setWishShift] = useState<string>("M");
+966:  const [wishReasonAr, setWishReasonAr] = useState<string>("");
+967:  const [wishReasonEn, setWishReasonEn] = useState<string>("");
+968:  const [modificationRequestNote, setModificationRequestNote] = useState<string>("");
+969:  const [wishInputMode, setWishInputMode] = useState<"manual" | "stamp">("stamp");
+970:  const [stampActiveShift, setStampActiveShift] = useState<string>("M");
+973:  const [cnoApproved, setCnoApproved] = useState<boolean>(false);
+974:  const [directorApproved, setDirectorApproved] = useState<boolean>(false);
+975:  const [cnoApprovalDate, setCnoApprovalDate] = useState<string>("");
+976:  const [directorApprovalDate, setDirectorApprovalDate] = useState<string>("");
+979:  const [availablePeriods, setAvailablePeriods] = useState<any[]>([
+986:  const [selectedRosterPeriod, setSelectedRosterPeriod] = useState<string>("2026-06");
+1009:      setSelectedRosterPeriod(nextPeriodKey);
+1035:    setAvailablePeriods(nextPeriods);
+1037:    setSelectedRosterPeriod(nextPeriodKey);
+1048:  const [customCnoName, setCustomCnoName] = useState<string>("أ. فاطمة الزهراء");
+1049:  const [customDirectorName, setCustomDirectorName] = useState<string>("د. محمد السيد");
+1052:  const [rosterArchives, setRosterArchives] = useState<any[]>([]);
+1055:  const [communicationsInbox, setCommunicationsInbox] = useState<any[]>([]);
+1082:  const [backupRestoreInput, setBackupRestoreInput] = useState<string>("");
+1085:  const [editingRosterEmpId, setEditingRosterEmpId] = useState<string | null>(null);
+1086:  const [editRosterEmpNameAr, setEditRosterEmpNameAr] = useState<string>("");
+1087:  const [editRosterEmpNameEn, setEditRosterEmpNameEn] = useState<string>("");
+1088:  const [editRosterEmpCode, setEditRosterEmpCode] = useState<string>("");
+1091:  const [isAddingRosterRow, setIsAddingRosterRow] = useState<boolean>(false);
+1092:  const [newRosterEmpNameAr, setNewRosterEmpNameAr] = useState<string>("");
+1093:  const [newRosterEmpNameEn, setNewRosterEmpNameEn] = useState<string>("");
+1094:  const [newRosterEmpCode, setNewRosterEmpCode] = useState<string>("");
+1095:  const [newRosterEmpRole, setNewRosterEmpRole] = useState<string>("staff");
+1096:  const [newRosterEmpPin, setNewRosterEmpPin] = useState<string>("");
+1097:  const [newRosterAutoRegister, setNewRosterAutoRegister] = useState<boolean>(true);
+1099:  const [loginTab, setLoginTab] = useState<"login" | "signup">("login");
+1100:  const [signupForm, setSignupForm] = useState({
+1111:  const setRosterList = (updated: any[] | ((prev: any[]) => any[])) => {
+1129:  const setRosterWishes = (updated: any[] | ((prev: any[]) => any[])) => {
+1187:      setRosterWishes(updated);
+1223:    setRosterWishes(updatedWishes);
+1240:    setNotifications([newNotification, ...notifications]);
+1243:  const setResolvedGaps = (updated: Record<string, any>) => {
+1250:    setCnoApproved(val);
+1251:    setCnoApprovalDate(dateStr);
+1263:    setDirectorApproved(val);
+1264:    setDirectorApprovalDate(dateStr);
+1274:  const [itSelectedUserIdToOverride, setItSelectedUserIdToOverride] = useState<string>("");
+1275:  const [itOverwrittenPin, setItOverwrittenPin] = useState<string>("");
+1278:  const [itStrictComplianceMode, setItStrictComplianceMode] = useState<boolean>(true);
+1279:  const [itConflictResolutionWithNewest, setItConflictResolutionWithNewest] = useState<boolean>(true);
+1280:  const [systemLogs, setSystemLogs] = useState<SystemLog[]>([]);
+1283:  const [itSubTab, setItSubTab] = useState<"system_settings" | "auth_settings" | "rbac" | "cloud_settings" | "admin_ops" | "it_infra" | "dev_sandbox" | "dr_backup">("system_settings");
+1286:  const [devSandboxState, setDevSandboxState] = useState({
+1293:  const [serverNodes, setServerNodes] = useState<any[]>([
+1319:  const [newNodeName, setNewNodeName] = useState<string>("");
+1320:  const [newNodeIp, setNewNodeIp] = useState<string>("");
+1321:  const [newNodePort, setNewNodePort] = useState<string>("3000");
+1322:  const [newNodeRole, setNewNodeRole] = useState<string>("Active-Primary");
+1323:  const [newNodeDevices, setNewNodeDevices] = useState<string>("");
+1326:  const [devSelectedRulesCollection, setDevSelectedRulesCollection] = useState<string>("records");
+1327:  const [devMockRulesAuthVerified, setDevMockRulesAuthVerified] = useState<boolean>(true);
+1328:  const [devMockRulesAuthRole, setDevMockRulesAuthRole] = useState<string>("staff");
+1329:  const [dummyProcessLoader, setDummyProcessLoader] = useState<boolean>(false);
+1343:  const [isGlobalLockdownActive, setIsGlobalLockdownActive] = useState<boolean>(false);
+1344:  const [activeCodeBlueAlert, setActiveCodeBlueAlert] = useState<{ zone: string; workstationIp: string; timestamp: string } | null>(null);
+1345:  const [isCompactRosterView, setIsCompactRosterView] = useState<boolean>(false);
+1346:  const [isRbacAdminAuthenticated, setIsRbacAdminAuthenticated] = useState<boolean>(false);
+1347:  const [rbacAdminPasscode, setRbacAdminPasscode] = useState<string>("");
+1350:  const [alertWebhookUrl, setAlertWebhookUrl] = useState<string>("https://api.hospital.org/v1/alerts");
+1351:  const [liveServerPort, setLiveServerPort] = useState<string>("8080");
+1352:  const [webhookTestStatus, setWebhookTestStatus] = useState<string>("IDLE");
+1353:  const [pingSweepStatus, setPingSweepStatus] = useState<string>("IDLE");
+1354:  const [pingLatencies, setPingLatencies] = useState<Record<string, number>>({
+1361:  const [activeMockSessions, setActiveMockSessions] = useState<any[]>([
+1381:        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+1382:        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1); // A5
+1383:        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+1389:        osc.frequency.setValueAtTime(990, ctx.currentTime);
+1393:        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+1399:        osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+1400:        osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.08);
+1401:        osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.16);
+1402:        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+1408:        osc.frequency.setValueAtTime(1100, ctx.currentTime);
+1409:        gain.gain.setValueAtTime(0.05, ctx.currentTime);
+1428:    setCurrentUser(updatedUser);
+1434:    setBreakGlassAlert({
+1450:  const [settingsForm, setSettingsForm] = useState({
+1485:  const [templateForm, setTemplateForm] = useState({
+1497:  const [rowEditIndex, setRowEditIndex] = useState<number | null>(null);
+1498:  const [rowForm, setRowForm] = useState({
+1507:  const [templateOverrides, setTemplateOverrides] = useState<Record<string, FormTemplate>>({});
+1508:  const [deactivatedTemplateIds, setDeactivatedTemplateIds] = useState<string[]>([]);
+1511:  const [newTemplateItems, setNewTemplateItems] = useState<Omit<GridRow, "days">[]>([]);
+1512:  const [newTemplateItemForm, setNewTemplateItemForm] = useState({
+1521:  const [selectedTemplateToEdit, setSelectedTemplateToEdit] = useState<string>("");
+1522:  const [editTemplateForm, setEditTemplateForm] = useState({
+1531:  const [editTemplateItems, setEditTemplateItems] = useState<Omit<GridRow, "days">[]>([]);
+1532:  const [editTemplateSingleItemForm, setEditTemplateSingleItemForm] = useState({
+1539:  const [editTemplateItemIndex, setEditTemplateItemIndex] = useState<number | null>(null);
+1542:  const [systemUsers, setSystemUsers, systemUsersLoaded] = useFirestoreSync<AppUser>(syncSystemUsers, MOCK_USERS);
+1544:  const [rolesList, setRolesList] = useFirestoreSync<any>(syncRoles, [
+1560:  const [permissionsList, setPermissionsList] = useFirestoreSync<any>(syncPermissions, [
+1597:  const [accessMatrix, setAccessMatrix] = useFirestoreSync<any>(syncAccessMatrix, []);
+1768:  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+1770:  const [currentUser, setCurrentUser] = useState<AppUser>(MOCK_USERS[0]);
+1772:  const [viewingUserProfileUser, setViewingUserProfileUser] = useState<AppUser | null>(null);
+1775:  const [sentinelIncidents, setSentinelIncidents] = useFirestoreSync<any>(
+1798:  const [notifications, setNotifications] = useFirestoreSync<Notification>(
+1816:      setSelectedRosterDept(currentUser.department);
+1834:  const [loginSelectedUserId, setLoginSelectedUserId] = useState<string>(MOCK_USERS[0].id);
+1835:  const [loginStaffId, setLoginStaffId] = useState<string>("");
+1836:  const [loginPasscode, setLoginPasscode] = useState<string>("");
+1837:  const [loginError, setLoginError] = useState<string | null>(null);
+1840:  const [activeLoginFeature, setActiveLoginFeature] = useState<"sso" | "biometric" | "sms" | "corporate" | null>(null);
+1841:  const [loginFeatureInput, setLoginFeatureInput] = useState<string>("");
+1842:  const [loginFeatureMsg, setLoginFeatureMsg] = useState<string | null>(null);
+1843:  const [loginFeatureStep, setLoginFeatureStep] = useState<number>(1);
+1846:  const [recoveryMode, setRecoveryMode] = useState(false);
+1847:  const [recoveryEmailIn, setRecoveryEmailIn] = useState("");
+1848:  const [recoveryStep, setRecoveryStep] = useState<"enter_email" | "reset_pin">("enter_email");
+1849:  const [recoveryTargetUser, setRecoveryTargetUser] = useState<AppUser | null>(null);
+1850:  const [newRecoveryPin, setNewRecoveryPin] = useState("");
+1851:  const [recoveryMsg, setRecoveryMsg] = useState<string | null>(null);
+1852:  const [recoveryError, setRecoveryError] = useState<string | null>(null);
+1854:  const [passcodeModalOpen, setPasscodeModalOpen] = useState(false);
+1855:  const [pendingUser, setPendingUser] = useState<AppUser | null>(null);
+1856:  const [passcodeInput, setPasscodeInput] = useState("");
+1857:  const [passcodeError, setPasscodeError] = useState(false);
+1860:  const [departments, setDepartments] = useState<string[]>(() => {
+1897:  const [selectedYearFilter, setSelectedYearFilter] = useState<string>("ALL");
+1900:  const [newUserForm, setNewUserForm] = useState({
+1912:  const [selectedUserToEdit, setSelectedUserToEdit] = useState<string>("");
+1913:  const [editUserForm, setEditUserForm] = useState({
+1925:  const [templateSearchQuery, setTemplateSearchQuery] = useState("");
+1926:  const [selectedDepartmentFilter, setSelectedDepartmentFilter] = useState<string>("ALL");
+1968:      setSystemLogs(logsFromFirestore);
+1987:          setHospitalSettings(appliedSettings);
+1988:          setSettingsForm(appliedSettings);
+1996:            setTemplateOverrides(config.overrides);
+2000:            setDeactivatedTemplateIds(config.deactivated);
+2013:          setRolePermissions(perms);
+2033:          if (approvals.cnoApproved !== undefined) setCnoApproved(approvals.cnoApproved);
+2034:          if (approvals.cnoApprovalDate !== undefined) setCnoApprovalDate(approvals.cnoApprovalDate);
+2035:          if (approvals.directorApproved !== undefined) setDirectorApproved(approvals.directorApproved);
+2036:          if (approvals.directorApprovalDate !== undefined) setDirectorApprovalDate(approvals.directorApprovalDate);
+2045:      setTemplateForm(prev => ({ ...prev, issueDate: `06.${currentYear}` }));
+2048:      setDbStatus("error");
+2064:          setCurrentUser(found);
+2201:        setActiveTab("duty");
+2206:        setActiveTab("duty");
+2215:      setDbStatus("syncing");
+2216:      setRecords(updatedRecords);
+2224:      setTimeout(() => setDbStatus("connected"), 350);
+2227:      setDbStatus("error");
+2232:    setDutyTasks(updated);
+2239:    setDailyChecklists(updated);
+2251:    setRolePermissions(updated);
+2282:      setEditingRecord(recordWithId);
+2283:      setSelectedTemplate(temp);
+2284:      setActiveTab("editor");
+2344:      setNotifications(updatedNotifs);
+2361:    setNotifications(updated);
+2363:    setIsBellOpen(false);
+2367:      setActiveTab(notif.targetTab as any);
+2369:        setAnalyticsSubTab(notif.targetSubTab as any);
+2373:         if (userToView) setViewingUserProfileUser(userToView);
+2387:      setActiveTab("duty");
+2399:      setActiveTab("editor");
+2405:      setActiveTab("distribution");
+2416:      setActiveTab("analytics");
+2423:      setActiveTab("history");
+2429:      setActiveTab("it_panel");
+2435:      setActiveTab("settings");
+2445:      setActiveTab("roster");
+2454:      setActiveTab("messaging");
+2457:      setActiveTab("editor");
+2461:    setIsBellOpen(false);
+2485:      setEditingRecord(null);
+2499:      downloadAnchor.setAttribute("href", dataStr);
+2500:      downloadAnchor.setAttribute("download", `baheya_db_backup_${new Date().toISOString().slice(0,10)}.json`);
+2545:    setRowEditIndex(index);
+2546:    setRowForm({
+2571:    setEditingRecord({
+2579:      setRowEditIndex(rowEditIndex - 1);
+2585:    setRowEditIndex(null);
+2586:    setRowForm({
+2630:    setEditingRecord({
+2656:    setSettingsForm({ ...settingsForm, jobTitles: [...settingsForm.jobTitles, val] });
+2670:    setHospitalSettings(settingsForm);
+2739:    setCustomTemplates(updatedTemplates);
+2745:    setEditingRecord({ ...newRecord, id: `record-${Date.now()}` });
+2748:    setSelectedTemplate(newTemplate);
+2749:    setActiveTab("editor");
+2752:    setTemplateForm({
+2762:    setNewTemplateItems([]);
+2782:    setCustomTemplates(filtered);
+2802:    setNewTemplateItems([...newTemplateItems, item]);
+2803:    setNewTemplateItemForm({
+2815:    setNewTemplateItems(updated.map((item, i) => ({ ...item, sn: (i + 1).toString() })));
+2834:    setDeactivatedTemplateIds(updatedDeactivated);
+2846:    setSelectedTemplateToEdit(templateId);
+2848:      setEditTemplateForm({
+2857:      setEditTemplateItems([]);
+2870:      setEditTemplateForm({
+2881:      setEditTemplateItems(items);
+2913:      setCustomTemplates(updated);
+2934:      setTemplateOverrides(updatedOverrides);
+2941:      setSelectedTemplate({
+2974:      setEditTemplateItemIndex(null);
+2986:    setEditTemplateItems(updated);
+2987:    setEditTemplateSingleItemForm({
+2999:    setEditTemplateItems(updated.map((item, i) => ({ ...item, sn: (i + 1).toString() })));
+3001:      setEditTemplateItemIndex(null);
+3002:      setEditTemplateSingleItemForm({
+3010:      setEditTemplateItemIndex(editTemplateItemIndex - 1);
+3018:      setEditTemplateItemIndex(index);
+3019:      setEditTemplateSingleItemForm({
+3044:    setRosterList((prevList) => {
+3080:      setSystemUsers(updatedUsers);
+3088:    setEditingRosterEmpId(null);
+3109:    setRosterList((prevList) => {
+3131:      setSystemUsers(updatedUsers);
+3180:      setSystemUsers(updatedUsers);
+3186:    setRosterList((prevList) => {
+3212:    setNewRosterEmpNameAr("");
+3213:    setNewRosterEmpNameEn("");
+3214:    setNewRosterEmpCode("");
+3215:    setNewRosterEmpPin("");
+3216:    setIsAddingRosterRow(false);
+3219:  const handleResetRosterToDefaultsObj = () => {
+3228:    setRosterList((prevList) => {
+3341:    setSystemUsers(updated);
+3346:      setRosterList((prevList) => {
+3380:    setNewUserForm({
+3395:    setSelectedUserToEdit(userId);
+3397:      setEditUserForm({
+3412:      setEditUserForm({
+3462:    setSystemUsers(updated);
+3468:      setCurrentUser(currentUpdated);
+3473:    setSelectedUserToEdit("");
+3474:    setEditUserForm({
+3506:    setSystemUsers(updated);
+3522:      setResolvedGaps(updated);
+3527:      setEditingGapKey(gapKey);
+3528:      setGapResolutionNote(existingGap?.notes || "");
+3547:    setResolvedGaps(updated);
+3549:    setEditingGapKey(null);
+3550:    setGapResolutionNote("");
+3609:    setActiveCellEdit({
+3638:    setEditingRecord({
+3643:    setActiveCellEdit(null);
+3693:    setEditingRecord({
+3704:        setCurrentUser(pendingUser);
+3708:          setEditingRecord({
+3716:      setPasscodeModalOpen(false);
+3717:      setPendingUser(null);
+3718:      setPasscodeInput("");
+3719:      setPasscodeError(false);
+3721:      setPasscodeError(true);
+3727:      setLoginError(null);
+3737:        setLoginError(
+3743:        setLoginError(
+3755:    setCurrentUser(adminUser);
+3756:    setIsLoggedIn(true);
+3757:    setActiveLoginFeature(null);
+3775:      setLoginError(
+3785:      setLoginError(
+3799:      setCurrentUser(targetUser);
+3800:      setIsLoggedIn(true);
+3801:      setLoginPasscode("");
+3802:      setLoginStaffId("");
+3803:      setLoginError(null);
+3806:      setLoginError(
+3816:    setLoginError(null);
+3821:      setLoginError(
+3831:      setLoginError(
+3843:      setLoginError(
+3877:    setSystemUsers(updated);
+3884:      setRosterList((prevList) => {
+3917:    setLoginError(
+3923:    setSignupForm({
+3932:    setLoginTab("login");
+3937:    setIsLoggedIn(false);
+3938:    setLoginPasscode("");
+3944:    setRecoveryError(null);
+3945:    setRecoveryMsg(null);
+3949:      setRecoveryError(
+3962:      setRecoveryError(
+3999:    setCommunicationsInbox(nextMails);
+4003:      await sendPasswordResetEmail(auth, emailToSearch);
+4004:      setRecoveryMsg(
+4011:      setRecoveryMsg(
+4021:    setRecoveryError(null);
+4022:    setRecoveryMsg(null);
+4028:      setRecoveryError(
+4047:    setSystemUsers(updatedUsers);
+4051:    setRecoveryMode(false);
+4052:    setRecoveryStep("enter_email");
+4053:    setRecoveryTargetUser(null);
+4054:    setNewRecoveryPin("");
+4055:    setRecoveryEmailIn("");
+4058:    setLoginStaffId(recoveryTargetUser.staffId);
+4059:    setLoginPasscode("");
+4218:    setRecords(seeded);
+4232:            <button onClick={() => setLanguage("en")} className={`hover:underline cursor-pointer ${language === "en" ? "font-bold underline" : ""}`}>English</button>
+4233:            <button onClick={() => setLanguage("ar")} className={`hover:underline cursor-pointer ${language === "ar" ? "font-bold underline" : ""}`}>Arabic</button>
+4277:                    setLoginTab("login");
+4278:                    setLoginError(null);
+4291:                    setLoginTab("signup");
+4292:                    setLoginError(null);
+4330:                        setRecoveryEmailIn(e.target.value);
+4331:                        setRecoveryError(null);
+4354:                          setNewRecoveryPin(e.target.value.replace(/\D/g, ""));
+4355:                          setRecoveryError(null);
+4386:                      setRecoveryMode(false);
+4387:                      setRecoveryStep("enter_email");
+4388:                      setRecoveryError(null);
+4389:                      setRecoveryMsg(null);
+4409:                      onChange={(e) => setSignupForm({ ...signupForm, nameAr: e.target.value })}
+4422:                      onChange={(e) => setSignupForm({ ...signupForm, nameEn: e.target.value })}
+4438:                      onChange={(e) => setSignupForm({ ...signupForm, email: e.target.value })}
+4452:                        onChange={(e) => setSignupForm({ ...signupForm, signupFormId: e.target.value, staffId: e.target.value.replace(/\D/g, '') })}
+4467:                      onChange={(e) => setSignupForm({ ...signupForm, role: e.target.value })}
+4487:                      onChange={(e) => setSignupForm({ ...signupForm, department: e.target.value })}
+4506:                    onChange={(e) => setSignupForm({ ...signupForm, pin: e.target.value.replace(/\D/g, "") })}
+4550:                        setLoginStaffId(e.target.value.replace(/\D/g, ''));
+4551:                        setLoginError(null);
+4573:                        setLoginPasscode(e.target.value.replace(/\D/g, ""));
+4574:                        setLoginError(null);
+4587:                      setRecoveryMode(true);
+4588:                      setRecoveryStep("enter_email");
+4589:                      setRecoveryError(null);
+4590:                      setRecoveryMsg(null);
+4640:                  <button type="button" onClick={() => { setActiveLoginFeature("sso"); setLoginFeatureStep(1); setLoginFeatureMsg(null); setLoginFeatureInput(""); }} className="text-[11px] border border-slate-300 py-2 rounded-lg hover:bg-blue-50 transition font-semibold text-center leading-tight cursor-pointer">
+4645:                  <button type="button" onClick={() => { setActiveLoginFeature("biometric"); setLoginFeatureStep(1); setLoginFeatureMsg(language === "ar" ? "قيد الاتصال بالماسح الحيوي..." : "Connecting to biometric scanner..."); }} className="text-[11px] border border-slate-300 py-2 rounded-lg hover:bg-blue-50 transition font-semibold text-center leading-tight cursor-pointer">
+4650:                  <button type="button" onClick={() => { setActiveLoginFeature("sms"); setLoginFeatureStep(1); setLoginFeatureMsg(null); setLoginFeatureInput(""); }} className="text-[11px] border border-slate-300 py-2 rounded-lg hover:bg-blue-50 transition font-semibold text-center leading-tight cursor-pointer">
+4655:                  <button type="button" onClick={() => { setActiveLoginFeature("corporate"); setLoginFeatureStep(1); setLoginFeatureMsg(null); setLoginFeatureInput(""); }} className="text-[11px] border border-slate-300 py-2 rounded-lg hover:bg-blue-50 transition font-semibold text-center leading-tight cursor-pointer">
+4666:                  <button onClick={() => setActiveLoginFeature(null)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600">×</button>
+4679:                         {loginFeatureStep === 1 && setTimeout(() => {setLoginFeatureStep(2); setLoginFeatureMsg(language === "ar" ? "خطأ: لم يتم التعرف على جهاز الماسح المتصل." : "Error: No external scanner detected.");}, 2500) && null}
+4688:                            <input type="text" value={loginFeatureInput} onChange={(e) => setLoginFeatureInput(e.target.value)} className="w-full border border-slate-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="+20 10X XXX XXXX" dir="ltr" />
+4689:                            <button onClick={() => { if(loginFeatureInput.length > 5) {setLoginFeatureStep(2); setLoginFeatureInput("");} else setLoginFeatureMsg(language === "ar" ? "رقم غير صالح" : "Invalid number"); }} className="w-full bg-blue-600 text-white py-2 rounded-lg font-bold mt-2 hover:bg-blue-700">
+4697:                            <input type="text" value={loginFeatureInput} onChange={(e) => setLoginFeatureInput(e.target.value)} className="w-full border border-slate-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 outline-none text-center font-bold tracking-widest text-lg" placeholder="----" maxLength={4} dir="ltr" />
+4702:    confRes.confirm(loginFeatureInput).then((r: any) => handleFirebaseAuthSuccess(r.user)).catch((e: any) => setLoginFeatureMsg(e.message));
+4704:    setLoginFeatureMsg("Session expired");
+4719:                        <input type="email" value={loginFeatureInput} onChange={(e) => setLoginFeatureInput(e.target.value)} className="w-full border border-slate-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="name@medicarepro.com" dir="ltr" />
+4723:    signInWithPopup(auth, new GoogleAuthProvider()).then(r => handleFirebaseAuthSuccess(r.user)).catch(e => setLoginFeatureMsg(e.message));
+4727:      signInWithEmailAndPassword(auth, loginFeatureInput, pass).then(r => handleFirebaseAuthSuccess(r.user)).catch(e => setLoginFeatureMsg(e.message));
+4781:                    setIsGlobalLockdownActive(false);
+4809:          <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-slate-400 hover:text-white">
+4860:              onClick={() => setActiveTab("nursing_toolbox")}
+4875:              onClick={() => setActiveTab("supervisor")}
+4891:              onClick={() => setActiveTab("medication_ledger")}
+4907:                setActiveTab("editor");
+4925:              onClick={() => setActiveTab("distribution")}
+4941:              onClick={() => setActiveTab("roster")}
+4956:              onClick={() => setActiveTab("roster_config")}
+4971:              onClick={() => setActiveTab("meals")}
+4987:              onClick={() => setActiveTab("transport")}
+5003:            onClick={() => setActiveTab("analytics")}
+5019:            onClick={() => setActiveTab("history")}
+5039:            onClick={() => setActiveTab("it_panel")}
+5055:            onClick={() => setActiveTab("profile")}
+5070:            onClick={() => setActiveTab("medical_tools")}
+5087:            onClick={() => setActiveTab("manage_templates")}
+5102:            onClick={() => setActiveTab("messaging")}
+5116:            onClick={() => setActiveTab("document_center")}
+5177:                onClick={() => setIsSidebarOpen(true)}
+5185:              onClick={() => setActiveTab("duty")}
+5281:              onClick={() => setLanguage(language === "ar" ? "en" : "ar")}
+5291:                onClick={() => setIsBellOpen(!isBellOpen)}
+5315:                          setNotifications(marked);
+5386:              onClick={() => setActiveCodeBlueAlert(null)}
+5499:              setDutyChecklistAnswers({});
+5529:              setSupervisorAuditNoteText("");
+5559:              setNewTaskTextAr("");
+5560:              setNewTaskTextEn("");
+5626:                    <button onClick={() => setActiveTab("ward")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-emerald-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+5630:                    <button onClick={() => setActiveTab("medication_ledger")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-pink-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+5634:                    <button onClick={() => setActiveTab("roster")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-blue-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+5638:                    <button onClick={() => setActiveTab("messaging")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+5642:                    <button onClick={() => setActiveTab("medical_tools")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-rose-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+5646:                    <button onClick={() => setActiveTab("document_center")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-indigo-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+5651:                    <button onClick={() => setActiveTab("pharmacy")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-teal-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+5655:                    <button onClick={() => setActiveTab("billing")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-yellow-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+5659:                    <button onClick={() => setActiveTab("ot")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-purple-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+5663:                    <button onClick={() => setActiveTab("transport")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-lime-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+5667:                    <button onClick={() => setActiveTab("meals")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-orange-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+5671:                    <button onClick={() => setActiveTab("analytics")} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-500/30 rounded-xl p-3 flex flex-col items-center justify-center gap-2.5 group transition-all">
+5768:                              setSelectedDutyDept(dept);
+5838:                                setSelectedDutyDept(unit);
+5839:                                setDutyChecklistAnswers({});
+6101:                                        setDutyChecklistAnswers(prev => ({
+6116:                                        setDutyChecklistAnswers(prev => ({
+6203:                                  onChange={(e) => setSupervisorAuditNoteText(e.target.value)}
+6254:                              onChange={(e) => setNewTaskTextAr(e.target.value)}
+6266:                              onChange={(e) => setNewTaskTextEn(e.target.value)}
+6278:                              onChange={(e) => setNewTaskCategoryAr(e.target.value)}
+6290:                              onChange={(e) => setNewTaskCategoryEn(e.target.value)}
+6347:                            setSettingsForm({
+6394:                      setHospitalSettings(settingsForm);
+6419:              setRecords={setRecords}
+6420:              setCustomTemplates={setCustomTemplates}
+6421:              setSystemUsers={setSystemUsers}
+6422:              setDailyChecklists={setDailyChecklists}
+6423:              setSystemLogs={setSystemLogs}
+6424:              setDutyTasks={setDutyTasks}
+6475:                          setNotifications(updated);
+6508:                      onChange={(e) => setTemplateSearchQuery(e.target.value)}
+6513:                        onClick={() => setTemplateSearchQuery("")}
+6543:                            onClick={() => setSelectedDepartmentFilter(item.key)}
+6573:                            onClick={() => setSelectedYearFilter(yr.key)}
+6604:                          setSelectedTemplate(tpl);
+6656:                        onClick={() => setEditingRecord(null)}
+6673:                          setDayFocus(val as any);
+6787:                          onChange={(e) => setRowForm({ ...rowForm, itemAr: e.target.value })}
+6800:                          onChange={(e) => setRowForm({ ...rowForm, itemEn: e.target.value })}
+6814:                            onChange={(e) => setRowForm({ ...rowForm, code: e.target.value })}
+6827:                            onChange={(e) => setRowForm({ ...rowForm, unit: e.target.value })}
+6839:                            onChange={(e) => setRowForm({ ...rowForm, qty: e.target.value })}
+6929:                            onChange={(e) => setEditingRecord({ ...editingRecord, department: e.target.value })}
+6943:                              onChange={(e) => setEditingRecord({ ...editingRecord, date: e.target.value })}
+6976:                              onChange={(e) => setEditingRecord({ ...editingRecord, staffName: e.target.value })}
+6990:                            onChange={(e) => setEditingRecord({ ...editingRecord, staffId: e.target.value })}
+7007:                              onChange={(e) => setEditingRecord({ ...editingRecord, patientName: e.target.value })}
+7018:                              onChange={(e) => setEditingRecord({ ...editingRecord, patientMRN: e.target.value })}
+7029:                              onChange={(e) => setEditingRecord({ ...editingRecord, diagnosis: e.target.value })}
+7053:                                  onChange={(e) => setEditingRecord({
+7065:                                  onChange={(e) => setEditingRecord({
+7086:                                  onChange={(e) => setEditingRecord({
+7099:                                  onChange={(e) => setEditingRecord({
+7125:                                  onChange={(e) => setEditingRecord({
+7138:                                  onChange={(e) => setEditingRecord({
+7151:                                  onChange={(e) => setEditingRecord({
+7433:              setEditingGapKey={setEditingGapKey}
+7435:              setGapResolutionNote={setGapResolutionNote}
+7438:              setRecords={setRecords}
+7440:              setSentinelIncidents={setSentinelIncidents}
+7442:              setJciCheckedArray={setJciCheckedArray}
+7444:              setAnalyticsSubTab={setAnalyticsSubTab}
+7446:              setShowIncidentForm={setShowIncidentForm}
+7448:              setNewIncidentForm={setNewIncidentForm}
+7451:              setNotifications={setNotifications}
+7534:                            setRecords([]);
+7553:                        setNotifications(marked);
+7861:                            onChange={(e) => setGapResolutionNote(e.target.value)}
+7868:                              onClick={() => setEditingGapKey(null)}
+8011:                        onClick={() => setItSubTab(tab)}
+8044:                          onChange={(e) => setItStrictComplianceMode(e.target.checked)}
+8059:                          onChange={(e) => setItConflictResolutionWithNewest(e.target.checked)}
+8128:                            setIsGlobalLockdownActive(!before);
+8150:                              onChange={(e) => setLiveServerPort(e.target.value.replace(/\D/g, ""))}
+8159:                              onChange={(e) => setAlertWebhookUrl(e.target.value)}
+8167:                                setWebhookTestStatus("SENDING");
+8169:                                setTimeout(() => {
+8170:                                  setWebhookTestStatus("SUCCESS_200_OK");
+8195:                              setWebhookTestStatus("SENDING");
+8196:                              setTimeout(() => {
+8208:                                  setActiveMockSessions(remaining);
+8215:                                setWebhookTestStatus("IDLE");
+8250:                              setPingSweepStatus("RUNNING");
+8252:                              setTimeout(() => {
+8257:                                setPingLatencies(newPings);
+8258:                                setPingSweepStatus("SUCCESS");
+8295:                                setActiveCodeBlueAlert(alertData);
+8346:                const setRuleAction = (action: "read" | "write" | "delete") => setDevSandboxState(prev => ({...prev, ruleAction: action}));
+8347:                const setTestRole = (role: string) => setDevSandboxState(prev => ({...prev, testRole: role}));
+8348:                const setRuleOutput = (output: string) => setDevSandboxState(prev => ({...prev, ruleOutput: output}));
+8349:                const setEvaluating = (val: boolean) => setDevSandboxState(prev => ({...prev, evaluating: val}));
+8352:                  setEvaluating(true);
+8353:                  setTimeout(() => {
+8370:                    setRuleOutput(result);
+8371:                    setEvaluating(false);
+8401:                                  onClick={() => setRuleAction(act)}
+8418:                                  onClick={() => setTestRole(role)}
+8508:                              setItSelectedUserIdToOverride(e.target.value);
+8510:                              if (userObj) setItOverwrittenPin(userObj.pin || "1234");
+8525:                            onChange={(e) => setItOverwrittenPin(e.target.value.replace(/\D/g, ""))}
+8540:                              setSystemUsers(updatedUsers);
+8603:                setRosterWishes={rawSetRosterWishes}
+8605:                setRosterList={rawSetRosterList}
+8608:                setNotifications={setNotifications}
+8659:                setRosterList={rawSetRosterList}
+8663:                onViewUserProfile={setViewingUserProfileUser}
+8664:                onAppTabChange={setActiveTab}
+8665:                setSelectedRosterDept={setSelectedRosterDept}
+8679:            <NursingDirectorDashboard language={language} onNavigate={setActiveTab} />
+8683:            <NursingSupervisorDashboard language={language} onNavigate={setActiveTab} />
+8687:            <HeadNurseDashboard language={language} onNavigate={setActiveTab} />
+8897:                      setRosterList(prev => [...prev, newRoster]);
+8930:                          setSelectedRosterPeriod(val);
+8959:                                setRosterFromDay(val);
+8979:                                setRosterToDay(val);
+9048:                            setRosterArchives(updatedArchives);
+9134:                          setAvailablePeriods(nextPeriods);
+9136:                          setSelectedRosterPeriod(keyVal);
+9199:                                          setRosterList(prevList => {
+9215:                                          if (archive.cnoName) setCustomCnoName(archive.cnoName);
+9216:                                          if (archive.directorName) setCustomDirectorName(archive.directorName);
+9229:                                          setRosterArchives(next);
+9480:                                setCustomCnoName(actName);
+9493:                                setCustomCnoName(e.target.value);
+9508:                                setCustomDirectorName(actName);
+9521:                                setCustomDirectorName(e.target.value);
+9550:                      onChange={(e) => setSelectedRosterDept(e.target.value)}
+9599:                            setIsAddingRosterRow(!isAddingRosterRow);
+9601:                            setNewRosterEmpNameAr("");
+9602:                            setNewRosterEmpNameEn("");
+9603:                            setNewRosterEmpCode("");
+9604:                            setNewRosterEmpPin("");
+9614:                          onClick={handleResetRosterToDefaultsObj}
+9636:                              onChange={(e) => setNewRosterEmpNameAr(e.target.value)}
+9647:                              onChange={(e) => setNewRosterEmpNameEn(e.target.value)}
+9658:                              onChange={(e) => setNewRosterEmpCode(e.target.value)}
+9671:                              onChange={(e) => setNewRosterEmpRole(e.target.value)}
+9694:                              onChange={(e) => setNewRosterEmpPin(e.target.value)}
+9706:                              onChange={(e) => setNewRosterAutoRegister(e.target.checked)}
+9718:                            onClick={() => setIsAddingRosterRow(false)}
+9873:                                          onChange={(e) => setEditRosterEmpNameAr(e.target.value)}
+9883:                                          onChange={(e) => setEditRosterEmpNameEn(e.target.value)}
+9893:                                          onChange={(e) => setEditRosterEmpCode(e.target.value)}
+9901:                                          onClick={() => setEditingRosterEmpId(null)}
+9926:                                              setViewingUserProfileUser(matchedUser);
+9928:                                              setViewingUserProfileUser({
+9965:                                              setEditingRosterEmpId(row.employeeId || row.employeeCode);
+9966:                                              setEditRosterEmpNameAr(row.employeeNameAr || "");
+9967:                                              setEditRosterEmpNameEn(row.employeeNameEn || "");
+9968:                                              setEditRosterEmpCode(row.employeeCode || "");
+10034:                                          setWishDayKey(day);
+10035:                                          setActiveRosterCellEdit({
+10050:                                          setActiveRosterCellEdit({
+10073:                                          setRosterList(prevList => prevList.map(rost => {
+10155:                          onClick={() => setWishInputMode("stamp")}
+10167:                          onClick={() => setWishInputMode("manual")}
+10235:                                            setWishDayKey(dayKey);
+10275:                                    onClick={() => setStampActiveShift(sh.id)}
+10328:                                onChange={(e) => setWishShift(e.target.value)}
+10350:                              onChange={(e) => setWishReasonAr(e.target.value)}
+10361:                              onChange={(e) => setWishReasonEn(e.target.value)}
+10395:                                setRosterWishes(updatedWishes);
+10411:                                setNotifications([newNotification, ...notifications]);
+10413:                                setWishReasonAr("");
+10414:                                setWishReasonEn("");
+10431:                              onChange={(e) => setWishShift(e.target.value)}
+10446:                              onChange={(e) => setWishReasonAr(e.target.value)}
+10458:                              onChange={(e) => setWishReasonEn(e.target.value)}
+10497:                              setRosterWishes(updatedWishes);
+10513:                              setNotifications([newNotification, ...notifications]);
+10515:                              setWishReasonAr("");
+10516:                              setWishReasonEn("");
+10742:                                      setRosterWishes(updated);
+10756:                                      setNotifications(updatedNotifs);
+10773:                                      setRosterWishes(updatedWishes);
+10807:                                      setRosterList(prevList => {
+10849:                                        setNotifications(prev => [newApproveNotif, ...prev]);
+11018:                            setTemplateOverrides(updatedOverrides);
+11102:                          setNotifications(updated);
+11215:                                    setSelectedTemplate(matchingTpl);
+11216:                                    setActiveTab("editor");
+11343:                              onChange={(e) => setEditTemplateForm({ ...editTemplateForm, titleAr: e.target.value })}
+11353:                              onChange={(e) => setEditTemplateForm({ ...editTemplateForm, titleEn: e.target.value })}
+11363:                              onChange={(e) => setEditTemplateForm({ ...editTemplateForm, code: e.target.value })}
+11372:                              onChange={(e) => setEditTemplateForm({ ...editTemplateForm, departmentDefault: e.target.value })}
+11386:                              onChange={(e) => setEditTemplateForm({ ...editTemplateForm, version: e.target.value })}
+11396:                              onChange={(e) => setEditTemplateForm({ ...editTemplateForm, issueDate: e.target.value })}
+11406:                              onChange={(e) => setEditTemplateForm({ ...editTemplateForm, hasPatientDetails: e.target.checked })}
+11428:                                onChange={(e) => setEditTemplateSingleItemForm({ ...editTemplateSingleItemForm, itemAr: e.target.value })}
+11439:                                onChange={(e) => setEditTemplateSingleItemForm({ ...editTemplateSingleItemForm, itemEn: e.target.value })}
+11450:                                onChange={(e) => setEditTemplateSingleItemForm({ ...editTemplateSingleItemForm, code: e.target.value })}
+11461:                                onChange={(e) => setEditTemplateSingleItemForm({ ...editTemplateSingleItemForm, unit: e.target.value })}
+11472:                                onChange={(e) => setEditTemplateSingleItemForm({ ...editTemplateSingleItemForm, qty: e.target.value })}
+11567:                          onChange={(e) => setTemplateForm({ ...templateForm, titleAr: e.target.value })}
+11578:                          onChange={(e) => setTemplateForm({ ...templateForm, titleEn: e.target.value })}
+11589:                          onChange={(e) => setTemplateForm({ ...templateForm, code: e.target.value })}
+11599:                          onChange={(e) => setTemplateForm({ ...templateForm, departmentDefault: e.target.value })}
+11613:                          onChange={(e) => setTemplateForm({ ...templateForm, version: e.target.value })}
+11624:                          onChange={(e) => setTemplateForm({ ...templateForm, issueDate: e.target.value })}
+11634:                          onChange={(e) => setTemplateForm({ ...templateForm, hasPatientDetails: e.target.checked })}
+11653:                            onChange={(e) => setNewTemplateItemForm({ ...newTemplateItemForm, itemAr: e.target.value })}
+11664:                            onChange={(e) => setNewTemplateItemForm({ ...newTemplateItemForm, itemEn: e.target.value })}
+11675:                            onChange={(e) => setNewTemplateItemForm({ ...newTemplateItemForm, code: e.target.value })}
+11686:                            onChange={(e) => setNewTemplateItemForm({ ...newTemplateItemForm, unit: e.target.value })}
+11697:                            onChange={(e) => setNewTemplateItemForm({ ...newTemplateItemForm, qty: e.target.value })}
+11746:                          onChange={(e) => setTemplateForm({ ...templateForm, itemsText: e.target.value })}
+11836:                setRecords(updated);
+11840:                  setSelectedHistoryRecord(null);
+11852:                setSelectedTemplate(matchingTemplate);
+11854:              setEditingRecord(rec);
+11855:              setActiveTab("editor");
+11917:                        onChange={(e) => setSearchQuery(e.target.value)}
+11932:                      onChange={(e) => setHistoryDeptFilter(e.target.value)}
+11949:                      onChange={(e) => setHistoryTemplateFilter(e.target.value)}
+12010:                                    onClick={() => setSelectedHistoryRecord(r)}
+12049:                                          onClick={() => setSelectedHistoryRecord(r)}
+12106:                                onClick={() => setSelectedHistoryRecord(null)}
+12257:                      onChange={(e) => setSettingsForm({ ...settingsForm, nameAr: e.target.value })}
+12267:                      onChange={(e) => setSettingsForm({ ...settingsForm, nameEn: e.target.value })}
+12277:                      onChange={(e) => setSettingsForm({ ...settingsForm, appHeaderAr: e.target.value })}
+12287:                      onChange={(e) => setSettingsForm({ ...settingsForm, appHeaderEn: e.target.value })}
+12297:                      onChange={(e) => setSettingsForm({ ...settingsForm, portalTitleAr: e.target.value })}
+12307:                      onChange={(e) => setSettingsForm({ ...settingsForm, portalTitleEn: e.target.value })}
+12317:                      onChange={(e) => setSettingsForm({ ...settingsForm, premiumTitleAr: e.target.value })}
+12327:                      onChange={(e) => setSettingsForm({ ...settingsForm, premiumTitleEn: e.target.value })}
+12337:                      onChange={(e) => setSettingsForm({ ...settingsForm, appFooterAr: e.target.value })}
+12347:                      onChange={(e) => setSettingsForm({ ...settingsForm, appFooterEn: e.target.value })}
+12357:                      onChange={(e) => setSettingsForm({ ...settingsForm, taglineAr: e.target.value })}
+12368:                      onChange={(e) => setSettingsForm({ ...settingsForm, taglineEn: e.target.value })}
+12379:                      onChange={(e) => setSettingsForm({ ...settingsForm, accreditationBodyAr: e.target.value })}
+12389:                      onChange={(e) => setSettingsForm({ ...settingsForm, accreditationBodyEn: e.target.value })}
+12399:                      onChange={(e) => setSettingsForm({ ...settingsForm, appVersion: e.target.value })}
+12409:                      onChange={(e) => setSettingsForm({ ...settingsForm, revisionDate: e.target.value })}
+12418:                      onChange={(e) => setSettingsForm({ ...settingsForm, userInstructionsAr: e.target.value })}
+12428:                      onChange={(e) => setSettingsForm({ ...settingsForm, userInstructionsEn: e.target.value })}
+12440:                      onChange={(e) => setSettingsForm({ ...settingsForm, footerAr: e.target.value })}
+12451:                      onChange={(e) => setSettingsForm({ ...settingsForm, footerEn: e.target.value })}
+12464:                      onChange={(e) => setSettingsForm({ ...settingsForm, welcomeTitleAr: e.target.value })}
+12474:                      onChange={(e) => setSettingsForm({ ...settingsForm, welcomeTitleEn: e.target.value })}
+12484:                      onChange={(e) => setSettingsForm({ ...settingsForm, welcomeSubtitleAr: e.target.value })}
+12494:                      onChange={(e) => setSettingsForm({ ...settingsForm, welcomeSubtitleEn: e.target.value })}
+12512:                        onChange={(e) => setSettingsForm({ ...settingsForm, themeMode: e.target.value })}
+12524:                        <button onClick={() => setSettingsForm({ ...settingsForm, themeColor: 'pink' })} className={`w-6 h-6 rounded-full bg-pink-600 outline-none transition-all ${settingsForm.themeColor === 'pink' ? 'ring-2 ring-offset-1 ring-pink-600' : 'hover:ring-2 ring-offset-1 ring-pink-400'}`}></button>
+12525:                        <button onClick={() => setSettingsForm({ ...settingsForm, themeColor: 'emerald' })} className={`w-6 h-6 rounded-full bg-emerald-600 outline-none transition-all ${settingsForm.themeColor === 'emerald' ? 'ring-2 ring-offset-1 ring-emerald-600' : 'hover:ring-2 ring-offset-1 ring-emerald-400'}`}></button>
+12526:                        <button onClick={() => setSettingsForm({ ...settingsForm, themeColor: 'blue' })} className={`w-6 h-6 rounded-full bg-blue-600 outline-none transition-all ${settingsForm.themeColor === 'blue' ? 'ring-2 ring-offset-1 ring-blue-600' : 'hover:ring-2 ring-offset-1 ring-blue-400'}`}></button>
+12527:                        <button onClick={() => setSettingsForm({ ...settingsForm, themeColor: 'indigo' })} className={`w-6 h-6 rounded-full bg-indigo-600 outline-none transition-all ${settingsForm.themeColor === 'indigo' ? 'ring-2 ring-offset-1 ring-indigo-600' : 'hover:ring-2 ring-offset-1 ring-indigo-400'}`}></button>
+12542:                         onChange={(e) => setSettingsForm({ ...settingsForm, timezone: e.target.value })}
+12556:                         onChange={(e) => setSettingsForm({ ...settingsForm, dateFormat: e.target.value })}
+12581:                                 setSettingsForm({...settingsForm, tenants: temp});
+12588:                                     setSettingsForm({...settingsForm, tenants: temp});
+12604:                              setSettingsForm({...settingsForm, tenants: [...(settingsForm.tenants || []), {name, legalId: newId, taxId: "PENDING"}]})
+12649:                                setDepartments(list);
+12680:                            setDepartments(updatedDepts);
+12712:                              setSettingsForm({ ...settingsForm, roles: newRoles });
+12728:                          setSettingsForm({ ...settingsForm, roles: [...settingsForm.roles, val] });
+12764:                              setSettingsForm({ ...settingsForm, jobTitles: newTitles });
+12815:                              onChange={(e) => setNewUserForm({ ...newUserForm, nameAr: e.target.value })}
+12826:                              onChange={(e) => setNewUserForm({ ...newUserForm, nameEn: e.target.value })}
+12837:                              onChange={(e) => setNewUserForm({ ...newUserForm, staffId: e.target.value })}
+12847:                              onChange={(e) => setNewUserForm({ ...newUserForm, role: e.target.value as UserRole })}
+12865:                              onChange={(e) => setNewUserForm({ ...newUserForm, department: e.target.value })}
+12880:                              onChange={(e) => setNewUserForm({ ...newUserForm, pin: e.target.value.replace(/\D/g, "") })}
+12891:                              onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
+12940:                                  onChange={(e) => setEditUserForm({ ...editUserForm, nameAr: e.target.value })}
+12950:                                  onChange={(e) => setEditUserForm({ ...editUserForm, nameEn: e.target.value })}
+12960:                                  onChange={(e) => setEditUserForm({ ...editUserForm, staffId: e.target.value })}
+12969:                                  onChange={(e) => setEditUserForm({ ...editUserForm, role: e.target.value as UserRole })}
+12987:                                  onChange={(e) => setEditUserForm({ ...editUserForm, department: e.target.value })}
+13002:                                  onChange={(e) => setEditUserForm({ ...editUserForm, pin: e.target.value.replace(/\D/g, "") })}
+13013:                                  onChange={(e) => setEditUserForm({ ...editUserForm, email: e.target.value })}
+13060:                                setUserRegistrySearch(e.target.value);
+13061:                                setUserRegistryPage(0);
+13070:                                  setUserRegistrySearch("");
+13071:                                  setUserRegistryPage(0);
+13138:                                        onClick={() => setViewingUserProfileUser(usr)}
+13222:                                      onClick={() => setUserRegistryPage((p) => Math.max(0, p - 1))}
+13241:                                      onClick={() => setUserRegistryPage((p) => Math.min(totalPages - 1, p + 1))}
+13365:                                    setIsRbacAdminAuthenticated(false);
+13379:                                  onChange={(e) => setRbacAdminPasscode(e.target.value)}
+13385:                                      setIsRbacAdminAuthenticated(true);
+13524:                            setSettingsForm({ ...settingsForm, premiumTitleAr: `البوابة الورديَّة لـ ${hospitalSettings.nameAr || "المنشأة"}` });
+13536:                            setSettingsForm({ ...settingsForm, premiumTitleAr: "البوابة السريرية الملكية" });
+13548:                            setSettingsForm({ ...settingsForm, premiumTitleAr: "البوابة الذكية الزرقاء" });
+13560:                            setSettingsForm({ ...settingsForm, premiumTitleAr: "بوابة رعاية الطوارئ الذهبية" });
+13585:                              setCustomCnoName(e.target.value);
+13597:                              setCustomDirectorName(e.target.value);
+13679:                                        setSystemUsers(updatedUsrs);
+13784:                  setPasscodeModalOpen(false);
+13785:                  setPendingUser(null);
+13805:                    setPasscodeInput(e.target.value);
+13806:                    setPasscodeError(false);
+13826:                    setPasscodeModalOpen(false);
+13827:                    setPendingUser(null);
+13854:                onClick={() => setBreakGlassAlert(null)}
+13881:                  setBreakGlassAlert(null);
+13882:                  setActiveTab("nursing_toolbox");
+13903:                onClick={() => setActiveCellEdit(null)}
+14005:                  onClick={() => setActiveCellEdit(null)}
+14025:                onClick={() => setActiveRosterCellEdit(null)}
+14061:                          setActiveRosterCellEdit(null);
+14067:                          setActiveRosterCellEdit(null);
+14071:                        setRosterList(prevList => {
+14138:                        setActiveRosterCellEdit(null);
+14155:                          setActiveRosterCellEdit(null);
+14159:                        setRosterList(prevList => {
+14207:                        setActiveRosterCellEdit(null);
+14217:                  onClick={() => setActiveRosterCellEdit(null)}
+14235:                onClick={() => setViewingUserProfileUser(null)}

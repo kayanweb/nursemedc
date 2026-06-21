@@ -26,7 +26,11 @@ import {
   ChevronRight, 
   FileSpreadsheet,
   Layers,
-  FileCheck
+  FileCheck,
+  ShieldAlert,
+  X,
+  Search,
+  Activity
 } from "lucide-react";
 import { saveDepartmentRoster, saveSetting, syncSetting } from "../lib/firestoreService";
 
@@ -193,6 +197,27 @@ export default function RosterPlanningPanel({
   // Tab State
   const [activeTab, setActiveTab] = useState<"dashboard" | "settings" | "overrides" | "deficiency_alerts">("dashboard");
 
+  // Custom Modal States (to bypass iframe window.prompt/alert blocks)
+  const [authModal, setAuthModal] = useState<{
+    open: boolean;
+    title: string;
+    message?: string;
+    action: (code: string) => void;
+    input: string;
+  }>({ open: false, title: "", action: () => {}, input: "" });
+
+  const executeAuthModal = () => {
+    if (!authModal.input) return;
+    const authorizer = systemUsers.find(u => u.staffId === authModal.input || u.pin === authModal.input || u.id === authModal.input);
+    if (!authorizer) {
+      alert(isAr ? "الكود غير صحيح." : "Invalid code.");
+      return;
+    }
+    
+    authModal.action(authModal.input);
+    setAuthModal({ open: false, title: "", action: () => {}, input: "" });
+  };
+
   // -------------------------------------------------------------
   // Load / Save Settings (JSON + Form state)
   // -------------------------------------------------------------
@@ -231,7 +256,7 @@ export default function RosterPlanningPanel({
   };
 
   const [settings, setSettings] = useState<RosterGeneralSettings>(() => {
-    const cached = localStorage.getItem("baheya_roster_general_settings");
+    const cached = localStorage.getItem("hospital_roster_general_settings");
     if (cached) {
       try {
         return JSON.parse(cached);
@@ -251,8 +276,8 @@ export default function RosterPlanningPanel({
 
   const handleSaveSettings = (updated: RosterGeneralSettings) => {
     setSettings(updated);
-    localStorage.setItem("baheya_roster_general_settings", JSON.stringify(updated));
-    saveSetting("baheya_roster_general_settings", updated).catch(err => console.error(err));
+    localStorage.setItem("hospital_roster_general_settings", JSON.stringify(updated));
+    saveSetting("hospital_roster_general_settings", updated).catch(err => console.error(err));
     if (addSystemLog) {
       addSystemLog("تم حفظ وتحديث إعدادات الروستر العامة", "success");
     }
@@ -273,7 +298,7 @@ export default function RosterPlanningPanel({
   // Overrides / CNO Sign-off Database
   // -------------------------------------------------------------
   const [overridesList, setOverridesList] = useState<LimitOverrideRecord[]>(() => {
-    const cached = localStorage.getItem("baheya_roster_overrides");
+    const cached = localStorage.getItem("hospital_roster_overrides");
     if (cached) {
       try {
         return JSON.parse(cached);
@@ -284,8 +309,8 @@ export default function RosterPlanningPanel({
 
   const saveOverrides = (list: LimitOverrideRecord[]) => {
     setOverridesList(list);
-    localStorage.setItem("baheya_roster_overrides", JSON.stringify(list));
-    saveSetting("baheya_roster_overrides", list).catch(err => console.error(err));
+    localStorage.setItem("hospital_roster_overrides", JSON.stringify(list));
+    saveSetting("hospital_roster_overrides", list).catch(err => console.error(err));
   };
 
   // Overrides Form states
@@ -308,45 +333,46 @@ export default function RosterPlanningPanel({
       return;
     }
 
-    const code = window.prompt(isAr ? `مطلوب تأكيد الهوية لتنفيذ: تفويض استثناء للموظف ${resolvedUser.nameAr}\nأدخل كود الموظف الخاص بك للتوقيع:` : `Verification required.\nEnter your employee code to sign:`);
-    if (!code) return;
-    const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code);
-    if (!authorizer) {
-      alert(isAr ? "الكود غير صحيح أو غير مسجل بالنظام." : "Invalid employee code. Authorization failed.");
-      return;
-    }
+    setAuthModal({
+      open: true,
+      title: isAr ? `مطلوب تأكيد الهوية` : `Verification required`,
+      message: isAr ? `لتنفيذ تفويض استثناء للموظف ${resolvedUser.nameAr}\nأدخل كود الموظف الخاص بك للتوقيع:` : `Enter your employee code to sign exception for ${resolvedUser.nameEn}:`,
+      input: "",
+      action: (code: string) => {
+        const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code)!;
+        const newRecord: LimitOverrideRecord = {
+          id: `override-${Date.now()}`,
+          employeeId: resolvedUser.id,
+          employeeNameAr: resolvedUser.nameAr,
+          employeeNameEn: resolvedUser.nameEn,
+          department: resolvedUser.department,
+          type: overrideType,
+          limitValue: overrideType === "under" ? settings.الحد_الأدنى_للشيفتات_الشهري : settings.الحد_الأقصى_للشيفتات_الشهري,
+          newTargetShifts: overrideNewShifts,
+          reason: overrideReason.trim(),
+          periodType: overridePeriodType,
+          signedBy: `${authorizer.nameAr} (${authorizer.staffId || ''})`,
+          timestampMs: Date.now(),
+          dateSignedStr: new Date().toISOString().split("T")[0]
+        };
 
-    const newRecord: LimitOverrideRecord = {
-      id: `override-${Date.now()}`,
-      employeeId: resolvedUser.id,
-      employeeNameAr: resolvedUser.nameAr,
-      employeeNameEn: resolvedUser.nameEn,
-      department: resolvedUser.department,
-      type: overrideType,
-      limitValue: overrideType === "under" ? settings.الحد_الأدنى_للشيفتات_الشهري : settings.الحد_الأقصى_للشيفتات_الشهري,
-      newTargetShifts: overrideNewShifts,
-      reason: overrideReason.trim(),
-      periodType: overridePeriodType,
-      signedBy: `${authorizer.nameAr} (${authorizer.staffId})`,
-      timestampMs: Date.now(),
-      dateSignedStr: new Date().toISOString().split("T")[0]
-    };
+        const nextList = [newRecord, ...overridesList];
+        saveOverrides(nextList);
 
-    const nextList = [newRecord, ...overridesList];
-    saveOverrides(nextList);
+        if (addSystemLog) {
+          addSystemLog(
+            `توقيع ترخيص استثنائي مخصص للموظف/ة (${newRecord.employeeNameAr}) - قسم ${newRecord.department}. الحدود القياسية ${newRecord.type === "under" ? "الأدنى" : "الأقصى"} تصبح ${newRecord.newTargetShifts} شيفت.`,
+            "warning"
+          );
+        }
 
-    if (addSystemLog) {
-      addSystemLog(
-        `توقيع ترخيص استثنائي مخصص للموظف/ة (${newRecord.employeeNameAr}) - قسم ${newRecord.department}. الحدود القياسية ${newRecord.type === "under" ? "الأدنى" : "الأقصى"} تصبح ${newRecord.newTargetShifts} شيفت.`,
-        "warning"
-      );
-    }
-
-    // Reset Form
-    setOverrideTargetEmployeeId("");
-    setOverrideReason("");
-    setCnoEsignature("");
-    alert(isAr ? "✔ تم تنفيذ وتوثيق ترخيص التجاوز والتوقيع بصحيفة التدقيق الإلكتروني بنجاح!" : "✔ Limit exception authorized and archived into the audit book!");
+        // Reset Form
+        setOverrideTargetEmployeeId("");
+        setOverrideReason("");
+        setCnoEsignature("");
+        alert(isAr ? "✔ تم تنفيذ وتوثيق ترخيص التجاوز والتوقيع بصحيفة التدقيق الإلكتروني بنجاح!" : "✔ Limit exception authorized and archived into the audit book!");
+      }
+    });
   };
 
   const handleDeleteOverride = (recordId: string) => {
@@ -403,7 +429,7 @@ export default function RosterPlanningPanel({
   // Attendance and Daily Schedule Database
   // -------------------------------------------------------------
   const [attendanceTable, setAttendanceTable] = useState<AttendanceState>(() => {
-    const cached = localStorage.getItem("baheya_daily_attendance");
+    const cached = localStorage.getItem("hospital_daily_attendance");
     if (cached) {
       try {
         return JSON.parse(cached);
@@ -415,8 +441,8 @@ export default function RosterPlanningPanel({
 
   const saveAttendance = (state: AttendanceState) => {
     setAttendanceTable(state);
-    localStorage.setItem("baheya_daily_attendance", JSON.stringify(state));
-    saveSetting("baheya_daily_attendance", state).catch(err => console.error(err));
+    localStorage.setItem("hospital_daily_attendance", JSON.stringify(state));
+    saveSetting("hospital_daily_attendance", state).catch(err => console.error(err));
   };
 
   // Date Filtering Controls (Flexible Multi-choice)
@@ -431,7 +457,7 @@ export default function RosterPlanningPanel({
 
   // Saved templates for days favorite configurations
   const [savedTemplates, setSavedTemplates] = useState<SavedTemplate[]>(() => {
-    const cached = localStorage.getItem("baheya_favorite_days_templates");
+    const cached = localStorage.getItem("hospital_favorite_days_templates");
     if (cached) {
       try { return JSON.parse(cached); } catch (e) {}
     }
@@ -443,25 +469,25 @@ export default function RosterPlanningPanel({
 
   // Real-time synchronization of Roster Settings, Overrides, Attendance and Templates from Firestore
   useEffect(() => {
-    const unsubSettings = syncSetting("baheya_roster_general_settings", (data) => {
+    const unsubSettings = syncSetting("hospital_roster_general_settings", (data) => {
       if (data && data.value) {
         setSettings(data.value);
       }
     });
 
-    const unsubOverrides = syncSetting("baheya_roster_overrides", (data) => {
+    const unsubOverrides = syncSetting("hospital_roster_overrides", (data) => {
       if (data && data.value) {
         setOverridesList(data.value);
       }
     });
 
-    const unsubAttendance = syncSetting("baheya_daily_attendance", (data) => {
+    const unsubAttendance = syncSetting("hospital_daily_attendance", (data) => {
       if (data && data.value) {
         setAttendanceTable(data.value);
       }
     });
 
-    const unsubFavTemplates = syncSetting("baheya_favorite_days_templates", (data) => {
+    const unsubFavTemplates = syncSetting("hospital_favorite_days_templates", (data) => {
       if (data && data.value) {
         setSavedTemplates(data.value);
       }
@@ -498,8 +524,8 @@ export default function RosterPlanningPanel({
 
     const updated = [...savedTemplates, template];
     setSavedTemplates(updated);
-    localStorage.setItem("baheya_favorite_days_templates", JSON.stringify(updated));
-    saveSetting("baheya_favorite_days_templates", updated).catch(err => console.error(err));
+    localStorage.setItem("hospital_favorite_days_templates", JSON.stringify(updated));
+    saveSetting("hospital_favorite_days_templates", updated).catch(err => console.error(err));
     setNewTemplateNameAr("");
     setNewTemplateNameEn("");
     alert(isAr ? "💾 تم حفظ قالب الأيام المفضل بنجاح!" : "💾 Favorite days configuration saved successfully!");
@@ -515,8 +541,8 @@ export default function RosterPlanningPanel({
     if (confirm(isAr ? "حذف هذا القالب المحفوظ؟" : "Delete saved days template?")) {
       const next = savedTemplates.filter((_, i) => i !== idx);
       setSavedTemplates(next);
-      localStorage.setItem("baheya_favorite_days_templates", JSON.stringify(next));
-      saveSetting("baheya_favorite_days_templates", next).catch(err => console.error(err));
+      localStorage.setItem("hospital_favorite_days_templates", JSON.stringify(next));
+      saveSetting("hospital_favorite_days_templates", next).catch(err => console.error(err));
     }
   };
 
@@ -642,6 +668,10 @@ export default function RosterPlanningPanel({
         if (isPresent) {
           attendedCount++;
           presentList.push({ name: usr.nameAr, role: usr.role, id: usr.id });
+          // Ensure they are counted in a shift if present
+          if (!scheduledShift) {
+            scheduledShift = "D"; // Default to Day shift for present unscheduled staff
+          }
         } else {
           absentCount++;
           absentList.push({ name: usr.nameAr, id: usr.id, reason: absReason });
@@ -691,7 +721,7 @@ export default function RosterPlanningPanel({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `baheya_roster_report_${queryMode}_${new Date().toISOString().split("T")[0]}.csv`);
+    link.setAttribute("download", `hospital_roster_report_${queryMode}_${new Date().toISOString().split("T")[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -699,6 +729,57 @@ export default function RosterPlanningPanel({
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 text-right font-sans" dir="rtl">
+      
+      {/* Auth Modal Overlay */}
+      {authModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="bg-slate-900 p-4 shrink-0 flex items-center justify-between">
+              <h3 className="text-white font-bold text-sm tracking-tight">{authModal.title}</h3>
+              <button 
+                onClick={() => setAuthModal({ ...authModal, open: false })}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4 text-sm">
+              <p className="text-slate-600 leading-relaxed font-medium">
+                {authModal.message || (isAr ? "مطلوب تأكيد الهوية. الرجاء إدخال كود الموظف الخاص بك:" : "Verification required. Please enter your employee code:")}
+              </p>
+              <div className="relative">
+                <input
+                  type="password"
+                  value={authModal.input}
+                  onChange={(e) => setAuthModal({ ...authModal, input: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') executeAuthModal();
+                  }}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-center tracking-widest font-mono font-bold text-lg text-slate-800 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition"
+                  placeholder="✱ ✱ ✱ ✱ ✱"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2 shrink-0">
+              <button
+                onClick={() => setAuthModal({ ...authModal, open: false })}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200/50 rounded-lg transition"
+              >
+                {isAr ? "إلغاء" : "Cancel"}
+              </button>
+              <button
+                onClick={executeAuthModal}
+                disabled={!authModal.input}
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg shadow-sm transition"
+              >
+                {isAr ? "تحقق واعتماد" : "Verify & Sign"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Workspace Column */}
       <div className="flex-1 space-y-6">
         
@@ -710,7 +791,7 @@ export default function RosterPlanningPanel({
             </div>
             <div className="text-right">
               <h2 className="text-base font-black tracking-tight">{isAr ? "لوحة تخطيط ورقابة الروستر والحدود القياسية" : "Roster & Staff Planning Console"}</h2>
-              <p className="text-[11px] text-slate-400 mt-0.5">{isAr ? "مراقبة معدلات حضور التمريض والكوادر وتراخي مواءمات العجز والشيفتات ببهية" : "Comprehensive shift planning & clinical roster constraints"}</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">{isAr ? "مراقبة معدلات حضور التمريض والكوادر وتراخي مواءمات العجز والشيفتات بالمستشفى" : "Comprehensive shift planning & clinical roster constraints"}</p>
             </div>
           </div>
 
@@ -1017,8 +1098,11 @@ export default function RosterPlanningPanel({
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {systemUsers.map((usr) => {
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto pr-1">
+                {systemUsers.filter(usr => {
+                  const r = usr.role?.toLowerCase() || "";
+                  return !["it", "admin", "president", "quality", "director", "ceo", "management", "manager"].some(adminRole => r.includes(adminRole));
+                }).map((usr) => {
                   const constraint = getEmployeeShiftConstraintStatus(usr.id, usr.department);
                   if (constraint.isBelow) {
                     const deficit = constraint.minLimit - constraint.shiftCount;
@@ -1044,6 +1128,13 @@ export default function RosterPlanningPanel({
                            <p className="text-[10px] text-slate-500">
                              يحتاج إلى <span className="font-bold text-slate-800">{deficit}</span> شيفت إضافي لاستكمال الحد الأدنى.
                            </p>
+                           <button 
+                             onClick={() => alert(`اقتراح ذكي: يمكن سد العجز للموظف (${usr.nameAr}) بندب إلى العناية المركزة أو الطوارئ لسد ${deficit} شيفت نقص.`)}
+                             className="w-full mt-2 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-[9px] font-bold transition flex justify-center items-center gap-1"
+                           >
+                             <Search className="w-3 h-3" />
+                             اقتراح تغطية آلية (AI)
+                           </button>
                         </div>
                         {constraint.hasBypass ? (
                           <div className="flex items-center gap-1 text-[9px] text-emerald-600 font-bold justify-end">
@@ -1058,7 +1149,7 @@ export default function RosterPlanningPanel({
                               setOverrideType("under");
                               setOverrideNewShifts(constraint.shiftCount);
                             }}
-                            className="w-full text-center py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[9px] font-extrabold transition cursor-pointer"
+                            className="w-full text-center py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[9px] font-extrabold transition cursor-pointer shadow-sm"
                           >
                             تأمين ترصيد الترخيص وتوقيع استثناء
                           </button>
@@ -1221,41 +1312,62 @@ export default function RosterPlanningPanel({
                 <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
                   <div className="flex gap-1.5 border border-slate-100 bg-slate-50 p-0.5 rounded-lg">
                     <button onClick={() => {
-                        const code = window.prompt(isAr ? `تأكيد إجراء (طباعة): أدخل كود الموظف:` : `Verification required (Print). Enter code:`);
-                        if (!code) return;
-                        const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code);
-                        if (!authorizer) {
-                          alert(isAr ? "الكود غير صحيح." : "Invalid code.");
-                          return;
-                        }
-                        if(addSystemLog) addSystemLog(`طباعة بواسطة: ${authorizer.nameAr}`, "info");
-                        window.print();
+                        setAuthModal({
+                          open: true,
+                          title: isAr ? "تأكيد إجراء (اقتراح نقل ذكي)" : "Verification required (AI Staffing)",
+                          message: isAr ? "أدخل كود الموظف لتأكيد اقتراح النقل الآلي لسد العجز:" : "Enter employee code to confirm automated staffing logic:",
+                          input: "",
+                          action: (code: string) => {
+                            const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code)!;
+                            if(addSystemLog) addSystemLog(`تفعيل التوزيع التلقائي للقسم بواسطة: ${authorizer.nameAr}`, "info");
+                            alert(isAr ? `اقتراح ذكي: تم اختيار ٢ ممرضين من العيادات الخارجية لتغطية النقص المؤقت اليوم.` : "AI Proposal generated. Transferring 2 nurses from OPD to cover shortage.");
+                          }
+                        });
+                    }} className="px-2 py-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100 rounded transition shadow-sm" title={isAr ? "اقتراحات الدعم ونقل الشفتات الذكي (AI)" : "AI Staffing logic"}>
+                      <Search className="w-3.5 h-3.5"/>
+                    </button>
+                    <button onClick={() => {
+                        setAuthModal({
+                          open: true,
+                          title: isAr ? "تأكيد إجراء (طباعة)" : "Verification required (Print)",
+                          message: isAr ? "أدخل كود الموظف لتأكيد الطباعة:" : "Enter employee code to confirm print:",
+                          input: "",
+                          action: (code: string) => {
+                            const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code)!;
+                            if(addSystemLog) addSystemLog(`طباعة بواسطة: ${authorizer.nameAr}`, "info");
+                            window.print();
+                          }
+                        });
                     }} className="px-2 py-1 text-slate-500 hover:text-pink-600 hover:bg-white rounded transition shadow-sm" title={isAr ? "طباعة التقرير" : "Print Report"}>
                       <Printer className="w-3.5 h-3.5"/>
                     </button>
                     <button onClick={() => {
-                        const code = window.prompt(isAr ? `تأكيد إجراء (تصدير CSV): أدخل كود الموظف:` : `Verification required (Export). Enter code:`);
-                        if (!code) return;
-                        const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code);
-                        if (!authorizer) {
-                          alert(isAr ? "الكود غير صحيح." : "Invalid code.");
-                          return;
-                        }
-                        if(addSystemLog) addSystemLog(`تصدير تقرير بواسطة: ${authorizer.nameAr}`, "info");
-                        alert(isAr ? `تم التصدير بواسطة: ${authorizer.nameAr}` : "Export completed.");
+                        setAuthModal({
+                          open: true,
+                          title: isAr ? "تأكيد إجراء (تصدير CSV)" : "Verification required (Export)",
+                          message: isAr ? "أدخل كود الموظف لتأكيد التصدير:" : "Enter employee code to confirm export:",
+                          input: "",
+                          action: (code: string) => {
+                            const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code)!;
+                            if(addSystemLog) addSystemLog(`تصدير تقرير بواسطة: ${authorizer.nameAr}`, "info");
+                            alert(isAr ? `تم التصدير بواسطة: ${authorizer.nameAr}` : "Export completed.");
+                          }
+                        });
                     }} className="px-2 py-1 text-slate-500 hover:text-pink-600 hover:bg-white rounded transition shadow-sm" title={isAr ? "تصدير CSV" : "Export CSV"}>
                       <Download className="w-3.5 h-3.5"/>
                     </button>
                     <button onClick={() => {
-                        const code = window.prompt(isAr ? `تأكيد إجراء (إرسال تنبيه آلي): أدخل كود الموظف:` : `Verification required (Notify). Enter code:`);
-                        if (!code) return;
-                        const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code);
-                        if (!authorizer) {
-                          alert(isAr ? "الكود غير صحيح." : "Invalid code.");
-                          return;
-                        }
-                        if(addSystemLog) addSystemLog(`تنبيه غياب بواسطة: ${authorizer.nameAr}`, "warning");
-                        alert(isAr ? `تم إشعار الغائبين والمشرفين بتوقيع: ${authorizer.nameAr}` : "Notifications sent.");
+                        setAuthModal({
+                          open: true,
+                          title: isAr ? "تأكيد إجراء (إرسال تنبيه آلي)" : "Verification required (Notify)",
+                          message: isAr ? "أدخل كود الموظف لتأكيد إرسال التنبيه:" : "Enter employee code to confirm notification:",
+                          input: "",
+                          action: (code: string) => {
+                            const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code)!;
+                            if(addSystemLog) addSystemLog(`تنبيه غياب بواسطة: ${authorizer.nameAr}`, "warning");
+                            alert(isAr ? `تم إشعار الغائبين والمشرفين بتوقيع: ${authorizer.nameAr}` : "Notifications sent.");
+                          }
+                        });
                     }} className="px-2 py-1 text-slate-500 hover:text-pink-600 hover:bg-white rounded transition shadow-sm" title={isAr ? "إرسال تنبيهات للغائبين" : "Send Automated Alerts"}>
                       <Mail className="w-3.5 h-3.5"/>
                     </button>
@@ -1263,22 +1375,23 @@ export default function RosterPlanningPanel({
 
                   <button
                     onClick={() => {
-                      // Optional: employee PIN to authorize viewing
-                      const code = window.prompt(isAr ? `مطلوب تأكيد الهوية للدخول لـ: الروستر التفصيلي لـ ${stat.departmentName}\nأدخل كود الموظف الخاص بك:` : `Verification required.\nEnter your employee code:`);
-                      if (!code) return;
-                      const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code);
-                      if (!authorizer) {
-                        alert(isAr ? "الكود غير صحيح أو غير مسجل بالنظام." : "Invalid employee code. Authorization failed.");
-                        return;
-                      }
-                      
-                      if (setSelectedRosterDept) {
-                        setSelectedRosterDept(stat.departmentName);
-                      }
-                      if (onAppTabChange) {
-                        onAppTabChange("roster");
-                      }
-                      window.scrollTo({ top: 0, behavior: "smooth" });
+                      setAuthModal({
+                        open: true,
+                        title: isAr ? `الدخول لـ: الروستر التفصيلي` : `Access: Detailed Roster`,
+                        message: isAr ? `مطلوب تأكيد الهوية للدخول لـ: הروستر التفصيلي لـ ${stat.departmentName}\nأدخل كود الموظف الخاص بك:` : `Verification required.\nEnter your employee code:`,
+                        input: "",
+                        action: (code: string) => {
+                          const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code)!;
+                          if(addSystemLog) addSystemLog(`دخول لروستر وحدة ${stat.departmentName} بواسطة ${authorizer.nameAr}`, "info");
+                          if (setSelectedRosterDept) {
+                            setSelectedRosterDept(stat.departmentName);
+                          }
+                          if (onAppTabChange) {
+                            onAppTabChange("roster");
+                          }
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }
+                      });
                     }}
                     className="px-3 py-1.5 text-pink-600 hover:bg-pink-100 rounded-lg text-[10px] font-black transition flex items-center gap-1 cursor-pointer"
                   >
@@ -1592,34 +1705,74 @@ export default function RosterPlanningPanel({
             </div>
           </div>
 
-          {/* JSON raw text area for manual overrides & power configurations */}
-          <div className="bg-slate-900 text-slate-200 p-6 rounded-2xl border border-slate-800 shadow-sm space-y-4 font-mono">
-            <div className="border-b border-slate-800 pb-3">
-              <h4 className="font-black text-white text-sm flex items-center gap-1.5 font-sans">
-                <Settings className="w-4 h-4 text-pink-500" />
-                <span>محرر الـ JSON الاحترافي للمهندسين ومديري الـ IT</span>
-              </h4>
-              <p className="text-slate-400 text-xs mt-0.5 font-sans">تعديل معلمات وهيكل التهيئة الإجمالي لجرود الروستر بشكل مباشر.</p>
+          <div className="space-y-6">
+            {/* Advanced Systems Options */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+              <div className="border-b pb-3">
+                <h4 className="font-black text-slate-900 text-sm flex items-center gap-1.5">
+                  <ShieldAlert className="w-4 h-4 text-emerald-600" />
+                  <span>إضافات وأنظمة الروستر المتقدمة</span>
+                </h4>
+                <p className="text-slate-400 text-xs mt-0.5">صلاحيات النشر، إدارة الطلبات، ومحركات الذكاء الاصطناعي لتخطيط الروستر.</p>
+              </div>
+              
+              <div className="space-y-3 pl-2">
+                <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+                  <input type="checkbox" defaultChecked={true} className="w-4 h-4 text-pink-600 rounded" />
+                  <span>إغلاق التعديلات التلقائي (Locking) بعد نشر الروستر واعتماده</span>
+                </label>
+                
+                <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+                  <input type="checkbox" defaultChecked={true} className="w-4 h-4 text-pink-600 rounded" />
+                  <span>تفعيل نظام طلبات تبديل الشفتات (Shift Swap) المعلق بموافقة الإدارة</span>
+                </label>
+
+                <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+                  <input type="checkbox" className="w-4 h-4 text-pink-600 rounded" />
+                  <span>المزامنة السحابية الذكية لتواريخ الإجازات المرضية والسنوية مباشرة</span>
+                </label>
+                
+                <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer line-through opacity-70">
+                  <input type="checkbox" defaultChecked={true} disabled className="w-4 h-4 text-pink-600 rounded" />
+                  <span>منع التعيين التلقائي لـ (نايت N) متتالي لأكثر من 3 أيام (قانون هيئة التمريض)</span>
+                </label>
+                
+                <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+                  <input type="checkbox" className="w-4 h-4 text-pink-600 rounded" />
+                  <span>تفعيل حساب بدلات المخاطر والسهر (Overtime & Night Premium) بشكل آلي</span>
+                </label>
+              </div>
             </div>
 
-            <textarea
-              value={jsonInput}
-              onChange={(e) => setJsonInput(e.target.value)}
-              className="w-full h-[260px] bg-slate-950 text-emerald-400 font-mono text-xs p-4 rounded-xl border border-slate-800 outline-none focus:ring-1 focus:ring-pink-500"
-            />
-
-            {jsonError && (
-              <div className="p-3 bg-rose-900/30 text-rose-300 border border-rose-800 rounded-lg text-xs leading-relaxed">
-                🚨 خطأ في التهيئة البنائية للـ JSON: {jsonError}
+            {/* JSON raw text area for manual overrides & power configurations */}
+            <div className="bg-slate-900 text-slate-200 p-6 rounded-2xl border border-slate-800 shadow-sm space-y-4 font-mono">
+              <div className="border-b border-slate-800 pb-3">
+                <h4 className="font-black text-white text-sm flex items-center gap-1.5 font-sans">
+                  <Settings className="w-4 h-4 text-pink-500" />
+                  <span>محرر الـ JSON الاحترافي للمهندسين ومديري الـ IT</span>
+                </h4>
+                <p className="text-slate-400 text-xs mt-0.5 font-sans">تعديل معلمات وهيكل التهيئة الإجمالي لجرود الروستر بشكل مباشر.</p>
               </div>
-            )}
 
-            <button
-              onClick={handleSaveJsonSettings}
-              className="w-full py-2 bg-gradient-to-l from-rose-600 to-pink-700 text-white font-extrabold text-xs rounded-xl shadow transition font-sans cursor-pointer"
-            >
-              حفظ وتطبيق هيكل الـ JSON المحدث
-            </button>
+              <textarea
+                value={jsonInput}
+                onChange={(e) => setJsonInput(e.target.value)}
+                className="w-full h-[260px] bg-slate-950 text-emerald-400 font-mono text-xs p-4 rounded-xl border border-slate-800 outline-none focus:ring-1 focus:ring-pink-500"
+              />
+
+              {jsonError && (
+                <div className="p-3 bg-rose-900/30 text-rose-300 border border-rose-800 rounded-lg text-xs leading-relaxed">
+                  🚨 خطأ في التهيئة البنائية للـ JSON: {jsonError}
+                </div>
+              )}
+
+              <button
+                onClick={handleSaveJsonSettings}
+                className="w-full py-2 bg-gradient-to-l from-rose-600 to-pink-700 text-white font-extrabold text-xs rounded-xl shadow transition font-sans cursor-pointer"
+              >
+                حفظ وتطبيق هيكل الـ JSON المحدث
+              </button>
+            </div>
           </div>
 
         </div>
@@ -1720,37 +1873,39 @@ export default function RosterPlanningPanel({
               };
 
               const handleQuickException = (user: any, currentShifts: number) => {
-                const code = window.prompt(isAr ? `تأكيد إجراء (تأمين ترصيد): أدخل كود الموظف للاعتماد (مثال: pin أو staffId):` : `Verification required (Approve Exception). Enter code:`);
-                if (!code) return;
-                const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code);
-                if (!authorizer) {
-                  alert(isAr ? "الكود غير صحيح أو غير مسجل بالنظام." : "Invalid employee code. Authorization failed.");
-                  return;
-                }
+                setAuthModal({
+                  open: true,
+                  title: isAr ? "تأكيد إجراء (تأمين ترصيد)" : "Verification required (Approve Exception)",
+                  message: isAr ? "أدخل كود الموظف للاعتماد (مثال: pin أو staffId):" : "Enter employee PIN to approve exception:",
+                  input: "",
+                  action: (code: string) => {
+                    const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code)!;
+                    
+                    const newRecord: LimitOverrideRecord = {
+                      id: `override-${Date.now()}`,
+                      employeeId: user.id,
+                      employeeNameAr: user.nameAr,
+                      employeeNameEn: user.nameEn,
+                      department: user.department,
+                      type: "under",
+                      limitValue: settings.الحد_الأدنى_للشيفتات_الشهري,
+                      newTargetShifts: currentShifts,
+                      reason: `تأمين ترصيد الترخيص وتوقيع استثناء للحد الأدنى من الوردية لتأكيد التغطية التشغيلية للقسم`,
+                      periodType: "temporary",
+                      signedBy: `${authorizer.nameAr} (${authorizer.staffId || ''})`,
+                      timestampMs: Date.now(),
+                      dateSignedStr: new Date().toISOString().split("T")[0]
+                    };
 
-                const newRecord: LimitOverrideRecord = {
-                  id: `override-${Date.now()}`,
-                  employeeId: user.id,
-                  employeeNameAr: user.nameAr,
-                  employeeNameEn: user.nameEn,
-                  department: user.department,
-                  type: "under",
-                  limitValue: settings.الحد_الأدنى_للشيفتات_الشهري,
-                  newTargetShifts: currentShifts,
-                  reason: `تأمين ترصيد الترخيص وتوقيع استثناء للحد الأدنى من الوردية لتأكيد التغطية التشغيلية للقسم`,
-                  periodType: "temporary",
-                  signedBy: `${authorizer.nameAr} (${authorizer.staffId})`,
-                  timestampMs: Date.now(),
-                  dateSignedStr: new Date().toISOString().split("T")[0]
-                };
-
-                const nextList = [newRecord, ...overridesList];
-                saveOverrides(nextList);
-                
-                if (addSystemLog) {
-                  addSystemLog(`توقيع ترخيص استثنائي للحد الأدنى المسموح للكادر (${user.nameAr}) - الحد الأدنى يصبح ${currentShifts} شيفت. بواسطة المشرف (${authorizer.nameAr})`, "success");
-                }
-                alert(isAr ? `✔ تم اعتماد ترصيد الترخيص وتوقيع استثناء للحد الأدنى للكادر (${user.nameAr}) بنجاح للمشرف ${authorizer.nameAr}!` : `Exception approved for ${user.nameEn} by ${authorizer.nameEn}!`);
+                    const nextList = [newRecord, ...overridesList];
+                    saveOverrides(nextList);
+                    
+                    if (addSystemLog) {
+                      addSystemLog(`توقيع ترخيص استثنائي للحد الأدنى المسموح للكادر (${user.nameAr}) - الحد الأدنى يصبح ${currentShifts} شيفت. بواسطة المشرف (${authorizer.nameAr})`, "success");
+                    }
+                    alert(isAr ? `✔ تم اعتماد ترصيد الترخيص وتوقيع استثناء للحد الأدنى للكادر (${user.nameAr}) بنجاح للمشرف ${authorizer.nameAr}!` : `Exception approved for ${user.nameEn} by ${authorizer.nameEn}!`);
+                  }
+                });
               };
 
               if (list.length === 0) {

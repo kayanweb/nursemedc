@@ -51,7 +51,7 @@ export const DynamicProfessionalLogo: React.FC<Props> = ({
   const colorIndex = hashValue % 5;
 
   // Premium color-themes
-  // 0: Baheya Rose Pink / Golden Sand
+  // 0: hospital Rose Pink / Golden Sand
   // 1: Emerald Jade / Mint Green
   // 2: Royal Blue / Cyan Sky
   // 3: Indigo / Amethyst Purple
@@ -109,13 +109,13 @@ export const DynamicProfessionalLogo: React.FC<Props> = ({
     },
   ];
 
-  // Override to Pink Rose theme if it matches "baheya" or "بهية"
-  const isBaheya =
-    normEn.toLowerCase().includes("baheya") ||
-    normAr.includes("بهية") ||
+  // Override to Pink Rose theme if it matches "hospital" or "المستشفى"
+  const ishospital =
+    normEn.toLowerCase().includes("hospital") ||
+    normAr.includes("المستشفى") ||
     normAr.includes("بهيه");
 
-  const theme = isBaheya ? themes[0] : themes[colorIndex];
+  const theme = ishospital ? themes[0] : themes[colorIndex];
 
   // Design motif selection - the user has uploaded and requested a specific Heartbeat & Clinical Human silhouette logo.
   // We force the "custom-beat" motif to ensure it is displayed everywhere!
@@ -189,7 +189,7 @@ export const DynamicProfessionalLogo: React.FC<Props> = ({
         );
       case "lotus-ribbon":
         return (
-          // Ribbon & floral lotus elements representing Baheya breast cancer/healthcare care
+          // Ribbon & floral lotus elements representing hospital breast cancer/healthcare care
           <g>
             {/* Outer glowing halo */}
             <circle cx="24" cy="24" r="16" fill="none" stroke="white" strokeWidth="1" strokeDasharray="3 3" className="opacity-40" />
@@ -300,15 +300,19 @@ export const DynamicProfessionalLogo: React.FC<Props> = ({
 
   // Sizing styles
   if (hideText) {
-    const boxClasses = size === "xl" ? "w-24 h-24 rounded-2xl" : size === "lg" ? "w-18 h-18 rounded-2xl" : size === "md" ? "w-11 h-11 rounded-xl" : "w-8 h-8 rounded-lg";
+    const boxClasses = size === "xl" ? "w-28 h-28 rounded-3xl" : size === "lg" ? "w-20 h-20 rounded-2xl" : size === "md" ? "w-11 h-11 rounded-xl" : "w-8 h-8 rounded-lg";
     return (
-      <div className={`relative flex items-center justify-center ${boxClasses} bg-gradient-to-br ${theme.from} ${theme.to} shadow-md border border-white/20 select-none overflow-hidden shrink-0`}>
+      <div className={`relative flex items-center justify-center ${boxClasses} bg-gradient-to-br ${theme.from} ${theme.to} shadow-2xl border-4 border-white select-none overflow-hidden shrink-0`}>
         {/* Subtle grid pattern background */}
-        <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:6px_6px]"></div>
+        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#fff_1.5px,transparent_1.5px)] [background-size:8px_8px]"></div>
         {/* Decorative thin ring */}
-        <div className="absolute w-[84%] h-[84%] rounded-full border border-white/20 animate-pulse"></div>
-        <svg className="w-[84%] h-[84%] relative z-10" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <div className="absolute w-[80%] h-[80%] rounded-full border border-white/30 border-dashed animate-[spin_30s_linear_infinite]"></div>
+        <svg className="w-[75%] h-[75%] relative z-10" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
           <defs>
+            <linearGradient id="customLogoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.8" />
+            </linearGradient>
             <linearGradient id="ribbonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#ffffff" />
               <stop offset="100%" stopColor="#fca5a5" />
@@ -316,7 +320,7 @@ export const DynamicProfessionalLogo: React.FC<Props> = ({
           </defs>
           {renderSVGEmblem()}
         </svg>
-        <span className="absolute bottom-0 right-1 text-[5px] font-mono font-black text-white/40">
+        <span className="absolute bottom-1 right-2 w-auto min-w-[20px] text-center bg-black/20 text-[6px] font-mono font-black text-white px-1 py-0.5 rounded-sm">
           {initials}
         </span>
       </div>

@@ -40,7 +40,7 @@ export const DEPARTMENT_POOL = [
   { dept: "INFECTION CONTROL", prefix: "INF", nameAr: "مكتب إدارة مكافحة العدوى والوقاية", nameEn: "Infection Control and Prevention" },
   { dept: "CLINICAL NUTRITION", prefix: "NUTR", nameAr: "قسم التغذية الإكلينيكية والعلاجية", nameEn: "Clinical Nutrition & Dietetics" },
   { dept: "INPATIENT FLOORS", prefix: "INP", nameAr: "رعاية الإقامة والأسرة الداخلية", nameEn: "Inpatient Rooms & Wards" },
-  { dept: "OUTPATIENT CLINICS", prefix: "OUT", nameAr: "العيادات الخارجية والاستشارات بهية", nameEn: "Outpatient Consulting Clinics" },
+  { dept: "OUTPATIENT CLINICS", prefix: "OUT", nameAr: "العيادات الخارجية والاستشارات المستشفى", nameEn: "Outpatient Consulting Clinics" },
   { dept: "BIOMEDICAL ENGINEERING", prefix: "BIOMED", nameAr: "الصيانة الطبية والهندسة الحيوية", nameEn: "Biomedical Equipment Engineering" },
   { dept: "DENTAL CLINIC", prefix: "DNTL", nameAr: "عيادة وصحة الفم والأسنان المعتمدة", nameEn: "Dentistry & Oral Oncology Clinic" },
   { dept: "ONCOLOGY RESEARCH", prefix: "RSRCH", nameAr: "مركز الأبحاث والتجارب الإكلينيكية للثدي", nameEn: "Breast Cancer Advanced Research Center" }

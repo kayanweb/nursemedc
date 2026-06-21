@@ -59,7 +59,10 @@ import {
   syncSetting,
   syncCQIDecisionLogs,
   saveCQIDecisionLog,
-  deleteCQIDecisionLog
+  deleteCQIDecisionLog,
+  syncPeriodicReports,
+  savePeriodicReport,
+  deletePeriodicReport
 } from "../lib/firestoreService";
 
 interface QualityAnalyticsHubProps {
@@ -151,7 +154,22 @@ export default function QualityAnalyticsHub({
   const isAr = language === "ar";
 
   // Backwards compatible & expanded sub-tabs
-  const [activeTab, setActiveTabLocal] = useState<"kpis" | "ovr" | "compliance" | "eval-staff" | "eval-unit" | "policies" | "archive" | "decision">("kpis");
+  const [activeTab, setActiveTabLocal] = useState<"kpis" | "ovr" | "compliance" | "eval-staff" | "eval-unit" | "policies" | "archive" | "decision" | "reports">("kpis");
+
+  // Custom Modal States (to bypass iframe window.prompt/alert blocks)
+  const [authModal, setAuthModal] = useState<{
+    open: boolean;
+    title: string;
+    message?: string;
+    action: (code: string) => void;
+    input: string;
+  }>({ open: false, title: "", action: () => {}, input: "" });
+
+  const executeAuthModal = () => {
+    if (!authModal.input) return;
+    authModal.action(authModal.input);
+    setAuthModal({ open: false, title: "", action: () => {}, input: "" });
+  };
 
   // Sync parent tab trigger
   useEffect(() => {
@@ -232,7 +250,7 @@ export default function QualityAnalyticsHub({
   const [gaharChecked, setGaharChecked] = useState<number[]>([11, 12, 14, 21, 23, 24]);
 
   useEffect(() => {
-    getSetting("baheya_gahar_checked").then((val) => {
+    getSetting("hospital_gahar_checked").then((val) => {
       if (val && Array.isArray(val)) {
         setGaharChecked(val);
       }
@@ -244,7 +262,7 @@ export default function QualityAnalyticsHub({
       ? gaharChecked.filter(x => x !== id) 
       : [...gaharChecked, id];
     setGaharChecked(next);
-    await saveSetting("baheya_gahar_checked", next);
+    await saveSetting("hospital_gahar_checked", next);
   };
 
   // 5. ACKNOWLEDGED POLICIES STATE - Synced Real-Time, Multi-User safe
@@ -252,6 +270,21 @@ export default function QualityAnalyticsHub({
   
   // 6. CLINICAL DECISION SUPPORT SIMULATOR LOGS (Persistent Firestore DB)
   const [decisionLogs, setDecisionLogs] = useFirestoreSync<any>(syncCQIDecisionLogs, []);
+
+  // 7. PERIODIC CLINICAL PERFORMANCE REPORTS (Persistent Firestore DB)
+  const [periodicReports, setPeriodicReports] = useFirestoreSync<any>(syncPeriodicReports, []);
+
+  // Form states for Periodic Performance Report Generator
+  const [reportDept, setReportDept] = useState<string>("EMERGENCY UNIT");
+  const [reportPeriodType, setReportPeriodType] = useState<"monthly" | "quarterly">("monthly");
+  const [reportMonth, setReportMonth] = useState<number>(new Date().getMonth() + 1); // 1-12
+  const [reportQuarter, setReportQuarter] = useState<number>(1); // 1-4
+  const [reportYear, setReportYear] = useState<number>(2026);
+  const [reportTargetCompliance, setReportTargetCompliance] = useState<number>(95);
+  const [reportRecommendations, setReportRecommendations] = useState<string>("");
+  const [reportHighlights, setReportHighlights] = useState<string>("");
+  const [selectedArchivedReport, setSelectedArchivedReport] = useState<any | null>(null);
+  const [isSigningReport, setIsSigningReport] = useState<boolean>(false);
 
   // Simulator Form input states
   const [simPatientName, setSimPatientName] = useState<string>("أحمد عبد الله المنصوري");
@@ -316,7 +349,7 @@ export default function QualityAnalyticsHub({
     if (simNarcoticDose > 25) {
       safetyScore -= 15;
       triggers.push(isAr ? "👮 تجاوز الحد الوقائي اليومي لجرعة مشتقات التخدير المخدرة" : "👮 Controlled Narcotic Dose Limit warning");
-      recommendations.push(isAr ? "جرعة التخدير تتطلب مطابقة كود الخزنة المزدوج وسجل الرقابة الطبية ببهية." : "Controlled substances dosage exceeds baseline parameters. Safe-locked registry verification required with double-witness stamp.");
+      recommendations.push(isAr ? "جرعة التخدير تتطلب مطابقة كود الخزنة المزدوج وسجل الرقابة الطبية بالمستشفى." : "Controlled substances dosage exceeds baseline parameters. Safe-locked registry verification required with double-witness stamp.");
     }
 
     const calculatedResult = {
@@ -364,7 +397,7 @@ export default function QualityAnalyticsHub({
       };
       const updatedNotifs = [newNotif, ...notifications];
       setNotifications(updatedNotifs);
-      saveSetting("baheya_notifications", updatedNotifs);
+      saveSetting("hospital_notifications", updatedNotifs);
 
       setSimActiveResult(null);
       setEditingSimLogId(null);
@@ -455,25 +488,82 @@ export default function QualityAnalyticsHub({
     }
   ];
 
+  // Generate periodic performance report
+  const handleGeneratePeriodicReport = () => {
+    if (!reportRecommendations || !reportHighlights) {
+      alert(isAr ? "يرجى ملء أبرز الملاحظات والتوصيات الناتجة عن أداء القسم." : "Please fill in highlights and recommendations.");
+      return;
+    }
+
+    const startIdx = Date.now().toString().slice(-4);
+    const newReport = {
+       id: `PR-${reportYear}-${reportDept.replace(/\s+/g, '-').toUpperCase()}-${startIdx}`,
+       department: reportDept,
+       periodType: reportPeriodType, // "monthly" | "quarterly"
+       periodReference: reportPeriodType === "monthly" ? reportMonth : reportQuarter,
+       year: reportYear,
+       targetCompliance: reportTargetCompliance,
+       highlights: reportHighlights,
+       recommendations: reportRecommendations,
+       authorName: currentUser.nameAr || currentUser.nameEn,
+       authorId: currentUser.id,
+       timestamp: new Date().toISOString(),
+       status: "Draft", // Draft, Signed
+       actualComplianceScore: Math.floor(Math.random() * (100 - 65 + 1) + 65) // Demo metric calculation
+    };
+
+    savePeriodicReport(newReport).then(() => {
+       addSystemLog(`Generated new Periodic Performance Report PR-${reportYear}-${startIdx}`, "success");
+       alert(isAr ? "✅ تم إنشاء وتوثيق التقرير الدوري للقسم بنجاح." : "Periodic Report generated successfully.");
+       setReportHighlights("");
+       setReportRecommendations("");
+    }).catch(err => {
+       alert("Error generating report: " + err.message);
+    });
+  };
+
+  const handleSignReport = (report: any) => {
+    setAuthModal({
+      open: true,
+      title: isAr ? `توقيع إلكتروني للتقرير` : `Sign Report`,
+      message: isAr ? `أدخل الرمز السري لتوقيع التقرير (معرف القسم: ${report.department}):` : `Enter PIN to sign report for ${report.department}:`,
+      input: "",
+      action: (pin: string) => {
+        if (pin === currentUser.pin) {
+          const updated = {
+            ...report,
+            status: "Signed",
+            signedAt: new Date().toISOString(),
+            signedBy: currentUser.nameAr || currentUser.nameEn
+          };
+          savePeriodicReport(updated);
+          alert(isAr ? "تم توقيع التقرير وأرشفته باعتراف." : "Report signed and accredited.");
+        } else {
+          alert(isAr ? "الرمز السري غير صحيح." : "Incorrect PIN.");
+        }
+      }
+    });
+  };
+
   // Helper sync calls to cache
   useEffect(() => {
-    localStorage.setItem("baheya_cqi_ovrs", JSON.stringify(ovrs));
+    localStorage.setItem("hospital_cqi_ovrs", JSON.stringify(ovrs));
   }, [ovrs]);
 
   useEffect(() => {
-    localStorage.setItem("baheya_cqi_staff_evals", JSON.stringify(staffEvals));
+    localStorage.setItem("hospital_cqi_staff_evals", JSON.stringify(staffEvals));
   }, [staffEvals]);
 
   useEffect(() => {
-    localStorage.setItem("baheya_cqi_unit_inspections", JSON.stringify(unitAudits));
+    localStorage.setItem("hospital_cqi_unit_inspections", JSON.stringify(unitAudits));
   }, [unitAudits]);
 
   useEffect(() => {
-    localStorage.setItem("baheya_gahar_checked", JSON.stringify(gaharChecked));
+    localStorage.setItem("hospital_gahar_checked", JSON.stringify(gaharChecked));
   }, [gaharChecked]);
 
   useEffect(() => {
-    localStorage.setItem("baheya_policy_acks", JSON.stringify(acknowledgedPolicies));
+    localStorage.setItem("hospital_policy_acks", JSON.stringify(acknowledgedPolicies));
   }, [acknowledgedPolicies]);
 
   // Aggregate quality statistics dynamically
@@ -589,7 +679,7 @@ export default function QualityAnalyticsHub({
     };
     const updatedNotifs = [ovrNotif, ...notifications];
     setNotifications(updatedNotifs);
-    saveSetting("baheya_notifications", updatedNotifs);
+    saveSetting("hospital_notifications", updatedNotifs);
 
     setOvrForm({
       department: "EMERGENCY UNIT",
@@ -647,7 +737,7 @@ export default function QualityAnalyticsHub({
     };
     const updatedNotifs = [evalNotif, ...notifications];
     setNotifications(updatedNotifs);
-    saveSetting("baheya_notifications", updatedNotifs);
+    saveSetting("hospital_notifications", updatedNotifs);
 
     setEvalComments("");
     setShowEvalForm(false);
@@ -698,26 +788,30 @@ export default function QualityAnalyticsHub({
       return;
     }
 
-    const code = window.prompt(isAr ? `مطلوب تأكيد الهوية: أدخل كود الموظف للتوقيع بالالتزام بهذه السياسة` : `Verification required: Enter your employee code to sign the policy`);
-    if (!code) return;
-    
-    // We assume systemUsers is available in props? Wait, let's check props.
-    const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code);
-    if (!authorizer) {
-        alert(isAr ? "الكود غير صحيح أو غير مسجل بالنظام." : "Invalid employee code. Authorization failed.");
-        return;
-    }
+    setAuthModal({
+      open: true,
+      title: isAr ? `مطلوب تأكيد الهوية` : `Verification required`,
+      message: isAr ? `أدخل كود الموظف للتوقيع بالالتزام بهذه السياسة:` : `Enter your employee code to sign the policy:`,
+      input: "",
+      action: (code: string) => {
+        const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code);
+        if (!authorizer) {
+            alert(isAr ? "الكود غير صحيح أو غير مسجل بالنظام." : "Invalid employee code. Authorization failed.");
+            return;
+        }
 
-    const newAck = {
-      id: `ack-${Date.now()}-${currentUser.id}`,
-      policyId,
-      nurseId: authorizer.id,
-      nurseName: authorizer.nameAr || authorizer.nameEn,
-      signedAt: new Date().toISOString()
-    };
-    saveCQIPolicyAck(newAck);
-    addSystemLog(`Acknowledged Hospital Policy: ${policyId} by ${authorizer.nameEn}`, "success");
-    alert(isAr ? `📝 تم إمضاء التزامك وتوقيعك الإلكتروني بالسياسة الطبية بنجاح سحابياً للموظف ${authorizer.nameAr}!` : `Policy electronically signed for ${authorizer.nameEn}.`);
+        const newAck = {
+          id: `ack-${Date.now()}-${currentUser.id}`,
+          policyId,
+          nurseId: authorizer.id,
+          nurseName: authorizer.nameAr || authorizer.nameEn,
+          signedAt: new Date().toISOString()
+        };
+        saveCQIPolicyAck(newAck);
+        addSystemLog(`Acknowledged Hospital Policy: ${policyId} by ${authorizer.nameEn}`, "success");
+        alert(isAr ? `📝 تم إمضاء التزامك وتوقيعك الإلكتروني بالسياسة الطبية بنجاح سحابياً للموظف ${authorizer.nameAr}!` : `Policy electronically signed for ${authorizer.nameEn}.`);
+      }
+    });
   };
 
   // Seeding Complete Quality Audit Archives
@@ -777,7 +871,7 @@ export default function QualityAnalyticsHub({
         evalDate: "2026-06-08",
         evaluatorName: "أ. نورهان علي (مدير الجودة)",
         scores: { clinical: 5, policy: 5, documentation: 4, attendance: 5, ethics: 5 },
-        comments: "أداء متميز واستثنائي في مكافحة العدوى والالتزام الكامل بقواعد JCI IPSG وأهداف سلامة مستشفيات بهية."
+        comments: "أداء متميز واستثنائي في مكافحة العدوى والالتزام الكامل بقواعد JCI IPSG وأهداف سلامة مستشفيات المستشفى."
       },
       {
         id: "eval-102",
@@ -851,6 +945,56 @@ export default function QualityAnalyticsHub({
   return (
     <div className="space-y-6 animate-fade text-right font-sans" dir="rtl">
       
+      {/* Custom Auth Modal for Signatures */}
+      {authModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm shadow-2xl">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="bg-slate-900 p-4 shrink-0 flex items-center justify-between">
+              <h3 className="text-white font-bold text-sm tracking-tight">{authModal.title}</h3>
+              <button 
+                onClick={() => setAuthModal({ ...authModal, open: false })}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4 text-sm">
+              <p className="text-slate-600 leading-relaxed font-medium">
+                {authModal.message}
+              </p>
+              <div className="relative">
+                <input
+                  type="password"
+                  value={authModal.input}
+                  onChange={(e) => setAuthModal({ ...authModal, input: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') executeAuthModal();
+                  }}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-center tracking-widest font-mono font-bold text-lg text-slate-800 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 outline-none transition"
+                  placeholder="✱ ✱ ✱ ✱ ✱"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2 shrink-0">
+              <button
+                onClick={() => setAuthModal({ ...authModal, open: false })}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200/50 rounded-lg transition"
+              >
+                {isAr ? "إلغاء المتابعة" : "Cancel"}
+              </button>
+              <button
+                onClick={executeAuthModal}
+                disabled={!authModal.input}
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg shadow-sm transition"
+              >
+                {isAr ? "توقيع وإكمال" : "Sign & Complete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 1. Header with branding & Seeding Actions */}
       <div className="bg-gradient-to-l from-pink-500/10 via-pink-405/5 to-transparent p-6 rounded-2xl border border-pink-100 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="text-right">
@@ -889,7 +1033,7 @@ export default function QualityAnalyticsHub({
               onClick={() => {
                 if (confirm(isAr ? "هل أنت متأكد من مسح جميع التقارير الجارية؟" : "Are you sure you want to clear all records?")) {
                   setRecords([]);
-                  localStorage.setItem("baheya_medical_records", JSON.stringify([]));
+                  localStorage.setItem("hospital_medical_records", JSON.stringify([]));
                   alert(isAr ? "تم تصفير شيتات الجرد بنجاح." : "Records store cleared.");
                 }
               }}
@@ -974,6 +1118,18 @@ export default function QualityAnalyticsHub({
         >
           <Sliders className="h-4 w-4 text-amber-500" />
           <span>مصفوفة الالتزام للأقسام ({openAlertsList.filter(g => !resolvedGaps[g.uniqueGapKey]?.resolved).length} ثغرة)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTabLocal("reports")}
+          className={`px-3 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 border cursor-pointer ${
+            activeTab === "reports"
+              ? "bg-purple-600 text-white border-purple-700 shadow-md transform scale-102"
+              : "bg-purple-50/50 text-indigo-950 border-purple-200/40 hover:bg-purple-50"
+          }`}
+        >
+          <BarChart3 className="h-4 w-4 text-purple-500" />
+          <span>{isAr ? "مجلس التقارير الدورية والأداء" : "Periodic Performance Reports"}</span>
         </button>
 
         <button
@@ -1332,7 +1488,7 @@ export default function QualityAnalyticsHub({
                       <div className="space-y-1 bg-slate-950 p-4 rounded-xl border border-slate-800 text-[10px] text-indigo-200">
                         <div className="text-pink-400 font-black mb-1 flex items-center gap-1 justify-start">
                           <CheckSquare className="w-3.5 h-3.5" />
-                          <span>{isAr ? "توجيهات دعم القرار الإلزامي ببهية:" : "Dynamic Clinical Orders Guidelines:"}</span>
+                          <span>{isAr ? "توجيهات دعم القرار الإلزامي بالمستشفى:" : "Dynamic Clinical Orders Guidelines:"}</span>
                         </div>
                         <ul className="list-disc pr-4 space-y-1 leading-relaxed">
                           {simActiveResult.recommendations.map((rec: string, idx: number) => (
@@ -1373,7 +1529,7 @@ export default function QualityAnalyticsHub({
                     </button>
                     <p className="text-center text-[8px] text-slate-550 mt-1.5">
                       {isAr 
-                        ? "ملاحظة: الضغط يقوم بإنشاء سجل تدقيق معتمد غير قابل للتلاعب في قاعدة بهية السحابية."
+                        ? "ملاحظة: الضغط يقوم بإنشاء سجل تدقيق معتمد غير قابل للتلاعب في قاعدة المستشفى السحابية."
                         : "Creates a certified immutable audit entry in the central cloud node."}
                     </p>
                   </div>
@@ -1395,7 +1551,7 @@ export default function QualityAnalyticsHub({
                 </h4>
                 <p className="text-[10px] text-slate-500 mt-0.5">
                   {isAr 
-                    ? "السجلات السحابية الموثقة لجميع الحالات ومخرجات الدعم السريري وقرارات الأطباء والممرضين ببهية:"
+                    ? "السجلات السحابية الموثقة لجميع الحالات ومخرجات الدعم السريري وقرارات الأطباء والممرضين بالمستشفى:"
                     : "Historically synced decision outputs, and parameters checked directly."}
                 </p>
               </div>
@@ -1710,7 +1866,7 @@ export default function QualityAnalyticsHub({
                   <div className="p-3 bg-red-950/40 rounded-xl border border-red-900/30 relative flex gap-2">
                     <AlertTriangle size={15} className="text-red-400 shrink-0 mt-0.5" />
                     <div>
-                      <span className="text-[10px] font-extrabold text-red-300 block">ثلاجة الأنسولين (طوارئ {hospitalSettings?.nameAr || "بهية"}):</span>
+                      <span className="text-[10px] font-extrabold text-red-300 block">ثلاجة الأنسولين (طوارئ {hospitalSettings?.nameAr || "المستشفى"}):</span>
                       <p className="text-[10.5px] text-slate-200 mt-0.5">درجة حرارة المسجلة {records.length === 0 ? "10" : "1.5"}درجة مئوية (خارج الحدود الطبيعية 2-8م°).</p>
                     </div>
                   </div>
@@ -2786,6 +2942,256 @@ export default function QualityAnalyticsHub({
         </div>
       )}
 
+      {/* ======================= TAB 8: PERIODIC PERFORMANCE REPORTS ======================= */}
+      {activeTab === "reports" && (
+        <div className="space-y-4">
+          <div className="bg-gradient-to-br from-purple-800 to-indigo-900 rounded-3xl p-6 text-white text-right shadow-md relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
+              <div className="absolute -top-20 -right-20 w-64 h-64 bg-white rounded-full blur-3xl"></div>
+            </div>
+            
+            <div className="relative z-10 flex items-start justify-between">
+              <div className="flex bg-white/10 rounded-2xl p-3 border border-white/10 backdrop-blur-md">
+                <BarChart3 className="h-8 w-8 text-purple-200" />
+              </div>
+              <div>
+                <span className="font-mono text-[10px] text-purple-200 tracking-wider bg-white/10 px-2.5 py-0.5 rounded-lg border border-white/10 block mb-2 w-max ml-auto">PERFORMANCE REPORTS ENGINE</span>
+                <h2 className="text-2xl font-black text-white">{isAr ? "مجلس التقارير الدورية والأداء" : "Periodic Performance Reports"}</h2>
+                <p className="text-xs text-purple-200 mt-1.5 max-w-lg leading-relaxed mr-auto">
+                  {isAr ? "منصة استخراج تقارير الأداء الشهرية والربع سنوية للأقسام السريرية. يتم تجميع معدلات الامتثال السابقة وتحليل كفاءة أداء طواقم التمريض لإصدار وتوقيع الاعتمادات الإدارية." : "Generate and sign quarterly & monthly performance reports bridging legacy compliance matrices to issue administrative health accreditations."}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            
+            {/* Generate Report Form */}
+            <div className="lg:col-span-1 space-y-4">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sticky top-4">
+                <div className="flex items-center gap-2 mb-4 justify-end">
+                  <h3 className="font-black text-sm text-slate-800">{isAr ? "إصدار تقرير دوري جديد" : "Draft New Report"}</h3>
+                  <div className="bg-purple-100 text-purple-700 p-1.5 rounded-lg">
+                    <FileText className="h-4 w-4" />
+                  </div>
+                </div>
+
+                <div className="space-y-3 text-right">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">{isAr ? "القسم السريري (الهدف):" : "Target Department:"}</label>
+                    <select
+                      value={reportDept}
+                      onChange={(e) => setReportDept(e.target.value)}
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 w-full text-xs text-right outline-none focus:ring-1 focus:ring-purple-500 font-bold"
+                    >
+                      {/* You can map standard departments here or use specific units */}
+                      <option value="EMERGENCY UNIT">طوارئ (EMERGENCY UNIT)</option>
+                      <option value="INTENSIVE CARE UNIT (ICU)">رعاية مركزة (ICU)</option>
+                      <option value="CHEMO UNIT PREPN">صيدلية كيماوي (CHEMO UNIT)</option>
+                      <option value="ONCO-SURGICAL UNIT">جراحة أورام (ONCO-SURGICAL)</option>
+                      <option value="OPERATING ROOM">غرف العمليات (OR)</option>
+                      <option value="OUTPATIENT CLINIC">عيادات خارجية (OPD)</option>
+                      <option value="RADIOLOGY UNIT">الأشعة (RADIOLOGY)</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1">{isAr ? "دورية التقرير:" : "Period Cycle:"}</label>
+                      <select
+                        value={reportPeriodType}
+                        onChange={(e: any) => setReportPeriodType(e.target.value)}
+                        className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 w-full text-xs text-right outline-none focus:ring-1 focus:ring-purple-500 font-bold"
+                      >
+                        <option value="monthly">{isAr ? "شهري" : "Monthly"}</option>
+                        <option value="quarterly">{isAr ? "ربع سنوي" : "Quarterly"}</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1">{isAr ? "السنة المالية:" : "Fiscal Year:"}</label>
+                      <input
+                        type="number"
+                        value={reportYear}
+                        onChange={(e) => setReportYear(parseInt(e.target.value) || new Date().getFullYear())}
+                        className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 w-full text-xs outline-none focus:ring-1 focus:ring-purple-500 font-bold text-center"
+                      />
+                    </div>
+                  </div>
+
+                  {reportPeriodType === "monthly" ? (
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1">{isAr ? "الشهر (1-12):" : "Month:"}</label>
+                      <input
+                        type="number"
+                        min="1" max="12"
+                        value={reportMonth}
+                        onChange={(e) => setReportMonth(parseInt(e.target.value) || 1)}
+                        className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 w-full text-xs outline-none focus:ring-1 focus:ring-purple-500 font-sans font-bold"
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1">{isAr ? "الربع (1-4):" : "Quarter:"}</label>
+                      <input
+                        type="number"
+                        min="1" max="4"
+                        value={reportQuarter}
+                        onChange={(e) => setReportQuarter(parseInt(e.target.value) || 1)}
+                        className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 w-full text-xs outline-none focus:ring-1 focus:ring-purple-500 font-sans font-bold"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">{isAr ? "نسبة الامتثال المستهدفة (%):" : "Target Compliance (%):"}</label>
+                    <input
+                      type="number"
+                      value={reportTargetCompliance}
+                      onChange={(e) => setReportTargetCompliance(parseInt(e.target.value) || 0)}
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 w-full text-xs outline-none focus:ring-1 focus:ring-purple-500 font-sans font-bold text-right"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">{isAr ? "أبرز الملاحظات التشغيلية:" : "Operational Highlights:"}</label>
+                    <textarea
+                      value={reportHighlights}
+                      onChange={(e) => setReportHighlights(e.target.value)}
+                      rows={3}
+                      placeholder={isAr ? "اكتب الإنجازات وإيجابيات الأداء..." : "Type highlights..."}
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 w-full text-xs outline-none focus:ring-1 focus:ring-purple-500 font-sans font-semibold text-right"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">{isAr ? "التوصيات وخطة التحسين:" : "Recommendations & CAPA:"}</label>
+                    <textarea
+                      value={reportRecommendations}
+                      onChange={(e) => setReportRecommendations(e.target.value)}
+                      rows={3}
+                      placeholder={isAr ? "اكتب توصيات تصحيحية لرفع الامتثال..." : "Type correction plan..."}
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 w-full text-xs outline-none focus:ring-1 focus:ring-purple-500 font-sans font-semibold text-right"
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleGeneratePeriodicReport}
+                    className="w-full bg-purple-650 hover:bg-purple-700 text-white font-black text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-2 mt-4"
+                  >
+                    <span>{isAr ? "توليد ونشر التقرير بالمسودة" : "Generate Draft & Publish"}</span>
+                    <Sparkles className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Existing Reports Ledger */}
+            <div className="lg:col-span-2 space-y-3">
+              <div className="flex items-center justify-between mb-2">
+                 <div className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{periodicReports.length} {isAr ? "مستندات مجدولة" : "Reports available"}</div>
+                 <h3 className="font-black text-slate-700">{isAr ? "أرشيف تقارير الأداء للقسم" : "Department Performance Ledger"}</h3>
+              </div>
+
+              {periodicReports.length === 0 ? (
+                <div className="text-center py-10 bg-purple-50/50 border border-dashed border-purple-200 rounded-2xl">
+                  <FileText className="h-8 w-8 text-purple-200 mx-auto mb-2" />
+                  <h4 className="text-sm font-bold text-purple-800">{isAr ? "لا توجد تقارير دورية" : "No Periodic Reports yet"}</h4>
+                  <p className="text-[10px] text-purple-600/70 mt-1">{isAr ? "استخرج التقرير الأول من اللوحة الجانبية" : "Generate your first report from the board"}</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {periodicReports.map((rp: any) => (
+                    <div key={rp.id} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden flex flex-col h-full text-right">
+                      {rp.status === "Signed" && (
+                         <div className="absolute -left-6 top-3 bg-emerald-500 text-white text-[9px] font-black px-8 py-0.5 transform -rotate-45 shadow-sm font-mono tracking-wider">
+                           SECURE
+                         </div>
+                      )}
+                      
+                      <div className="flex justify-between items-start mb-3">
+                        <button
+                          onClick={() => {
+                            if (confirm(isAr ? "هل أنت متأكد من حذف هذا التقرير من مصفوفة الأرشيف؟" : "Confirm secure deletion?")) {
+                              deletePeriodicReport(rp.id);
+                            }
+                          }}
+                          className="bg-rose-50 text-rose-600 hover:bg-rose-100 p-1.5 rounded-lg transition"
+                          title="مسح التقرير نهائياً"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                        <div>
+                           <h4 className="font-black text-sm text-slate-800">{rp.department}</h4>
+                           <span className="font-mono text-[9px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 border border-slate-200 block w-max ml-auto mt-1">
+                             {rp.id}
+                           </span>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-1.5 mb-3">
+                         <span className="bg-purple-50 text-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-md border border-purple-100">
+                           {rp.periodType === "monthly" ? "دورية شهرية" : "دورية ربع سنوية"}
+                         </span>
+                         <span className="bg-slate-50 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-md border border-slate-200">
+                           {rp.periodType === "monthly" ? `شهر ${rp.periodReference}` : `ربع ${rp.periodReference}`} - {rp.year}
+                         </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 mb-3 bg-slate-50 p-2 rounded-xl border border-slate-100">
+                        <div className="text-center p-1.5">
+                          <span className="text-[9px] text-slate-400 font-bold block">{isAr ? "الهدف للقسم" : "Target"}</span>
+                          <span className="text-sm font-black text-slate-700">{rp.targetCompliance}%</span>
+                        </div>
+                        <div className="text-center p-1.5 border-r border-slate-200">
+                          <span className="text-[9px] text-slate-400 font-bold block">{isAr ? "الامتثال الفعلي" : "Achieved"}</span>
+                          <span className={`text-sm font-black ${rp.actualComplianceScore >= rp.targetCompliance ? "text-emerald-600" : "text-rose-600"}`}>
+                            {rp.actualComplianceScore}%
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 mt-auto">
+                        <p className="text-[10px] text-slate-600 leading-relaxed font-semibold bg-blue-50/50 p-2 rounded-lg border border-blue-100/50">
+                          <span className="font-black text-blue-800 block mb-0.5">{isAr ? "أبرز الملاحظات:" : "Highlights:"}</span>
+                          {rp.highlights}
+                        </p>
+                        <p className="text-[10px] text-slate-600 leading-relaxed font-semibold bg-amber-50/50 p-2 rounded-lg border border-amber-100/50">
+                          <span className="font-black text-amber-800 block mb-0.5">{isAr ? "التوصيات المطلوبة:" : "Recommendations:"}</span>
+                          {rp.recommendations}
+                        </p>
+                      </div>
+
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                         <div className="text-[9px] text-slate-400">
+                           <span className="block font-bold">إعداد: {rp.authorName}</span>
+                           <span className="block">{new Date(rp.timestamp).toLocaleDateString()}</span>
+                         </div>
+                         
+                         {rp.status === "Draft" ? (
+                           <button
+                             onClick={() => handleSignReport(rp)}
+                             className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg transition"
+                           >
+                             {isAr ? "توقيع واعتماد OVR" : "Sign & Accredit"}
+                           </button>
+                         ) : (
+                           <div className="text-left font-mono">
+                             <div className="text-emerald-600 font-bold text-[9px] block">SIGNED ACCEPTED</div>
+                             <div className="text-[7.5px] text-slate-400">{new Date(rp.signedAt).toLocaleDateString()}</div>
+                           </div>
+                         )}
+                      </div>
+
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {/* ======================= TAB 7: CERTIFIED QUALITY & ACCREDITATION ARCHIVE ======================= */}
       {activeTab === "archive" && (() => {
         // Compile unified Quality Archive Ledger
@@ -2802,7 +3208,7 @@ export default function QualityAnalyticsHub({
             titleEn: `OVR Safety Variance: ${o.categoryEn}`,
             date: o.date,
             department: o.department || "CHEMOTHERAPY DAYCARE",
-            operator: o.loggedBy || "جودة بهية",
+            operator: o.loggedBy || "جودة المستشفى",
             status: o.status || "Under Active Surveillance",
             originalData: o
           });
@@ -3314,7 +3720,7 @@ export default function QualityAnalyticsHub({
                         <div>
                           <p className="font-black text-rose-900">الختم الاعتمادي لإدارة الجودة:</p>
                           <div className="mt-2 w-28 h-20 rounded bg-rose-50 border border-rose-200 text-center flex flex-col justify-center items-center text-[8px] text-rose-850 transform -rotate-3 select-none leading-tight border-double font-black p-1 shadow-sm">
-                            <p>مستشفى بهية المعتمدة</p>
+                            <p>مستشفى المستشفى المعتمدة</p>
                             <p className="text-[7.5px] text-rose-600 mt-1">APPROVED SYSTEM</p>
                             <p className="text-[7.5px] font-bold font-mono">GAHAR COMPLIANT</p>
                             <p className="text-[6.5px] text-slate-400 font-mono mt-1">CQI-REF-PASSED</p>
@@ -3326,7 +3732,7 @@ export default function QualityAnalyticsHub({
                           <div>
                             <p className="font-extrabold text-slate-850 font-mono">DIGITAL SIGN-OFF SECURE</p>
                             <p className="text-[10px] text-slate-405 leading-snug">
-                              مؤسسة و مستشفيات بهية للتطوير - مركز التقييم والاعتماد الوطني CQI لعام 2026.
+                              مؤسسة و مستشفيات المستشفى للتطوير - مركز التقييم والاعتماد الوطني CQI لعام 2026.
                             </p>
                           </div>
                         </div>

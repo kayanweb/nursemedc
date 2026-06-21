@@ -57,7 +57,7 @@ async function safeGetDoc(docRef: any) {
 // 1. Connection check
 export async function testConnection(): Promise<boolean> {
   try {
-    const docRef = doc(db, "baheya_clinical_records", "test-connection");
+    const docRef = doc(db, "hospital_clinical_records", "test-connection");
     const docSnap = await getDoc(docRef);
     return docSnap.exists();
   } catch (error) {
@@ -68,7 +68,7 @@ export async function testConnection(): Promise<boolean> {
 
 // 2. Clinical Records Sync (Real-time)
 export function syncClinicalRecords(onData: (records: SavedRecord[]) => void) {
-  const path = "baheya_clinical_records";
+  const path = "hospital_clinical_records";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -85,18 +85,18 @@ export function syncClinicalRecords(onData: (records: SavedRecord[]) => void) {
 }
 
 export async function saveClinicalRecord(record: SavedRecord): Promise<void> {
-  const path = `baheya_clinical_records/${record.id}`;
+  const path = `hospital_clinical_records/${record.id}`;
   try {
-    await setDoc(doc(db, "baheya_clinical_records", record.id), record);
+    await setDoc(doc(db, "hospital_clinical_records", record.id), record);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
 export async function deleteClinicalRecord(recordId: string): Promise<void> {
-  const path = `baheya_clinical_records/${recordId}`;
+  const path = `hospital_clinical_records/${recordId}`;
   try {
-    await deleteDoc(doc(db, "baheya_clinical_records", recordId));
+    await deleteDoc(doc(db, "hospital_clinical_records", recordId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
@@ -104,7 +104,7 @@ export async function deleteClinicalRecord(recordId: string): Promise<void> {
 
 // 3. Staff Registry Sync (Real-time)
 export function syncStaffRegistry(onData: (users: AppUser[]) => void) {
-  const path = "baheya_staff_registry";
+  const path = "hospital_staff_registry";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -121,18 +121,18 @@ export function syncStaffRegistry(onData: (users: AppUser[]) => void) {
 }
 
 export async function saveStaffMember(user: AppUser): Promise<void> {
-  const path = `baheya_staff_registry/${user.id}`;
+  const path = `hospital_staff_registry/${user.id}`;
   try {
-    await setDoc(doc(db, "baheya_staff_registry", user.id), user);
+    await setDoc(doc(db, "hospital_staff_registry", user.id), user);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
 export async function deleteStaffMember(userId: string): Promise<void> {
-  const path = `baheya_staff_registry/${userId}`;
+  const path = `hospital_staff_registry/${userId}`;
   try {
-    await deleteDoc(doc(db, "baheya_staff_registry", userId));
+    await deleteDoc(doc(db, "hospital_staff_registry", userId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
@@ -140,7 +140,7 @@ export async function deleteStaffMember(userId: string): Promise<void> {
 
 // 4. Daily Supervisor Audits Sync (Real-time)
 export function syncDailyAudits(onData: (audits: UnitDailyChecklist[]) => void) {
-  const path = "baheya_daily_audits";
+  const path = "hospital_daily_audits";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -157,9 +157,9 @@ export function syncDailyAudits(onData: (audits: UnitDailyChecklist[]) => void) 
 }
 
 export async function saveDailyAudit(audit: UnitDailyChecklist): Promise<void> {
-  const path = `baheya_daily_audits/${audit.id}`;
+  const path = `hospital_daily_audits/${audit.id}`;
   try {
-    await setDoc(doc(db, "baheya_daily_audits", audit.id), audit);
+    await setDoc(doc(db, "hospital_daily_audits", audit.id), audit);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -167,7 +167,7 @@ export async function saveDailyAudit(audit: UnitDailyChecklist): Promise<void> {
 
 // 5. System Troubleshooting / IT Logs Sync (Real-time and persistent)
 export function syncSystemLogs(onData: (logs: SystemLog[]) => void) {
-  const path = "baheya_system_logs";
+  const path = "hospital_system_logs";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -186,18 +186,18 @@ export function syncSystemLogs(onData: (logs: SystemLog[]) => void) {
 }
 
 export async function saveSystemLog(log: SystemLog): Promise<void> {
-  const path = `baheya_system_logs/${log.id}`;
+  const path = `hospital_system_logs/${log.id}`;
   try {
-    await setDoc(doc(db, "baheya_system_logs", log.id), log);
+    await setDoc(doc(db, "hospital_system_logs", log.id), log);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
 export async function deleteSystemLog(logId: string): Promise<void> {
-  const path = `baheya_system_logs/${logId}`;
+  const path = `hospital_system_logs/${logId}`;
   try {
-    await deleteDoc(doc(db, "baheya_system_logs", logId));
+    await deleteDoc(doc(db, "hospital_system_logs", logId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
@@ -205,7 +205,7 @@ export async function deleteSystemLog(logId: string): Promise<void> {
 
 // 7. Duty Tasks Sync
 export function syncDutyTasks(onData: (tasks: DailyDutyTask[]) => void) {
-  const path = "baheya_daily_duty_tasks";
+  const path = "hospital_daily_duty_tasks";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -222,9 +222,9 @@ export function syncDutyTasks(onData: (tasks: DailyDutyTask[]) => void) {
 }
 
 export async function saveDutyTask(task: DailyDutyTask): Promise<void> {
-  const path = `baheya_daily_duty_tasks/${task.id}`;
+  const path = `hospital_daily_duty_tasks/${task.id}`;
   try {
-    await setDoc(doc(db, "baheya_daily_duty_tasks", task.id), task);
+    await setDoc(doc(db, "hospital_daily_duty_tasks", task.id), task);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -232,7 +232,7 @@ export async function saveDutyTask(task: DailyDutyTask): Promise<void> {
 
 // 8. Custom Templates Sync
 export function syncCustomTemplates(onData: (templates: FormTemplate[]) => void) {
-  const path = "baheya_custom_templates";
+  const path = "hospital_custom_templates";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -249,18 +249,18 @@ export function syncCustomTemplates(onData: (templates: FormTemplate[]) => void)
 }
 
 export async function saveCustomTemplate(template: FormTemplate): Promise<void> {
-  const path = `baheya_custom_templates/${template.id}`;
+  const path = `hospital_custom_templates/${template.id}`;
   try {
-    await setDoc(doc(db, "baheya_custom_templates", template.id), template);
+    await setDoc(doc(db, "hospital_custom_templates", template.id), template);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
 export async function deleteCustomTemplate(templateId: string): Promise<void> {
-  const path = `baheya_custom_templates/${templateId}`;
+  const path = `hospital_custom_templates/${templateId}`;
   try {
-    await deleteDoc(doc(db, "baheya_custom_templates", templateId));
+    await deleteDoc(doc(db, "hospital_custom_templates", templateId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
@@ -268,7 +268,7 @@ export async function deleteCustomTemplate(templateId: string): Promise<void> {
 
 // 10. System Users Sync
 export function syncSystemUsers(onData: (users: AppUser[]) => void) {
-  const path = "baheya_staff_registry";
+  const path = "hospital_staff_registry";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -285,9 +285,9 @@ export function syncSystemUsers(onData: (users: AppUser[]) => void) {
 }
 
 export async function saveSystemUser(user: AppUser): Promise<void> {
-  const path = `baheya_staff_registry/${user.id}`;
+  const path = `hospital_staff_registry/${user.id}`;
   try {
-    await setDoc(doc(db, "baheya_staff_registry", user.id), user);
+    await setDoc(doc(db, "hospital_staff_registry", user.id), user);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -295,7 +295,7 @@ export async function saveSystemUser(user: AppUser): Promise<void> {
 
 // 10.5. Roster Lists / Department Rosters Sync and Save
 export function syncDepartmentRosters(onData: (rosters: any[]) => void) {
-  const path = "baheya_department_rosters";
+  const path = "hospital_department_rosters";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -312,10 +312,10 @@ export function syncDepartmentRosters(onData: (rosters: any[]) => void) {
 }
 
 export async function saveDepartmentRoster(roster: any): Promise<void> {
-  const path = `baheya_department_rosters/${roster.id}`;
+  const path = `hospital_department_rosters/${roster.id}`;
   console.log(`Saving roster ${roster.id} to Firestore.`);
   try {
-    await setDoc(doc(db, "baheya_department_rosters", roster.id), roster);
+    await setDoc(doc(db, "hospital_department_rosters", roster.id), roster);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -323,7 +323,7 @@ export async function saveDepartmentRoster(roster: any): Promise<void> {
 
 // 10.6. Roster Wishes Sync and Save
 export function syncRosterWishes(onData: (wishes: any[]) => void) {
-  const path = "baheya_roster_wishes";
+  const path = "hospital_roster_wishes";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -340,18 +340,18 @@ export function syncRosterWishes(onData: (wishes: any[]) => void) {
 }
 
 export async function saveRosterWish(wish: any): Promise<void> {
-  const path = `baheya_roster_wishes/${wish.id}`;
+  const path = `hospital_roster_wishes/${wish.id}`;
   try {
-    await setDoc(doc(db, "baheya_roster_wishes", wish.id), wish);
+    await setDoc(doc(db, "hospital_roster_wishes", wish.id), wish);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
 export async function deleteRosterWish(wishId: string): Promise<void> {
-  const path = `baheya_roster_wishes/${wishId}`;
+  const path = `hospital_roster_wishes/${wishId}`;
   try {
-    await deleteDoc(doc(db, "baheya_roster_wishes", wishId));
+    await deleteDoc(doc(db, "hospital_roster_wishes", wishId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
@@ -359,7 +359,7 @@ export async function deleteRosterWish(wishId: string): Promise<void> {
 
 // 10.7. Resolved Gaps Sync and Save
 export function syncResolvedGaps(onData: (gaps: any[]) => void) {
-  const path = "baheya_resolved_gaps";
+  const path = "hospital_resolved_gaps";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -376,18 +376,18 @@ export function syncResolvedGaps(onData: (gaps: any[]) => void) {
 }
 
 export async function saveResolvedGap(gap: any): Promise<void> {
-  const path = `baheya_resolved_gaps/${gap.id}`;
+  const path = `hospital_resolved_gaps/${gap.id}`;
   try {
-    await setDoc(doc(db, "baheya_resolved_gaps", gap.id), gap);
+    await setDoc(doc(db, "hospital_resolved_gaps", gap.id), gap);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
 export async function deleteResolvedGap(gapId: string): Promise<void> {
-  const path = `baheya_resolved_gaps/${gapId}`;
+  const path = `hospital_resolved_gaps/${gapId}`;
   try {
-    await deleteDoc(doc(db, "baheya_resolved_gaps", gapId));
+    await deleteDoc(doc(db, "hospital_resolved_gaps", gapId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
@@ -395,7 +395,7 @@ export async function deleteResolvedGap(gapId: string): Promise<void> {
 
 // 10.8. Role Permissions Document
 export async function getRolePermissions(): Promise<any> {
-    const docRef = doc(db, "baheya_settings", "role_permissions");
+    const docRef = doc(db, "hospital_settings", "role_permissions");
     const docSnap = await safeGetDoc(docRef);
     if (docSnap && docSnap.exists()) {
       return (docSnap.data() as any).permissions;
@@ -404,9 +404,9 @@ export async function getRolePermissions(): Promise<any> {
 }
 
 export async function saveRolePermissions(permissions: any): Promise<void> {
-  const path = `baheya_settings/role_permissions`;
+  const path = `hospital_settings/role_permissions`;
   try {
-    await setDoc(doc(db, "baheya_settings", "role_permissions"), { permissions });
+    await setDoc(doc(db, "hospital_settings", "role_permissions"), { permissions });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -414,7 +414,7 @@ export async function saveRolePermissions(permissions: any): Promise<void> {
 
 // 10.9. Roster Approvals Document
 export async function getRosterApprovals(): Promise<any> {
-    const docRef = doc(db, "baheya_settings", "roster_approvals");
+    const docRef = doc(db, "hospital_settings", "roster_approvals");
     const docSnap = await safeGetDoc(docRef);
     if (docSnap && docSnap.exists()) {
       return docSnap.data();
@@ -423,9 +423,9 @@ export async function getRosterApprovals(): Promise<any> {
 }
 
 export async function saveRosterApprovals(approvals: any): Promise<void> {
-  const path = `baheya_settings/roster_approvals`;
+  const path = `hospital_settings/roster_approvals`;
   try {
-    await setDoc(doc(db, "baheya_settings", "roster_approvals"), approvals);
+    await setDoc(doc(db, "hospital_settings", "roster_approvals"), approvals);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -433,7 +433,7 @@ export async function saveRosterApprovals(approvals: any): Promise<void> {
 
 // 10.10. Custom Template Overrides and Deactivations
 export async function getTemplateConfig(): Promise<any> {
-    const docRef = doc(db, "baheya_settings", "template_config");
+    const docRef = doc(db, "hospital_settings", "template_config");
     const docSnap = await safeGetDoc(docRef);
     if (docSnap && docSnap.exists()) {
       return docSnap.data();
@@ -442,16 +442,16 @@ export async function getTemplateConfig(): Promise<any> {
 }
 
 export async function saveTemplateConfig(config: any): Promise<void> {
-  const path = `baheya_settings/template_config`;
+  const path = `hospital_settings/template_config`;
   try {
-    await setDoc(doc(db, "baheya_settings", "template_config"), config);
+    await setDoc(doc(db, "hospital_settings", "template_config"), config);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
 export async function getResolvedGapsCloud(): Promise<any> {
-    const docRef = doc(db, "baheya_settings", "resolved_gaps");
+    const docRef = doc(db, "hospital_settings", "resolved_gaps");
     const docSnap = await safeGetDoc(docRef);
     if (docSnap && docSnap.exists()) {
         return docSnap.data();
@@ -460,9 +460,9 @@ export async function getResolvedGapsCloud(): Promise<any> {
 }
 
 export async function saveResolvedGapsCloud(gaps: any): Promise<void> {
-    const path = `baheya_settings/resolved_gaps`;
+    const path = `hospital_settings/resolved_gaps`;
     try {
-        await setDoc(doc(db, "baheya_settings", "resolved_gaps"), gaps);
+        await setDoc(doc(db, "hospital_settings", "resolved_gaps"), gaps);
     } catch (error) {
         handleFirestoreError(error, OperationType.WRITE, path);
     }
@@ -637,7 +637,7 @@ export async function deletePermission(permId: string): Promise<void> {
 
 // 10.15. Sentinel Incidents Real-time Sync and Save
 export function syncSentinelIncidents(onData: (incidents: any[]) => void) {
-  const path = "baheya_sentinel_incidents";
+  const path = "hospital_sentinel_incidents";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -654,18 +654,18 @@ export function syncSentinelIncidents(onData: (incidents: any[]) => void) {
 }
 
 export async function saveSentinelIncident(incident: any): Promise<void> {
-  const path = `baheya_sentinel_incidents/${incident.id}`;
+  const path = `hospital_sentinel_incidents/${incident.id}`;
   try {
-    await setDoc(doc(db, "baheya_sentinel_incidents", incident.id), incident);
+    await setDoc(doc(db, "hospital_sentinel_incidents", incident.id), incident);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
 export async function deleteSentinelIncident(incidentId: string): Promise<void> {
-  const path = `baheya_sentinel_incidents/${incidentId}`;
+  const path = `hospital_sentinel_incidents/${incidentId}`;
   try {
-    await deleteDoc(doc(db, "baheya_sentinel_incidents", incidentId));
+    await deleteDoc(doc(db, "hospital_sentinel_incidents", incidentId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
@@ -705,7 +705,18 @@ export async function saveSetting(key: string, value: any): Promise<void> {
 }
 
 export function syncCloudDocuments(onData: (docs: any[]) => void) {
-  const path = "baheya_cqi_documents";
+  const path = "hospital_cqi_documents";
+  
+  // Local fallback immediately
+  try {
+    const local = localStorage.getItem("hospital_cloud_docs_fallback");
+    if (local) {
+      onData(JSON.parse(local));
+    }
+  } catch (e) {
+    console.warn("Local storage parse error:", e);
+  }
+
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -715,27 +726,66 @@ export function syncCloudDocuments(onData: (docs: any[]) => void) {
       });
       // Sort by timestamp desc
       list.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      
+      try {
+        localStorage.setItem("hospital_cloud_docs_fallback", JSON.stringify(list));
+      } catch (e) {
+        console.warn("Quota exceeded for cloud docs local cache");
+      }
+      
       onData(list);
     },
     (error) => {
       handleFirestoreError(error, OperationType.LIST, path);
+      // Ensure onData is called even on error so UI stops loading spinner
+      try {
+        const local = localStorage.getItem("hospital_cloud_docs_fallback");
+        onData(local ? JSON.parse(local) : []);
+      } catch (e) {
+        onData([]);
+      }
     }
   );
 }
 
 export async function saveCloudDocument(docData: any): Promise<void> {
-  const path = `baheya_cqi_documents/${docData.id}`;
+  const path = `hospital_cqi_documents/${docData.id}`;
+  
+  // Local fallback
   try {
-      await setDoc(doc(db, "baheya_cqi_documents", docData.id), docData);
+    const local = localStorage.getItem("hospital_cloud_docs_fallback");
+    let list = local ? JSON.parse(local) : [];
+    list = list.filter((d: any) => d.id !== docData.id);
+    list.push(docData);
+    list.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    localStorage.setItem("hospital_cloud_docs_fallback", JSON.stringify(list));
+  } catch (e) {
+    console.warn("Quota exceeded saving doc to local schema", e);
+  }
+
+  try {
+      await setDoc(doc(db, "hospital_cqi_documents", docData.id), docData);
   } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
 export async function deleteCloudDocument(docId: string): Promise<void> {
-  const path = `baheya_cqi_documents/${docId}`;
+  const path = `hospital_cqi_documents/${docId}`;
+  
+  // Local fallback
   try {
-      await deleteDoc(doc(db, "baheya_cqi_documents", docId));
+    const local = localStorage.getItem("hospital_cloud_docs_fallback");
+    if (local) {
+      const list = JSON.parse(local).filter((d: any) => d.id !== docId);
+      localStorage.setItem("hospital_cloud_docs_fallback", JSON.stringify(list));
+    }
+  } catch (e) {
+    console.warn("Could not delete from local storage", e);
+  }
+
+  try {
+      await deleteDoc(doc(db, "hospital_cqi_documents", docId));
   } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, path);
   }
@@ -743,7 +793,7 @@ export async function deleteCloudDocument(docId: string): Promise<void> {
 
 // 15. Quality OVRs Sync and Save
 export function syncCQIOvrs(onData: (ovrs: any[]) => void) {
-  const path = "baheya_cqi_ovrs";
+  const path = "hospital_cqi_ovrs";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -760,18 +810,18 @@ export function syncCQIOvrs(onData: (ovrs: any[]) => void) {
 }
 
 export async function saveCQIOvr(ovr: any): Promise<void> {
-  const path = `baheya_cqi_ovrs/${ovr.id}`;
+  const path = `hospital_cqi_ovrs/${ovr.id}`;
   try {
-    await setDoc(doc(db, "baheya_cqi_ovrs", ovr.id), ovr);
+    await setDoc(doc(db, "hospital_cqi_ovrs", ovr.id), ovr);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
 export async function deleteCQIOvr(ovrId: string): Promise<void> {
-  const path = `baheya_cqi_ovrs/${ovrId}`;
+  const path = `hospital_cqi_ovrs/${ovrId}`;
   try {
-    await deleteDoc(doc(db, "baheya_cqi_ovrs", ovrId));
+    await deleteDoc(doc(db, "hospital_cqi_ovrs", ovrId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
@@ -779,7 +829,7 @@ export async function deleteCQIOvr(ovrId: string): Promise<void> {
 
 // 16. Staff Evaluation Sync and Save
 export function syncCQIStaffEvals(onData: (evals: any[]) => void) {
-  const path = "baheya_cqi_staff_evals";
+  const path = "hospital_cqi_staff_evals";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -796,18 +846,18 @@ export function syncCQIStaffEvals(onData: (evals: any[]) => void) {
 }
 
 export async function saveCQIStaffEval(evaluation: any): Promise<void> {
-  const path = `baheya_cqi_staff_evals/${evaluation.id}`;
+  const path = `hospital_cqi_staff_evals/${evaluation.id}`;
   try {
-    await setDoc(doc(db, "baheya_cqi_staff_evals", evaluation.id), evaluation);
+    await setDoc(doc(db, "hospital_cqi_staff_evals", evaluation.id), evaluation);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
 export async function deleteCQIStaffEval(evalId: string): Promise<void> {
-  const path = `baheya_cqi_staff_evals/${evalId}`;
+  const path = `hospital_cqi_staff_evals/${evalId}`;
   try {
-    await deleteDoc(doc(db, "baheya_cqi_staff_evals", evalId));
+    await deleteDoc(doc(db, "hospital_cqi_staff_evals", evalId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
@@ -815,7 +865,7 @@ export async function deleteCQIStaffEval(evalId: string): Promise<void> {
 
 // 17. Unit Inspections Sync and Save
 export function syncCQIUnitInspections(onData: (inspections: any[]) => void) {
-  const path = "baheya_cqi_unit_inspections";
+  const path = "hospital_cqi_unit_inspections";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -832,18 +882,18 @@ export function syncCQIUnitInspections(onData: (inspections: any[]) => void) {
 }
 
 export async function saveCQIUnitInspection(inspection: any): Promise<void> {
-  const path = `baheya_cqi_unit_inspections/${inspection.id}`;
+  const path = `hospital_cqi_unit_inspections/${inspection.id}`;
   try {
-    await setDoc(doc(db, "baheya_cqi_unit_inspections", inspection.id), inspection);
+    await setDoc(doc(db, "hospital_cqi_unit_inspections", inspection.id), inspection);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
 export async function deleteCQIUnitInspection(inspId: string): Promise<void> {
-  const path = `baheya_cqi_unit_inspections/${inspId}`;
+  const path = `hospital_cqi_unit_inspections/${inspId}`;
   try {
-    await deleteDoc(doc(db, "baheya_cqi_unit_inspections", inspId));
+    await deleteDoc(doc(db, "hospital_cqi_unit_inspections", inspId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
@@ -851,7 +901,7 @@ export async function deleteCQIUnitInspection(inspId: string): Promise<void> {
 
 // 18. Policy Signatures Read-Receipt Log
 export function syncCQIPolicyAcks(onData: (acks: any[]) => void) {
-  const path = "baheya_policy_acks";
+  const path = "hospital_policy_acks";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -868,18 +918,18 @@ export function syncCQIPolicyAcks(onData: (acks: any[]) => void) {
 }
 
 export async function saveCQIPolicyAck(ack: any): Promise<void> {
-  const path = `baheya_policy_acks/${ack.id}`;
+  const path = `hospital_policy_acks/${ack.id}`;
   try {
-    await setDoc(doc(db, "baheya_policy_acks", ack.id), ack);
+    await setDoc(doc(db, "hospital_policy_acks", ack.id), ack);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
 export async function deleteCQIPolicyAck(ackId: string): Promise<void> {
-  const path = `baheya_policy_acks/${ackId}`;
+  const path = `hospital_policy_acks/${ackId}`;
   try {
-    await deleteDoc(doc(db, "baheya_policy_acks", ackId));
+    await deleteDoc(doc(db, "hospital_policy_acks", ackId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
@@ -887,7 +937,7 @@ export async function deleteCQIPolicyAck(ackId: string): Promise<void> {
 
 // 19. Clinical Decision Support Simulator Logs
 export function syncCQIDecisionLogs(onData: (logs: any[]) => void) {
-  const path = "baheya_decision_logs";
+  const path = "hospital_decision_logs";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -906,18 +956,18 @@ export function syncCQIDecisionLogs(onData: (logs: any[]) => void) {
 }
 
 export async function saveCQIDecisionLog(logData: any): Promise<void> {
-  const path = `baheya_decision_logs/${logData.id}`;
+  const path = `hospital_decision_logs/${logData.id}`;
   try {
-    await setDoc(doc(db, "baheya_decision_logs", logData.id), logData);
+    await setDoc(doc(db, "hospital_decision_logs", logData.id), logData);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
 export async function deleteCQIDecisionLog(logId: string): Promise<void> {
-  const path = `baheya_decision_logs/${logId}`;
+  const path = `hospital_decision_logs/${logId}`;
   try {
-    await deleteDoc(doc(db, "baheya_decision_logs", logId));
+    await deleteDoc(doc(db, "hospital_decision_logs", logId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
@@ -925,7 +975,7 @@ export async function deleteCQIDecisionLog(logId: string): Promise<void> {
 
 // 20. Leave Requests (Real-time)
 export function syncLeaveRequests(onData: (data: any[]) => void) {
-  const path = "baheya_leave_requests";
+  const path = "hospital_leave_requests";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -943,18 +993,18 @@ export function syncLeaveRequests(onData: (data: any[]) => void) {
 }
 
 export async function saveLeaveRequest(req: any): Promise<void> {
-  const path = `baheya_leave_requests/${req.id}`;
+  const path = `hospital_leave_requests/${req.id}`;
   try {
-    await setDoc(doc(db, "baheya_leave_requests", req.id), req);
+    await setDoc(doc(db, "hospital_leave_requests", req.id), req);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
 export async function deleteLeaveRequest(id: string): Promise<void> {
-  const path = `baheya_leave_requests/${id}`;
+  const path = `hospital_leave_requests/${id}`;
   try {
-    await deleteDoc(doc(db, "baheya_leave_requests", id));
+    await deleteDoc(doc(db, "hospital_leave_requests", id));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
@@ -962,7 +1012,7 @@ export async function deleteLeaveRequest(id: string): Promise<void> {
 
 // 21. Administrative Requests (Real-time)
 export function syncAdminRequests(onData: (data: any[]) => void) {
-  const path = "baheya_admin_requests";
+  const path = "hospital_admin_requests";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -980,18 +1030,18 @@ export function syncAdminRequests(onData: (data: any[]) => void) {
 }
 
 export async function saveAdminRequest(req: any): Promise<void> {
-  const path = `baheya_admin_requests/${req.id}`;
+  const path = `hospital_admin_requests/${req.id}`;
   try {
-    await setDoc(doc(db, "baheya_admin_requests", req.id), req);
+    await setDoc(doc(db, "hospital_admin_requests", req.id), req);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
 export async function deleteAdminRequest(id: string): Promise<void> {
-  const path = `baheya_admin_requests/${id}`;
+  const path = `hospital_admin_requests/${id}`;
   try {
-    await deleteDoc(doc(db, "baheya_admin_requests", id));
+    await deleteDoc(doc(db, "hospital_admin_requests", id));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
@@ -999,7 +1049,7 @@ export async function deleteAdminRequest(id: string): Promise<void> {
 
 // 22. Daily Duties Assignment (Real-time)
 export function syncDailyDuties(onData: (data: any[]) => void) {
-  const path = "baheya_daily_duties";
+  const path = "hospital_daily_duties";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -1016,18 +1066,18 @@ export function syncDailyDuties(onData: (data: any[]) => void) {
 }
 
 export async function saveDailyDuty(duty: any): Promise<void> {
-  const path = `baheya_daily_duties/${duty.id}`;
+  const path = `hospital_daily_duties/${duty.id}`;
   try {
-    await setDoc(doc(db, "baheya_daily_duties", duty.id), duty);
+    await setDoc(doc(db, "hospital_daily_duties", duty.id), duty);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
 export async function deleteDailyDuty(id: string): Promise<void> {
-  const path = `baheya_daily_duties/${id}`;
+  const path = `hospital_daily_duties/${id}`;
   try {
-    await deleteDoc(doc(db, "baheya_daily_duties", id));
+    await deleteDoc(doc(db, "hospital_daily_duties", id));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
@@ -1035,7 +1085,7 @@ export async function deleteDailyDuty(id: string): Promise<void> {
 
 // 23. Daily Emergency Teams Selection (Real-time)
 export function syncEmergencyTeams(onData: (data: any[]) => void) {
-  const path = "baheya_daily_emergency_teams";
+  const path = "hospital_daily_emergency_teams";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -1052,18 +1102,18 @@ export function syncEmergencyTeams(onData: (data: any[]) => void) {
 }
 
 export async function saveEmergencyTeam(team: any): Promise<void> {
-  const path = `baheya_daily_emergency_teams/${team.id}`;
+  const path = `hospital_daily_emergency_teams/${team.id}`;
   try {
-    await setDoc(doc(db, "baheya_daily_emergency_teams", team.id), team);
+    await setDoc(doc(db, "hospital_daily_emergency_teams", team.id), team);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
 export async function deleteEmergencyTeam(id: string): Promise<void> {
-  const path = `baheya_daily_emergency_teams/${id}`;
+  const path = `hospital_daily_emergency_teams/${id}`;
   try {
-    await deleteDoc(doc(db, "baheya_daily_emergency_teams", id));
+    await deleteDoc(doc(db, "hospital_daily_emergency_teams", id));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
@@ -1071,7 +1121,7 @@ export async function deleteEmergencyTeam(id: string): Promise<void> {
 
 // 24. HIS Modules (Real-time)
 export function syncPatients(onData: (data: any[]) => void) {
-  const path = "baheya_his_patients";
+  const path = "hospital_his_patients";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -1083,13 +1133,13 @@ export function syncPatients(onData: (data: any[]) => void) {
   );
 }
 export async function savePatient(patient: any): Promise<void> {
-  const path = `baheya_his_patients/${patient.id}`;
-  try { await setDoc(doc(db, "baheya_his_patients", patient.id), patient); }
+  const path = `hospital_his_patients/${patient.id}`;
+  try { await setDoc(doc(db, "hospital_his_patients", patient.id), patient); }
   catch (error) { handleFirestoreError(error, OperationType.WRITE, path); }
 }
 
 export function syncPrescriptions(onData: (data: any[]) => void) {
-  const path = "baheya_his_prescriptions";
+  const path = "hospital_his_prescriptions";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -1101,13 +1151,13 @@ export function syncPrescriptions(onData: (data: any[]) => void) {
   );
 }
 export async function savePrescription(prescription: any): Promise<void> {
-  const path = `baheya_his_prescriptions/${prescription.id}`;
-  try { await setDoc(doc(db, "baheya_his_prescriptions", prescription.id), prescription); }
+  const path = `hospital_his_prescriptions/${prescription.id}`;
+  try { await setDoc(doc(db, "hospital_his_prescriptions", prescription.id), prescription); }
   catch (error) { handleFirestoreError(error, OperationType.WRITE, path); }
 }
 
 export function syncInvoices(onData: (data: any[]) => void) {
-  const path = "baheya_his_invoices";
+  const path = "hospital_his_invoices";
   return onSnapshot(
     collection(db, path),
     (snapshot) => {
@@ -1119,9 +1169,45 @@ export function syncInvoices(onData: (data: any[]) => void) {
   );
 }
 export async function saveInvoice(invoice: any): Promise<void> {
-  const path = `baheya_his_invoices/${invoice.id}`;
-  try { await setDoc(doc(db, "baheya_his_invoices", invoice.id), invoice); }
+  const path = `hospital_his_invoices/${invoice.id}`;
+  try { await setDoc(doc(db, "hospital_his_invoices", invoice.id), invoice); }
   catch (error) { handleFirestoreError(error, OperationType.WRITE, path); }
+}
+
+// 27. Periodic Performance Reports Sync and Save
+export function syncPeriodicReports(onData: (reports: any[]) => void) {
+  const path = "hospital_periodic_reports";
+  return onSnapshot(
+    collection(db, path),
+    (snapshot) => {
+      const list: any[] = [];
+      snapshot.forEach((doc) => {
+        list.push(doc.data());
+      });
+      onData(list);
+    },
+    (error) => {
+      handleFirestoreError(error, OperationType.LIST, path);
+    }
+  );
+}
+
+export async function savePeriodicReport(report: any): Promise<void> {
+  const path = `hospital_periodic_reports/${report.id}`;
+  try {
+    await setDoc(doc(db, "hospital_periodic_reports", report.id), report);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+export async function deletePeriodicReport(reportId: string): Promise<void> {
+  const path = `hospital_periodic_reports/${reportId}`;
+  try {
+    await deleteDoc(doc(db, "hospital_periodic_reports", reportId));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
 }
 
 

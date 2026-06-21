@@ -21,12 +21,12 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [settings, setSettings] = useState<Settings>({ 
-    institutionNameAr: "مؤسسة بهية", 
-    institutionNameEn: "Baheya Foundation",
-    taglineAr: "في ضهر كل ست مصرية",
-    taglineEn: "Breast Cancer Screening & Treatment",
-    address: "الهرم / الشيخ زايد، الجيزة، مصر",
-    emergencyPhone: "19745"
+    institutionNameAr: "مؤسسة المستشفى", 
+    institutionNameEn: "Hospital Foundation",
+    taglineAr: "نحو رعاية طبية آمنة وممتازة",
+    taglineEn: "Care & Healing Services",
+    address: "الجيزة، مصر",
+    emergencyPhone: "19600"
   });
   const [loading, setLoading] = useState(true);
 

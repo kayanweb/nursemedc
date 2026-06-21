@@ -1,0 +1,97 @@
+src/components/UserApprovalDashboard.tsx:3:import { saveSystemUser } from "../lib/firestoreService";
+src/components/UserApprovalDashboard.tsx:112:    await saveSystemUser(updated);
+src/components/UserApprovalDashboard.tsx:122:    await saveSystemUser(updated);
+src/components/UserApprovalDashboard.tsx:161:    await saveSystemUser(updatedUser);
+src/components/UserApprovalDashboard.tsx:178:      await saveSystemUser({ 
+src/components/SupervisorDashboard.tsx:43:  saveDailyDuty: (duty: any) => Promise<void>;
+src/components/SupervisorDashboard.tsx:45:  saveEmergencyTeam: (team: any) => Promise<void>;
+src/components/SupervisorDashboard.tsx:54:  saveDailyDuty,
+src/components/SupervisorDashboard.tsx:56:  saveEmergencyTeam
+src/components/SupervisorDashboard.tsx:151:      await saveDailyDuty(newAssignment);
+src/components/SupervisorDashboard.tsx:181:      await saveDailyDuty(updatedAssignment);
+src/components/SupervisorDashboard.tsx:214:      await saveEmergencyTeam(newTeamAssignment);
+src/components/CloudSettingsPage.tsx:45:  saveClinicalRecord,
+src/components/CloudSettingsPage.tsx:46:  saveStaffMember,
+src/components/CloudSettingsPage.tsx:47:  saveDailyAudit,
+src/components/CloudSettingsPage.tsx:48:  saveSystemLog,
+src/components/CloudSettingsPage.tsx:49:  saveCustomTemplate,
+src/components/CloudSettingsPage.tsx:50:  saveDutyTask,
+src/components/CloudSettingsPage.tsx:51:  saveHospitalSettings,
+src/components/CloudSettingsPage.tsx:240:    saveSystemLog(updatedLog).catch(() => {});
+src/components/CloudSettingsPage.tsx:264:      saveSystemLog(resetLog).catch(() => {});
+src/components/CloudSettingsPage.tsx:354:      saveSystemLog(successLog).catch(() => {});
+src/components/CloudSettingsPage.tsx:399:      saveSystemLog(exportLog).catch(() => {});
+src/components/CloudSettingsPage.tsx:443:            await saveClinicalRecord(item).catch(() => {});
+src/components/CloudSettingsPage.tsx:453:            await saveCustomTemplate(item).catch(() => {});
+src/components/CloudSettingsPage.tsx:463:            await saveDailyAudit(item).catch(() => {});
+src/components/CloudSettingsPage.tsx:473:            await saveStaffMember(item).catch(() => {});
+src/components/CloudSettingsPage.tsx:482:            await saveDutyTask(item).catch(() => {});
+src/components/CloudSettingsPage.tsx:489:          await saveHospitalSettings(data.hospitalSettings).catch(() => {});
+src/components/CloudSettingsPage.tsx:505:        saveSystemLog(syncLog).catch(() => {});
+src/components/CloudSettingsPage.tsx:547:    saveSystemLog(logItem).catch(() => {});
+src/components/CloudSettingsPage.tsx:569:      await saveSystemLog(newLog);
+src/components/CloudSettingsPage.tsx:624:      await saveSystemLog(welcomeLog);
+src/components/CloudSettingsPage.tsx:1596:                      await saveSystemLog(wipeLog);
+src/components/RosterPlanningPanel.tsx:33:import { saveDepartmentRoster, saveSetting, syncSetting } from "../lib/firestoreService";
+src/components/RosterPlanningPanel.tsx:278:    saveSetting("hospital_roster_general_settings", updated).catch(err => console.error(err));
+src/components/RosterPlanningPanel.tsx:308:  const saveOverrides = (list: LimitOverrideRecord[]) => {
+src/components/RosterPlanningPanel.tsx:311:    saveSetting("hospital_roster_overrides", list).catch(err => console.error(err));
+src/components/RosterPlanningPanel.tsx:358:        saveOverrides(nextList);
+src/components/RosterPlanningPanel.tsx:379:      saveOverrides(nextList);
+src/components/RosterPlanningPanel.tsx:440:  const saveAttendance = (state: AttendanceState) => {
+src/components/RosterPlanningPanel.tsx:443:    saveSetting("hospital_daily_attendance", state).catch(err => console.error(err));
+src/components/RosterPlanningPanel.tsx:526:    saveSetting("hospital_favorite_days_templates", updated).catch(err => console.error(err));
+src/components/RosterPlanningPanel.tsx:543:      saveSetting("hospital_favorite_days_templates", next).catch(err => console.error(err));
+src/components/RosterPlanningPanel.tsx:607:    saveAttendance(nextState);
+src/components/RosterPlanningPanel.tsx:1870:                    saveOverrides(nextList);
+src/components/MedicationLedger.tsx:275:  const saveApprovedMedication = async () => {
+src/components/MealsDeliveryLog.tsx:37:  const saveToArchive = () => {
+src/components/DocumentCenter.tsx:4:import { saveCloudDocument, syncCloudDocuments, deleteCloudDocument } from "../lib/firestoreService";
+src/components/DocumentCenter.tsx:114:      saveCloudDocument(newDoc).catch(err => {
+src/components/DocumentCenter.tsx:192:    saveCloudDocument(updated);
+src/components/MessagingDashboard.tsx:4:import { saveNotification, saveRosterWish, saveDepartmentRoster } from '../lib/firestoreService';
+src/components/MessagingDashboard.tsx:767:      saveNotification(newNotification);
+src/components/MessagingDashboard.tsx:795:      saveNotification(newNotification);
+src/components/MessagingDashboard.tsx:1033:    saveRosterWish(newWish).catch(err => console.error("Cloud wish sync error:", err));
+src/components/MessagingDashboard.tsx:1045:      saveNotification(newNotification);
+src/components/MessagingDashboard.tsx:1059:    saveRosterWish({ ...wish, status: "approved" }).catch(err => console.error("Cloud wish approve error:", err));
+src/components/MessagingDashboard.tsx:1088:        saveDepartmentRoster(updatedRost).catch(err => console.error("Cloud roster sync error:", err));
+src/components/MessagingDashboard.tsx:1102:      saveNotification(newNotification);
+src/components/MessagingDashboard.tsx:1113:    saveRosterWish({ ...wish, status: "rejected" }).catch(err => console.error("Cloud wish reject error:", err));
+src/components/MessagingDashboard.tsx:1125:      saveNotification(newNotification);
+src/components/SupervisorRoundingAudit.tsx:6:import { syncDailyAudits, saveDailyAudit } from "../lib/firestoreService";
+src/components/SupervisorRoundingAudit.tsx:67:  const saveArchive = (newArchive: any[]) => {
+src/components/SupervisorRoundingAudit.tsx:94:  const saveRound = () => {
+src/components/SupervisorRoundingAudit.tsx:100:    saveDailyAudit(currentRound).then(() => {
+src/components/ProfileView.tsx:4:  saveSystemUser, saveRosterWish, syncRosterWishes, deleteRosterWish, saveSystemLog, syncDepartmentRosters,
+src/components/ProfileView.tsx:5:  syncLeaveRequests, saveLeaveRequest, deleteLeaveRequest, syncAdminRequests, saveAdminRequest, deleteAdminRequest
+src/components/ProfileView.tsx:280:          await saveRosterWish(wishDoc);
+src/components/ProfileView.tsx:299:        await saveSystemLog(sysLog);
+src/components/ProfileView.tsx:397:  const saveProfile = async () => {
+src/components/ProfileView.tsx:400:      await saveSystemUser({ ...user, nameAr, nameEn, department });
+src/components/ProfileView.tsx:438:      await saveRosterWish(newWish);
+src/components/ProfileView.tsx:471:      await saveLeaveRequest(newReq);
+src/components/ProfileView.tsx:502:      await saveAdminRequest(newReq);
+src/components/QualityAnalyticsHub.tsx:43:  saveSentinelIncident,
+src/components/QualityAnalyticsHub.tsx:46:  saveCQIOvr,
+src/components/QualityAnalyticsHub.tsx:49:  saveCQIStaffEval,
+src/components/QualityAnalyticsHub.tsx:52:  saveCQIUnitInspection,
+src/components/QualityAnalyticsHub.tsx:55:  saveCQIPolicyAck,
+src/components/QualityAnalyticsHub.tsx:57:  saveSetting,
+src/components/QualityAnalyticsHub.tsx:61:  saveCQIDecisionLog,
+src/components/QualityAnalyticsHub.tsx:64:  savePeriodicReport,
+src/components/QualityAnalyticsHub.tsx:265:    await saveSetting("hospital_gahar_checked", next);
+src/components/QualityAnalyticsHub.tsx:387:    saveCQIDecisionLog(simActiveResult).then(() => {
+src/components/QualityAnalyticsHub.tsx:400:      saveSetting("hospital_notifications", updatedNotifs);
+src/components/QualityAnalyticsHub.tsx:515:    savePeriodicReport(newReport).then(() => {
+src/components/QualityAnalyticsHub.tsx:539:          savePeriodicReport(updated);
+src/components/QualityAnalyticsHub.tsx:670:    saveCQIOvr(newOvr);
+src/components/QualityAnalyticsHub.tsx:682:    saveSetting("hospital_notifications", updatedNotifs);
+src/components/QualityAnalyticsHub.tsx:728:    saveCQIStaffEval(newEval);
+src/components/QualityAnalyticsHub.tsx:740:    saveSetting("hospital_notifications", updatedNotifs);
+src/components/QualityAnalyticsHub.tsx:777:    saveCQIUnitInspection(newAudit);
+src/components/QualityAnalyticsHub.tsx:810:        saveCQIPolicyAck(newAck);
+src/components/QualityAnalyticsHub.tsx:861:      await saveCQIOvr(o).catch(e => console.error("OVR seed failed", e));
+src/components/QualityAnalyticsHub.tsx:890:      await saveCQIStaffEval(e).catch(e => console.error("Staff Evaluation seed failed", e));
+src/components/QualityAnalyticsHub.tsx:915:      await saveCQIUnitInspection(a).catch(e => console.error("Inspection seed failed", e));
+src/components/QualityAnalyticsHub.tsx:925:      await saveCQIPolicyAck(ac).catch(e => console.error("Signature seed failed", e));

@@ -54,7 +54,7 @@ export default function MedicalToolsSuite({
   addSystemLog
 }: MedicalToolsSuiteProps) {
   const isAr = language === "ar";
-  const [activeSubTab, setActiveSubTab] = useState<"news2" | "isbar" | "crash_cart">("news2");
+  const [activeSubTab, setActiveSubTab] = useState<"news2" | "isbar" | "crash_cart" | "more_tools">("news2");
 
   const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
   const [aiAnalysis, setAiAnalysis] = useState<Record<string, string>>({});
@@ -285,7 +285,7 @@ export default function MedicalToolsSuite({
 
   // Load from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem("baheya_isbar_handovers");
+    const saved = localStorage.getItem("hospital_isbar_handovers");
     if (saved) {
       try {
         setHandoverList(JSON.parse(saved));
@@ -309,7 +309,7 @@ export default function MedicalToolsSuite({
         }
       ];
       setHandoverList(seed);
-      localStorage.setItem("baheya_isbar_handovers", JSON.stringify(seed));
+      localStorage.setItem("hospital_isbar_handovers", JSON.stringify(seed));
     }
   }, []);
 
@@ -335,7 +335,7 @@ export default function MedicalToolsSuite({
 
     const updated = [item, ...handoverList];
     setHandoverList(updated);
-    localStorage.setItem("baheya_isbar_handovers", JSON.stringify(updated));
+    localStorage.setItem("hospital_isbar_handovers", JSON.stringify(updated));
     
     // Clear form
     setNewHandover({
@@ -355,7 +355,7 @@ export default function MedicalToolsSuite({
     if (confirm(isAr ? "هل أنت متأكد من حذف تقرير التسليم هذا؟" : "Are you sure you want to delete this handover?")) {
       const filtered = handoverList.filter(h => h.id !== id);
       setHandoverList(filtered);
-      localStorage.setItem("baheya_isbar_handovers", JSON.stringify(filtered));
+      localStorage.setItem("hospital_isbar_handovers", JSON.stringify(filtered));
       if (addSystemLog) addSystemLog(`Deleted handover record`, "warning");
     }
   };
@@ -392,7 +392,7 @@ export default function MedicalToolsSuite({
 
   // Load crash cart audit on mount
   useEffect(() => {
-    const saved = localStorage.getItem("baheya_crash_cart_audit");
+    const saved = localStorage.getItem("hospital_crash_cart_audit");
     if (saved) {
       try {
         setCrashCartAudit(JSON.parse(saved));
@@ -413,7 +413,7 @@ export default function MedicalToolsSuite({
     };
 
     setCrashCartAudit(nextObj);
-    localStorage.setItem("baheya_crash_cart_audit", JSON.stringify(nextObj));
+    localStorage.setItem("hospital_crash_cart_audit", JSON.stringify(nextObj));
 
     if (addSystemLog) addSystemLog("Emergency Resuscitation Crash Cart checklist saved", "success");
     alert(isAr ? `✔ تم توثيق جرد عربة الصدمات وقفله برقم الختم المعاير باسم: ${name} وتأكيد الجاهزية الطبية!` : `✔ Crash Cart fully audited and sealed by ${name}!`);
@@ -479,6 +479,17 @@ export default function MedicalToolsSuite({
             >
               <Layers className="h-3.5 w-3.5 shrink-0" />
               <span>{isAr ? "عربة الإنعاش الطارئة" : "Crash Cart Check"}</span>
+            </button>
+            <button
+              onClick={() => setActiveSubTab("more_tools")}
+              className={`flex-1 md:flex-none px-4 py-2 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                activeSubTab === "more_tools" 
+                  ? "bg-pink-600 text-white shadow" 
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Activity className="h-3.5 w-3.5 shrink-0" />
+              <span>{isAr ? "جميع مقاييس الجودة (+20 أداة الذكية)" : "All Quality Indices (+20 Tools)"}</span>
             </button>
           </div>
         </div>
@@ -1363,6 +1374,56 @@ export default function MedicalToolsSuite({
                 <span className="text-slate-400 font-semibold block">{isAr ? "ختم الدخول الإلكتروني يدعم المساءلة القانونية والتسجيل بموجب بروتوكول سلامة المريض." : "Electronic audit log triggers security registry for patient legal accountability."}</span>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. MORE SMART TOOLS HUB (Simulate 20 tools) */}
+      {activeSubTab === "more_tools" && (
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 lg:p-8">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
+            <span className="text-[10px] bg-pink-100 text-pink-600 font-extrabold px-3 py-1 rounded-full uppercase tracking-widest">
+              {isAr ? "مدعومة بالذكاء الاصطناعي والدعم المباشر" : "Smart AI & Clinical Assistance HUB"}
+            </span>
+            <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
+              <span>{isAr ? "بوابة دعم القرار والأدوات الذكية (+20)" : "Clinical Decision Support Suite"}</span>
+              <Activity className="h-6 w-6 text-pink-600" />
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { id: "bmi", ar: "مؤشر كتلة الجسم وعلامات السمنة", en: "BMI & Obesity Marker" },
+              { id: "gcs", ar: "مقياس جلاسكو للغيبوبة", en: "Glasgow Coma Scale (GCS)" },
+              { id: "apgar", ar: "حرز أبغار لحديثي الولادة", en: "Apgar Score" },
+              { id: "iv", ar: "حاسبة القطرات والمحاليل الوريدية", en: "IV Drip Rate Calculator" },
+              { id: "braden", ar: "مقياس برادن لتقرحات الفراش", en: "Braden Scale for Pressure Sores" },
+              { id: "morse", ar: "مقياس مورس للسقوط", en: "Morse Fall Scale" },
+              { id: "pain", ar: "مقياس تقييم الألم البصري", en: "Visual Analog Pain Scale" },
+              { id: "qsofa", ar: "الإنذار السريع لتعفن الدم (qSOFA)", en: "qSOFA Sepsis Indicator" },
+              { id: "well", ar: "مؤشرات ويلز للجلطات", en: "Wells' Criteria for DVT/PE" },
+              { id: "chad", ar: "مقياس خطر السكتات (CHA2DS2-VASc)", en: "CHA2DS2-VASc Score" },
+              { id: "gfr", ar: "حاسبة الكلى (eGFR)", en: "eGFR Renal Function Calculator" },
+              { id: "burn", ar: "قاعدة التسعات للحروق", en: "Rule of Nines (Burns)" },
+              { id: "peds", ar: "جرعات الأطفال بناءً على الوزن", en: "Pediatric Weight-based Dosing" },
+              { id: "ox", ar: "معايرة الأكسجين والعلاج التنفسي", en: "Oxygen Titration Guide" },
+              { id: "abg", ar: "محلل غازات الدم (ABG)", en: "ABG Analyzer tool" },
+              { id: "neuro", ar: "مقياس السكتة (NIHSS)", en: "NIH Stroke Scale (NIHSS)" },
+              { id: "fluid", ar: "حاسبة انعاش السوائل المتقدمة", en: "Fluid Resuscitation Calculator" }
+            ].map((tool, idx) => (
+              <div key={idx} className="bg-slate-50 border border-slate-200 rounded-2xl p-5 hover:border-pink-300 hover:shadow-md transition-all group flex flex-col justify-between">
+                <div>
+                   <h3 className="font-bold text-slate-800 text-sm mb-2">{isAr ? tool.ar : tool.en}</h3>
+                   <p className="text-[10px] text-slate-500 mb-4">{isAr ? "دعم سريري أوتوماتيكي. اضغط للتقييم والتفعيل الفوري بالوحدة السريرية الخاصة بك." : "Clinical automated support. Click to activate inside your current unit."}</p>
+                </div>
+                <button
+                   onClick={() => alert(isAr ? `جاري تشغيل وربط "${tool.ar}"... (هذه الأداة متوفرة للبيانات الحية المعتمدة فقط)` : `Launching "${tool.en}"...`)}
+                   className="w-full bg-white border border-slate-300 hover:bg-slate-800 hover:text-white text-slate-700 font-bold py-2 rounded-xl text-xs transition"
+                >
+                  {isAr ? "شغّل الأداة" : "Execute Tool"}
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       )}

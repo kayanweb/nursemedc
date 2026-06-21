@@ -13,6 +13,9 @@ export interface FormTemplate {
   issueDate?: string;
   hasPatientDetails?: boolean;
   items?: Omit<GridRow, "days">[]; // Custom initial items
+  isCloudDocument?: boolean;
+  documentData?: string;
+  documentType?: string;
 }
 
 export interface SavedRecord {

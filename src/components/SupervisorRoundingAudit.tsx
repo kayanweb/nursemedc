@@ -231,7 +231,7 @@ export default function SupervisorRoundingAudit({ language, isAr }: RoundingAudi
                   {settings.nameEn ? settings.nameEn.split(/\s+/).map((w: string) => w[0]).filter((c: string) => /^[a-zA-Z\u0600-\u06FF]$/.test(c)).slice(0, 2).join("").toUpperCase() : "BH"}
                 </span>
                 <span className="font-sans font-black text-slate-800 text-[10px] leading-none">
-                  {isAr ? (settings.institutionNameAr || "مؤسسة بهية") : (settings.institutionNameEn || "Baheya Foundation")}
+                  {isAr ? (settings.institutionNameAr || "مؤسسة المستشفى") : (settings.institutionNameEn || "Hospital Foundation")}
                 </span>
               </div>
             </div>

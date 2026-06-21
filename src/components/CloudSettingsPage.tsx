@@ -103,9 +103,9 @@ export default function CloudSettingsPage({
   const [isCachUsedPct, setIsCachUsedPct] = useState<number>(0);
   
   // Custom sync settings
-  const [syncStrategy, setSyncStrategy] = useState<string>(() => localStorage.getItem("baheya_sync_strategy") || "realtime");
-  const [conflictStrategy, setConflictStrategy] = useState<string>(() => localStorage.getItem("baheya_conflict_strategy") || "newest");
-  const [autoSyncInterval, setAutoSyncInterval] = useState<string>(() => localStorage.getItem("baheya_auto_sync_interval") || "immediate");
+  const [syncStrategy, setSyncStrategy] = useState<string>(() => localStorage.getItem("hospital_sync_strategy") || "realtime");
+  const [conflictStrategy, setConflictStrategy] = useState<string>(() => localStorage.getItem("hospital_conflict_strategy") || "newest");
+  const [autoSyncInterval, setAutoSyncInterval] = useState<string>(() => localStorage.getItem("hospital_auto_sync_interval") || "immediate");
 
   // Migration status
   const [importStatus, setImportStatus] = useState<{
@@ -133,7 +133,7 @@ export default function CloudSettingsPage({
   // Firebase Config Overrides Form state
   const [projectIdInput, setProjectIdInput] = useState<string>(() => {
     try {
-      const override = localStorage.getItem("baheya_firebase_config_override");
+      const override = localStorage.getItem("hospital_firebase_config_override");
       if (override) {
         const parsed = JSON.parse(override);
         if (parsed && parsed.projectId) return parsed.projectId;
@@ -144,7 +144,7 @@ export default function CloudSettingsPage({
 
   const [apiKeyInput, setApiKeyInput] = useState<string>(() => {
     try {
-      const override = localStorage.getItem("baheya_firebase_config_override");
+      const override = localStorage.getItem("hospital_firebase_config_override");
       if (override) {
         const parsed = JSON.parse(override);
         if (parsed && parsed.apiKey) return parsed.apiKey;
@@ -155,7 +155,7 @@ export default function CloudSettingsPage({
 
   const [authDomainInput, setAuthDomainInput] = useState<string>(() => {
     try {
-      const override = localStorage.getItem("baheya_firebase_config_override");
+      const override = localStorage.getItem("hospital_firebase_config_override");
       if (override) {
         const parsed = JSON.parse(override);
         if (parsed && parsed.authDomain) return parsed.authDomain;
@@ -166,7 +166,7 @@ export default function CloudSettingsPage({
 
   const [databaseIdInput, setDatabaseIdInput] = useState<string>(() => {
     try {
-      const override = localStorage.getItem("baheya_firebase_config_override");
+      const override = localStorage.getItem("hospital_firebase_config_override");
       if (override) {
         const parsed = JSON.parse(override);
         if (parsed && parsed.firestoreDatabaseId) return parsed.firestoreDatabaseId;
@@ -177,7 +177,7 @@ export default function CloudSettingsPage({
 
   const [appIdInput, setAppIdInput] = useState<string>(() => {
     try {
-      const override = localStorage.getItem("baheya_firebase_config_override");
+      const override = localStorage.getItem("hospital_firebase_config_override");
       if (override) {
         const parsed = JSON.parse(override);
         if (parsed && parsed.appId) return parsed.appId;
@@ -188,7 +188,7 @@ export default function CloudSettingsPage({
 
   const [storageBucketInput, setStorageBucketInput] = useState<string>(() => {
     try {
-      const override = localStorage.getItem("baheya_firebase_config_override");
+      const override = localStorage.getItem("hospital_firebase_config_override");
       if (override) {
         const parsed = JSON.parse(override);
         if (parsed && parsed.storageBucket) return parsed.storageBucket;
@@ -199,7 +199,7 @@ export default function CloudSettingsPage({
 
   const [messagingSenderIdInput, setMessagingSenderIdInput] = useState<string>(() => {
     try {
-      const override = localStorage.getItem("baheya_firebase_config_override");
+      const override = localStorage.getItem("hospital_firebase_config_override");
       if (override) {
         const parsed = JSON.parse(override);
         if (parsed && parsed.messagingSenderId) return parsed.messagingSenderId;
@@ -227,7 +227,7 @@ export default function CloudSettingsPage({
       messagingSenderId: messagingSenderIdInput.trim()
     };
 
-    localStorage.setItem("baheya_firebase_config_override", JSON.stringify(payload));
+    localStorage.setItem("hospital_firebase_config_override", JSON.stringify(payload));
     
     // Log change
     const updatedLog: SystemLog = {
@@ -252,7 +252,7 @@ export default function CloudSettingsPage({
       ? "تأكيد: هل ترغب في العودة للاعتماد المشفر الأصلي وتجاهل هذا الربط المخصص؟" 
       : "Confirm: Do you want to wipe custom overrides and revert to the default built-in hospital parameters?")) {
       
-      localStorage.removeItem("baheya_firebase_config_override");
+      localStorage.removeItem("hospital_firebase_config_override");
       
       const resetLog: SystemLog = {
         id: `log-${Date.now()}`,
@@ -332,16 +332,16 @@ export default function CloudSettingsPage({
       ? "تنبيه: سيؤدي هذا إلى حذف الكاش المتواجد محلياً بالكامل وإعادة تنزيل كافة البيانات والملفات من السحابة (Firestore) مباشرة. هل ترغب بالاستمرار؟" 
       : "Warning: This will clear the browser local cache database completely and pull the core clinical dataset clean from Firestore cloud. Do you want to continue?")) {
       
-      const sessionUserObj = localStorage.getItem("baheya_current_user_object");
-      const sessionUserId = localStorage.getItem("baheya_current_user_id");
-      const sessionLogState = localStorage.getItem("baheya_is_logged_in");
+      const sessionUserObj = localStorage.getItem("hospital_current_user_object");
+      const sessionUserId = localStorage.getItem("hospital_current_user_id");
+      const sessionLogState = localStorage.getItem("hospital_is_logged_in");
 
       localStorage.clear();
 
       // Preserve logged in session so user doesn't get kicked out!
-      if (sessionLogState) localStorage.setItem("baheya_is_logged_in", sessionLogState);
-      if (sessionUserId) localStorage.setItem("baheya_current_user_id", sessionUserId);
-      if (sessionUserObj) localStorage.setItem("baheya_current_user_object", sessionUserObj);
+      if (sessionLogState) localStorage.setItem("hospital_is_logged_in", sessionLogState);
+      if (sessionUserId) localStorage.setItem("hospital_current_user_id", sessionUserId);
+      if (sessionUserObj) localStorage.setItem("hospital_current_user_object", sessionUserObj);
 
       const successLog: SystemLog = {
         id: `log-${Date.now()}`,
@@ -367,23 +367,23 @@ export default function CloudSettingsPage({
         exportedAt: new Date().toISOString(),
         exportedBy: currentUser?.nameEn || "Staff Account",
         exportedById: currentUser?.staffId || "System",
-        hospitalSettings: localStorage.getItem("baheya_hospital_settings") 
-          ? JSON.parse(localStorage.getItem("baheya_hospital_settings")!) 
+        hospitalSettings: localStorage.getItem("hospital_hospital_settings") 
+          ? JSON.parse(localStorage.getItem("hospital_hospital_settings")!) 
           : null,
         records,
         customTemplates,
         systemUsers,
         dailyChecklists,
         dutyTasks,
-        resolvedGaps: localStorage.getItem("baheya_resolved_gaps")
-          ? JSON.parse(localStorage.getItem("baheya_resolved_gaps")!)
+        resolvedGaps: localStorage.getItem("hospital_resolved_gaps")
+          ? JSON.parse(localStorage.getItem("hospital_resolved_gaps")!)
           : {}
       };
 
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
       const downloadAnchor = document.createElement("a");
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `baheya_hforms_backup_${new Date().toISOString().split("T")[0]}.json`);
+      downloadAnchor.setAttribute("download", `hospital_hforms_backup_${new Date().toISOString().split("T")[0]}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
@@ -438,7 +438,7 @@ export default function CloudSettingsPage({
         if (data.records && Array.isArray(data.records)) {
           importLogsCount += data.records.length;
           if (setRecords) setRecords(data.records);
-          localStorage.setItem("baheya_medical_records", JSON.stringify(data.records));
+          localStorage.setItem("hospital_medical_records", JSON.stringify(data.records));
           for (const item of data.records) {
             await saveClinicalRecord(item).catch(() => {});
           }
@@ -448,7 +448,7 @@ export default function CloudSettingsPage({
         if (data.customTemplates && Array.isArray(data.customTemplates)) {
           importLogsCount += data.customTemplates.length;
           if (setCustomTemplates) setCustomTemplates(data.customTemplates);
-          localStorage.setItem("baheya_custom_templates", JSON.stringify(data.customTemplates));
+          localStorage.setItem("hospital_custom_templates", JSON.stringify(data.customTemplates));
           for (const item of data.customTemplates) {
             await saveCustomTemplate(item).catch(() => {});
           }
@@ -458,7 +458,7 @@ export default function CloudSettingsPage({
         if (data.dailyChecklists && Array.isArray(data.dailyChecklists)) {
           importLogsCount += data.dailyChecklists.length;
           if (setDailyChecklists) setDailyChecklists(data.dailyChecklists);
-          localStorage.setItem("baheya_daily_checklists", JSON.stringify(data.dailyChecklists));
+          localStorage.setItem("hospital_daily_checklists", JSON.stringify(data.dailyChecklists));
           for (const item of data.dailyChecklists) {
             await saveDailyAudit(item).catch(() => {});
           }
@@ -468,7 +468,7 @@ export default function CloudSettingsPage({
         if (data.systemUsers && Array.isArray(data.systemUsers)) {
           importLogsCount += data.systemUsers.length;
           if (setSystemUsers) setSystemUsers(data.systemUsers);
-          localStorage.setItem("baheya_system_users", JSON.stringify(data.systemUsers));
+          localStorage.setItem("hospital_system_users", JSON.stringify(data.systemUsers));
           for (const item of data.systemUsers) {
             await saveStaffMember(item).catch(() => {});
           }
@@ -485,13 +485,13 @@ export default function CloudSettingsPage({
 
         // Restore generic hospital settings
         if (data.hospitalSettings) {
-          localStorage.setItem("baheya_hospital_settings", JSON.stringify(data.hospitalSettings));
+          localStorage.setItem("hospital_hospital_settings", JSON.stringify(data.hospitalSettings));
           await saveHospitalSettings(data.hospitalSettings).catch(() => {});
         }
 
         // Store resolved quality gaps map
         if (data.resolvedGaps) {
-          localStorage.setItem("baheya_resolved_gaps", JSON.stringify(data.resolvedGaps));
+          localStorage.setItem("hospital_resolved_gaps", JSON.stringify(data.resolvedGaps));
         }
 
         // Add success restore log
@@ -528,13 +528,13 @@ export default function CloudSettingsPage({
   const handleSavePref = (key: string, val: string) => {
     if (key === "strategy") {
       setSyncStrategy(val);
-      localStorage.setItem("baheya_sync_strategy", val);
+      localStorage.setItem("hospital_sync_strategy", val);
     } else if (key === "conflict") {
       setConflictStrategy(val);
-      localStorage.setItem("baheya_conflict_strategy", val);
+      localStorage.setItem("hospital_conflict_strategy", val);
     } else if (key === "interval") {
       setAutoSyncInterval(val);
-      localStorage.setItem("baheya_auto_sync_interval", val);
+      localStorage.setItem("hospital_auto_sync_interval", val);
     }
 
     const logItem: SystemLog = {
@@ -980,7 +980,7 @@ export default function CloudSettingsPage({
                   <FileText className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-mono font-black py-0.5 px-2 bg-pink-50 text-pink-600 rounded">
-                  baheya_clinical_records
+                  hospital_clinical_records
                 </span>
               </div>
               <div>
@@ -1003,7 +1003,7 @@ export default function CloudSettingsPage({
                   <FileCode className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-mono font-black py-0.5 px-2 bg-blue-50 text-blue-600 rounded">
-                  baheya_custom_templates
+                  hospital_custom_templates
                 </span>
               </div>
               <div>
@@ -1026,7 +1026,7 @@ export default function CloudSettingsPage({
                   <UserCheck className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-mono font-black py-0.5 px-2 bg-indigo-50 text-indigo-600 rounded">
-                  baheya_staff_registry
+                  hospital_staff_registry
                 </span>
               </div>
               <div>
@@ -1049,7 +1049,7 @@ export default function CloudSettingsPage({
                   <CheckCircle2 className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-mono font-black py-0.5 px-2 bg-purple-50 text-purple-600 rounded">
-                  baheya_daily_audits
+                  hospital_daily_audits
                 </span>
               </div>
               <div>
@@ -1072,7 +1072,7 @@ export default function CloudSettingsPage({
                   <Layers className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-mono font-black py-0.5 px-2 bg-amber-50 text-amber-600 rounded">
-                  baheya_daily_duty_tasks
+                  hospital_daily_duty_tasks
                 </span>
               </div>
               <div>
@@ -1095,7 +1095,7 @@ export default function CloudSettingsPage({
                   <Activity className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-mono font-black py-0.5 px-2 bg-teal-50 text-teal-600 rounded">
-                  baheya_system_logs
+                  hospital_system_logs
                 </span>
               </div>
               <div>
@@ -1231,7 +1231,7 @@ export default function CloudSettingsPage({
               </h3>
               <p className="text-slate-500 text-xs leading-relaxed">
                 {isAr
-                  ? `استورد ملف استرداد معتمد بامتداد (.json) لإعادة إدراج أو مزامنة البيانات والملفات والجرادات لـ ${hospitalSettings?.nameAr || "بهية"}. سيقوم المعالج التلقائي بمقارنة البصمات، تحديث النزاعات السجلات، وحقن خلايا Firestore والذاكرة المحلية فوراً دون الحاجة لإعادة التشغيل.`
+                  ? `استورد ملف استرداد معتمد بامتداد (.json) لإعادة إدراج أو مزامنة البيانات والملفات والجرادات لـ ${hospitalSettings?.nameAr || "المستشفى"}. سيقوم المعالج التلقائي بمقارنة البصمات، تحديث النزاعات السجلات، وحقن خلايا Firestore والذاكرة المحلية فوراً دون الحاجة لإعادة التشغيل.`
                   : `Upload a valid ${hospitalSettings?.nameEn} system JSON backup file. The migration processor will match structural schemas, push records directly into firestore database indexes, and seamlessly populate the active design states instantly.`}
               </p>
 
@@ -1560,24 +1560,24 @@ export default function CloudSettingsPage({
 
                       // Purge Clinical records local & cloud
                       if (setRecords) setRecords([]);
-                      localStorage.removeItem("baheya_medical_records");
+                      localStorage.removeItem("hospital_medical_records");
                       for (const r of records) {
                         await deleteClinicalRecord(r.id).catch(() => {});
                       }
 
                       // Purge Custom templates
                       if (setCustomTemplates) setCustomTemplates([]);
-                      localStorage.removeItem("baheya_custom_templates");
+                      localStorage.removeItem("hospital_custom_templates");
                       for (const t of customTemplates) {
                         await deleteCustomTemplate(t.id).catch(() => {});
                       }
 
                       // Purge Daily checklist quality audits
                       if (setDailyChecklists) setDailyChecklists([]);
-                      localStorage.removeItem("baheya_daily_checklists");
+                      localStorage.removeItem("hospital_daily_checklists");
 
                       // Remove resolved gaps map
-                      localStorage.removeItem("baheya_resolved_gaps");
+                      localStorage.removeItem("hospital_resolved_gaps");
 
                       // Clear system logs
                       if (setSystemLogs) setSystemLogs([]);
