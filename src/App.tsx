@@ -758,6 +758,9 @@ function AppContent() {
   // DB & State Management
   const [records, setRecords] = useFirestoreSync<SavedRecord>(syncClinicalRecords, []);
   const [customTemplates, setCustomTemplates] = useFirestoreSync<FormTemplate>(syncCustomTemplates, []);
+  const [customTplSearch, setCustomTplSearch] = useState<string>("");
+  const [customTplDeptFilter, setCustomTplDeptFilter] = useState<string>("ALL");
+  const [customTplPage, setCustomTplPage] = useState<number>(0);
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate>(FORM_TEMPLATES[0]);
   const [editingRecord, setEditingRecord] = useState<SavedRecord | null>(null);
   const [rosterFromDay, setRosterFromDay] = useState<number>(1);
@@ -8709,6 +8712,8 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                   users={systemUsers} 
                   allAvailableTemplates={allAvailableTemplates}
                   language={language}
+                  departments={departments}
+                  currentUser={currentUser}
                 />
               </div>
             </div>
@@ -11835,32 +11840,211 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
 
                 {/* Section 3: Lists current custom templates */}
                 {customTemplates.length > 0 && (
-                  <div className="border-t border-slate-200 pt-6 text-xs">
-                    <h4 className="text-xs font-bold text-slate-800 mb-3 block">الشيتات المخصصة المشحونة المصنوعة حالياً:</h4>
-                    <div className="divide-y divide-slate-150 border border-slate-200 rounded-xl overflow-hidden bg-white">
-                      {customTemplates.map((customTpl) => (
-                        <div key={customTpl.id} className="p-3 bg-white flex items-center justify-between gap-3 hover:bg-slate-50 transition">
-                          <div>
-                            <span className="font-mono bg-pink-50 text-pink-700 font-extrabold px-2 py-0.5 rounded text-[10px] ml-2">
-                              {customTpl.code}
-                            </span>
-                            <span className="font-extrabold text-slate-900 block sm:inline-block">
-                              {customTpl.titleAr} / {customTpl.titleEn}
-                            </span>
-                            <span className="text-[10px] text-slate-400 mt-1 sm:mt-0 font-bold block sm:inline-block sm:mr-4">
-                              القسم الافتراضي: {customTpl.departmentDefault} | {customTpl.items.length} أصناف
-                            </span>
+                  (() => {
+                    const filteredTemplates = customTemplates.filter(t => {
+                      const search = customTplSearch.toLowerCase().trim();
+                      const matchesSearch = !search || (
+                        (t.titleAr || "").toLowerCase().includes(search) ||
+                        (t.titleEn || "").toLowerCase().includes(search) ||
+                        (t.code || "").toLowerCase().includes(search) ||
+                        (t.departmentDefault || "").toLowerCase().includes(search)
+                      );
+                      const matchesDept = customTplDeptFilter === "ALL" || t.departmentDefault === customTplDeptFilter;
+                      return matchesSearch && matchesDept;
+                    });
+
+                    const itemsPerPage = 5;
+                    const totalPages = Math.ceil(filteredTemplates.length / itemsPerPage);
+                    const currentPageTemplates = filteredTemplates.slice(
+                      customTplPage * itemsPerPage,
+                      (customTplPage + 1) * itemsPerPage
+                    );
+
+                    // Extract all distinct departments present in all custom templates
+                    const representedDepts = Array.from(new Set(customTemplates.filter(t => t.departmentDefault).map(t => t.departmentDefault)));
+
+                    return (
+                      <div className="border-t border-slate-200 pt-6 text-xs">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                          <div className="text-right">
+                            <h4 className="text-xs font-black text-slate-950 flex items-center gap-1.5 justify-end">
+                              <span>الشيتات والنماذج الطبية المخصصة المصنوعة</span>
+                              <span className="bg-pink-100 text-pink-700 font-mono text-[9px] px-2 py-0.5 rounded-full font-black">
+                                {customTemplates.length} نماذج
+                              </span>
+                            </h4>
+                            <p className="text-[10px] text-slate-500">تصفح وفلترة الشيتات التي قمت بإنشائها ونشرها بشكل إلكتروني ذكي دون تراكم.</p>
                           </div>
-                          <button
-                            onClick={() => handleDeleteCustomTemplate(customTpl.id)}
-                            className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-100 rounded-lg text-[10px] font-bold transition cursor-pointer"
-                          >
-                            حذف الشيت بالكامل
-                          </button>
+
+                          {/* Search and Filters Toolbar */}
+                          <div className="flex flex-wrap items-center gap-2">
+                            {/* Search Box */}
+                            <div className="relative">
+                              <input
+                                type="text"
+                                value={customTplSearch}
+                                onChange={(e) => {
+                                  setCustomTplSearch(e.target.value);
+                                  setCustomTplPage(0);
+                                }}
+                                placeholder="البحث في الشيتات..."
+                                className="py-1 px-3 pr-7 bg-slate-50 border border-slate-200 rounded-lg text-[10px] outline-none focus:bg-white"
+                              />
+                              <Search className="absolute right-2 top-2 h-3 w-3 text-slate-400" />
+                            </div>
+
+                            {/* Department filter select */}
+                            <select
+                              value={customTplDeptFilter}
+                              onChange={(e) => {
+                                setCustomTplDeptFilter(e.target.value);
+                                setCustomTplPage(0);
+                              }}
+                              className="py-1 px-2 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700"
+                            >
+                              <option value="ALL">كل الأقسام الطبية</option>
+                              {representedDepts.map((d, idx) => (
+                                <option key={`${d}-${idx}`} value={d}>{d}</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
+
+                        {/* Filter Tag Chips */}
+                        {representedDepts.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1.5 mb-3 justify-end">
+                            <button
+                              onClick={() => {
+                                setCustomTplDeptFilter("ALL");
+                                setCustomTplPage(0);
+                              }}
+                              className={`px-2 py-0.5 rounded text-[9px] font-bold transition ${
+                                customTplDeptFilter === "ALL" 
+                                  ? "bg-pink-600 text-white shadow-sm" 
+                                  : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+                              }`}
+                            >
+                              الكل ({customTemplates.length})
+                            </button>
+                            {representedDepts.map((dept, i) => {
+                              const count = customTemplates.filter(t => t.departmentDefault === dept).length;
+                              return (
+                                <button
+                                  key={`${dept}-${i}`}
+                                  onClick={() => {
+                                    setCustomTplDeptFilter(dept);
+                                    setCustomTplPage(0);
+                                  }}
+                                  className={`px-2 py-0.5 rounded text-[9px] font-black transition ${
+                                    customTplDeptFilter === dept 
+                                      ? "bg-pink-600 text-white shadow-sm" 
+                                      : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+                                  }`}
+                                >
+                                  {dept} ({count})
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Custom Templates Cards Container */}
+                        {filteredTemplates.length === 0 ? (
+                          <div className="p-8 border border-dashed border-slate-200 rounded-xl bg-slate-50/50 text-center text-slate-400">
+                            لا توجد نتائج مطابقة للتصنيفات النشطة حالياً. يرجى تعديل البحث أو إنشاء شيت جديد.
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="divide-y divide-slate-150 border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                              {currentPageTemplates.map((customTpl) => {
+                                const tplId = customTpl.id;
+                                const isDeactivated = deactivatedTemplateIds.includes(tplId);
+                                return (
+                                  <div key={tplId} className="p-3 bg-white hover:bg-slate-50/50 transition flex flex-col md:flex-row md:items-center justify-between gap-3">
+                                    <div className="space-y-1">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="font-mono bg-pink-50 text-pink-700 font-extrabold px-2 py-0.5 rounded text-[10px]">
+                                          {customTpl.code}
+                                        </span>
+                                        <span className="font-extrabold text-slate-900 text-xs">
+                                          {customTpl.titleAr} / {customTpl.titleEn}
+                                        </span>
+                                        <span className={`text-[8px] px-1.5 py-0.5 rounded font-black ${
+                                          isDeactivated ? "bg-slate-100 text-slate-500 border border-slate-200" : "bg-emerald-50 text-emerald-750 border border-emerald-100"
+                                        }`}>
+                                          {isDeactivated ? "❌ معطل وغير مرئي" : "✔ نشط ومتاح"}
+                                        </span>
+                                      </div>
+                                      <p className="text-[10px] text-slate-505 font-bold">
+                                        القسم الافتراضي: <span className="text-pink-600">{customTpl.departmentDefault}</span> &bull; يحوي <span className="text-slate-800">{customTpl.items.length}</span> أصناف وبنود جرد طبي.
+                                      </p>
+
+                                      {/* Quick items tag list */}
+                                      <div className="pt-2 flex flex-wrap gap-1 max-w-xl max-h-[48px] overflow-y-auto">
+                                        {customTpl.items.slice(0, 10).map((itm: any, idx) => (
+                                          <span key={`${itm.code}-${idx}`} className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[8px] font-medium border border-slate-150">
+                                            {itm.itemAr}
+                                          </span>
+                                        ))}
+                                        {customTpl.items.length > 10 && (
+                                          <span className="bg-pink-100/40 text-pink-600 px-1.5 py-0.5 rounded text-[8px] font-extrabold">
+                                            +{customTpl.items.length - 10} المزيد
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 justify-end self-end md:self-center">
+                                      {/* Toggle custom template activate */}
+                                      <button
+                                        onClick={() => handleToggleDeactivateTemplate(tplId)}
+                                        className={`px-2.5 py-1 rounded text-[10px] font-bold border transition ${
+                                          isDeactivated 
+                                            ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200" 
+                                            : "bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200"
+                                        }`}
+                                      >
+                                        {isDeactivated ? "تفعيل الشيت" : "تعطيل الشيت"}
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteCustomTemplate(tplId)}
+                                        className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-150 rounded text-[10px] font-black transition cursor-pointer"
+                                      >
+                                        حذف كلي
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Pagination Bar */}
+                            {totalPages > 1 && (
+                              <div className="flex items-center justify-between bg-slate-50 p-2 border border-slate-200 rounded-xl mt-2 text-[10px] font-sans">
+                                <button
+                                  disabled={customTplPage === 0}
+                                  onClick={() => setCustomTplPage(p => Math.max(0, p - 1))}
+                                  className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-850 rounded border disabled:opacity-30 transition font-bold"
+                                >
+                                  &larr; الصفحة السابقة
+                                </button>
+                                <span className="font-bold text-slate-600">
+                                  صفحة {customTplPage + 1} من {totalPages} (يعرض {currentPageTemplates.length} نماذج من {filteredTemplates.length})
+                                </span>
+                                <button
+                                  disabled={customTplPage >= totalPages - 1}
+                                  onClick={() => setCustomTplPage(p => Math.min(totalPages - 1, p + 1))}
+                                  className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-850 rounded border disabled:opacity-30 transition font-bold"
+                                >
+                                  الصفحة التالية &rarr;
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()
                 )}
               </div>
 
