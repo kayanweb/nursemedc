@@ -15,7 +15,7 @@ import {
   limit, 
   deleteDoc, 
   doc 
-} from "firebase/firestore";
+} from "../lib/firestoreService";
 import { db } from "../lib/firebase";
 
 import AdvancedMedicalCalculators from "./AdvancedMedicalCalculators";

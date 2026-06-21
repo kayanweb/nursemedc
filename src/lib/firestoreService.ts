@@ -17,26 +17,83 @@ import { db } from "../firebase";
 import { getActiveDbProvider, switchEnvironment } from "./dbConfig";
 import { subscribeToClinicalData, saveDataPermanently, deleteDataPermanently } from "./realTimeService";
 
-// Export safe wrappers
+// Initialize quota check from localStorage
+const isQuotaExceeded = () => {
+    return (window as any).firestoreQuotaExceeded || localStorage.getItem("firestoreQuotaExceeded") === "true";
+};
+
+const setQuotaExceeded = () => {
+    (window as any).firestoreQuotaExceeded = true;
+    localStorage.setItem("firestoreQuotaExceeded", "true");
+    if (getActiveDbProvider() === "FIREBASE") {
+      console.log("Firestore quota exceeded: Switching to SUPABASE...");
+      switchEnvironment("SUPABASE");
+    }
+};
+
 export const collection = (db: any, path: string) => fbCollection(db, path);
 export const doc = (db: any, path: string, ...pathSegments: string[]) => fbDoc(db, path, ...pathSegments);
+export const query = fbQuery;
+export const where = fbWhere;
+export const orderBy = fbOrderBy;
+export const limit = fbLimit;
+export const serverTimestamp = fbServerTimestamp;
+
+
 
 export async function addDoc(collRef: any, data: any) {
-  if (getActiveDbProvider() !== "FIREBASE" || (window as any).firestoreQuotaExceeded) {
-     throw new Error("Firestore quota exhausted or provider switched");
+  if (getActiveDbProvider() !== "FIREBASE") {
+    const colName = getCollectionName(collRef);
+    const result = await saveDataPermanently(colName, data);
+    if (!result.success) {
+      throw new Error(result.error || "Failed to save to dynamic provider");
+    }
+    return { id: result.id || Math.random().toString(36).substring(7) } as any; // Return mock ID
   }
-  return await fbAddDoc(collRef, data);
+  if (isQuotaExceeded()) {
+    console.log("Firestore write quota exceeded: addDoc skipped.");
+    return { id: "skipped-" + Math.random().toString(36).substring(7) } as any;
+  }
+  try {
+    return await fbAddDoc(collRef, data);
+  } catch (e: any) {
+     if (e.code === 'resource-exhausted') {
+         setQuotaExceeded();
+     }
+     throw e;
+  }
 }
 
 export async function getDocs(query: any) {
-  if (getActiveDbProvider() !== "FIREBASE" || (window as any).firestoreQuotaExceeded) {
-     return { docs: [] } as any;
+  if (getActiveDbProvider() !== "FIREBASE") {
+      const colName = getCollectionName(query);
+      // For now, let's use a similar approach to getDoc for simplicity or see if realTimeService has a getDocs equivalent
+      try {
+        const provider = getActiveDbProvider();
+        const response = await fetch(`/api/db/${provider.toLowerCase()}/${colName}`);
+        if (response.ok) {
+           const json = await response.json();
+           return { docs: json.data.map((item: any) => ({ data: () => item })) } as any;
+        }
+      } catch (e) {
+        console.error("Local database getDocs simulation error:", e);
+      }
+      return { docs: [] } as any;
   }
-  return await fbGetDocs(query);
+  if (isQuotaExceeded()) {
+      return { docs: [] } as any;
+  }
+  try {
+    return await fbGetDocs(query);
+  } catch (e: any) {
+     if (e.code === 'resource-exhausted') {
+         setQuotaExceeded();
+     }
+     throw e;
+  }
 }
 
-export { fbQuery as query, fbOrderBy as orderBy, fbLimit as limit, fbServerTimestamp as serverTimestamp };
-export { fbWhere as where };
+
 
 
 // Helper to extract collection name robustly from any query or document reference
@@ -77,11 +134,18 @@ export async function setDoc(docRef: any, data: any, options?: any) {
     }
     return;
   }
-  if ((window as any).firestoreQuotaExceeded) {
+  if (isQuotaExceeded()) {
     console.log("Firestore write quota exceeded: setDoc skipped for offline local sandbox mode.", docRef?.path);
     return;
   }
-  return fbSetDoc(docRef, data, options);
+  try {
+    return await fbSetDoc(docRef, data, options);
+  } catch (e: any) {
+     if (e.code === 'resource-exhausted') {
+         setQuotaExceeded();
+     }
+     throw e;
+  }
 }
 
 export async function deleteDoc(docRef: any) {
@@ -93,11 +157,18 @@ export async function deleteDoc(docRef: any) {
     }
     return;
   }
-  if ((window as any).firestoreQuotaExceeded) {
+  if (isQuotaExceeded()) {
     console.log("Firestore delete quota exceeded: deleteDoc skipped for offline local sandbox mode.", docRef?.path);
     return;
   }
-  return fbDeleteDoc(docRef);
+  try {
+    return await fbDeleteDoc(docRef);
+  } catch (e: any) {
+     if (e.code === 'resource-exhausted') {
+         setQuotaExceeded();
+     }
+     throw e;
+  }
 }
 
 export async function getDoc(docRef: any) {
@@ -121,21 +192,30 @@ export async function getDoc(docRef: any) {
     }
     return { exists: () => false, data: () => null } as any;
   }
-  if ((window as any).firestoreQuotaExceeded) {
+  if (isQuotaExceeded()) {
     console.log("Firestore get quota exceeded: getDoc skipped for offline local sandbox mode.", docRef?.path);
     return { exists: () => false, data: () => null } as any;
   }
-  return fbGetDoc(docRef);
+  try {
+    return await fbGetDoc(docRef);
+  } catch (e: any) {
+     if (e.code === 'resource-exhausted') {
+         setQuotaExceeded();
+     }
+     throw e;
+  }
 }
 
 // Intercept low-level onSnapshot subscriptions for multi-provider live syncing
-function onSnapshot(queryRef: any, onNext: (snapshot: any) => void, onError?: (error: any) => void) {
-  if (getActiveDbProvider() !== "FIREBASE") {
+export function onSnapshot(queryRef: any, onNext: (snapshot: any) => void, onError?: (error: any) => void) {
+  if (getActiveDbProvider() !== "FIREBASE" || isQuotaExceeded()) {
+    if (isQuotaExceeded()) {
+       console.warn("Firestore quota exceeded: onSnapshot skipped.");
+    }
     const colName = getCollectionName(queryRef);
     return subscribeToClinicalData(
       colName,
       (data) => {
-        // Format incoming database objects into a compatible Firestore snapshot representation
         const mockSnapshot = {
           forEach: (callback: (doc: any) => void) => {
             data.forEach((item: any) => {
@@ -152,25 +232,30 @@ function onSnapshot(queryRef: any, onNext: (snapshot: any) => void, onError?: (e
         if (onError) onError(err);
       }
     );
-  }
-  
-  // Firebase snapshot listener
-  const unsubscribe = fbOnSnapshot(queryRef, onNext, onError);
+  } else {
+    // Firebase snapshot listener
+    const unsubscribe = fbOnSnapshot(queryRef, onNext, (err: any) => {
+      if (err.code === 'resource-exhausted') {
+        setQuotaExceeded();
+      }
+      if (onError) onError(err);
+    });
 
-  // New: Handle provider switch to unsubscribe automatically from Firebase
-  const handleProviderChange = () => {
-     if (getActiveDbProvider() !== "FIREBASE") {
-        unsubscribe();
-        window.removeEventListener("db-provider-changed", handleProviderChange);
-     }
-  };
-  window.addEventListener("db-provider-changed", handleProviderChange);
-  
-  // Return the combined unsubscribe
-  return () => {
-    unsubscribe();
-    window.removeEventListener("db-provider-changed", handleProviderChange);
-  };
+    // New: Handle provider switch to unsubscribe automatically from Firebase
+    const handleProviderChange = () => {
+      if (getActiveDbProvider() !== "FIREBASE") {
+          unsubscribe();
+          window.removeEventListener("db-provider-changed", handleProviderChange);
+      }
+    };
+    window.addEventListener("db-provider-changed", handleProviderChange);
+    
+    // Return the combined unsubscribe
+    return () => {
+      unsubscribe();
+      window.removeEventListener("db-provider-changed", handleProviderChange);
+    };
+  }
 }
 
 import { SavedRecord, AppUser, UnitDailyChecklist, SystemLog, Notification, DailyDutyTask, FormTemplate, Role, Permission, AccessMatrix, AuditLog } from "../types";
@@ -291,7 +376,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
     message.toLowerCase().includes("billing") ||
     message.toLowerCase().includes("limit")
   ) {
-    (window as any).firestoreQuotaExceeded = true;
+    setQuotaExceeded();
     window.dispatchEvent(new CustomEvent("firestore-quota-exceeded", { detail: { error: message } }));
     
     // Emergency switch

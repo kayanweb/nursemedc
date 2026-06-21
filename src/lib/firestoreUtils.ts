@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "./firestoreService";
 import { db } from "../firebase";
 
 export async function saveData(collectionName: string, docId: string, data: any) {

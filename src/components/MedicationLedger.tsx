@@ -5,7 +5,7 @@ import {
   Trash2, Plus, CheckCircle, Printer, Sparkles, BookOpen, UserCheck, ShieldAlert 
 } from "lucide-react";
 import { db } from "../lib/firebase";
-import { collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, orderBy } from "firebase/firestore";
+import { collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, orderBy } from "../lib/firestoreService";
 
 interface MedicationLedgerProps {
   language: "ar" | "en";

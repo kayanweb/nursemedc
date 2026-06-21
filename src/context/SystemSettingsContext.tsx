@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { doc, onSnapshot, setDoc } from "firebase/firestore";
+import { doc, onSnapshot, setDoc } from "../lib/firestoreService";
 import { db } from "../firebase";
 
 export interface OrganizationSettings {

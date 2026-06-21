@@ -247,7 +247,7 @@ export default function RosterPlanningPanel({
         }))
       })));
     }
-    rosterList.forEach(roster => saveDepartmentRoster(roster.departmentName, roster.rows.map(row => ({ ...row, shifts: {} }))));
+    rosterList.forEach(roster => saveDepartmentRoster({ departmentName: roster.departmentName, rows: roster.rows.map(row => ({ ...row, shifts: {} })) }));
     if (addSystemLog) addSystemLog("تم تصفير جدول الروستر بالكامل", "warning");
   };
 

@@ -10,7 +10,7 @@ import {
   deleteDoc, 
   orderBy,
   getDocs
-} from "firebase/firestore";
+} from "./firestoreService";
 
 // Bilingual notification trigger to alert the client to server faults
 export function triggerBilingualNotification(errorMsg: string) {

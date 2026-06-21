@@ -18,6 +18,6 @@ try {
 
 const app = getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig);
 // Initialize Firestore using the configured database ID
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId || "default-db");
 export const auth = getAuth(app);
 

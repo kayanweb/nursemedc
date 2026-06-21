@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, addDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, onSnapshot, query } from "../lib/firestoreService";
 import { db } from '../lib/firebase';
 import { saveNotification, saveRosterWish, saveDepartmentRoster } from '../lib/firestoreService';
 import { 
