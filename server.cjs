@@ -338,6 +338,91 @@ The language of the response MUST be: ${lang === "ar" ? "Arabic" : "English"}.
       });
     }
   });
+  const providerStores = {
+    SUPABASE: {},
+    POCKETBASE: {},
+    LOCAL_HOST: {}
+  };
+  let sseClients = [];
+  app.get("/api/db/stream", (req, res) => {
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+    sseClients.push(res);
+    req.on("close", () => {
+      sseClients = sseClients.filter((client) => client !== res);
+    });
+  });
+  function broadcastUpdate(provider, collectionName) {
+    const payload = JSON.stringify({ provider, collectionName, timestamp: (/* @__PURE__ */ new Date()).toISOString() });
+    sseClients.forEach((client) => {
+      try {
+        client.write(`data: ${payload}
+
+`);
+      } catch (err) {
+        console.error("SSE write error:", err);
+      }
+    });
+  }
+  app.get("/api/db/:provider/:collection", (req, res) => {
+    const { provider, collection: collectionName } = req.params;
+    const upperProvider = provider.toUpperCase();
+    if (!providerStores[upperProvider]) {
+      return res.status(404).json({ success: false, error: "Database provider not supported." });
+    }
+    if (!providerStores[upperProvider][collectionName]) {
+      providerStores[upperProvider][collectionName] = [];
+    }
+    res.json({ success: true, data: providerStores[upperProvider][collectionName] });
+  });
+  app.post("/api/db/:provider/:collection", (req, res) => {
+    const { provider, collection: collectionName } = req.params;
+    const upperProvider = provider.toUpperCase();
+    const item = req.body;
+    if (!providerStores[upperProvider]) {
+      return res.status(404).json({ success: false, error: "Database provider not supported." });
+    }
+    if (!item || !item.id) {
+      return res.status(400).json({ success: false, error: "Item must contain an 'id' field." });
+    }
+    if (!providerStores[upperProvider][collectionName]) {
+      providerStores[upperProvider][collectionName] = [];
+    }
+    const index = providerStores[upperProvider][collectionName].findIndex((x) => x.id === item.id);
+    if (index >= 0) {
+      providerStores[upperProvider][collectionName][index] = {
+        ...providerStores[upperProvider][collectionName][index],
+        ...item,
+        updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+      };
+    } else {
+      providerStores[upperProvider][collectionName].push({
+        ...item,
+        createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+        updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+      });
+    }
+    broadcastUpdate(upperProvider, collectionName);
+    res.json({ success: true, item });
+  });
+  app.delete("/api/db/:provider/:collection/:id", (req, res) => {
+    const { provider, collection: collectionName, id } = req.params;
+    const upperProvider = provider.toUpperCase();
+    if (!providerStores[upperProvider]) {
+      return res.status(404).json({ success: false, error: "Database provider not supported." });
+    }
+    if (!providerStores[upperProvider][collectionName]) {
+      providerStores[upperProvider][collectionName] = [];
+    }
+    const initialLength = providerStores[upperProvider][collectionName].length;
+    providerStores[upperProvider][collectionName] = providerStores[upperProvider][collectionName].filter((x) => x.id !== id);
+    if (providerStores[upperProvider][collectionName].length !== initialLength) {
+      broadcastUpdate(upperProvider, collectionName);
+    }
+    res.json({ success: true });
+  });
   if (process.env.NODE_ENV !== "production") {
     const vite = await (0, import_vite.createServer)({
       server: { middlewareMode: true },
