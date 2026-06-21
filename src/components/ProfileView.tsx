@@ -10,6 +10,7 @@ import {
   Calendar, Send, FileText, Briefcase, HelpCircle, MapPin, CheckSquare, Plus, Trash,
   Printer, ClipboardList, Trash2
 } from "lucide-react";
+import EmployeeIDCard from "./EmployeeIDCard";
 
 interface ProfileViewProps {
   user: AppUser;
@@ -49,7 +50,7 @@ export default function ProfileView({ user, language, hospitalSettings, systemUs
   const isAuthorizedToView = currentUser ? (currentUser.id === user.id || currentUser.role === "admin") : true;
   
   // Tab State
-  const [activeTab, setActiveTab ] = useState<"bio" | "wishes" | "leaves" | "admin_req">("bio");
+  const [activeTab, setActiveTab ] = useState<"bio" | "wishes" | "leaves" | "admin_req" | "id_card">("bio");
 
   // Profile data
   const [nameAr, setNameAr] = useState(user.nameAr);
@@ -626,6 +627,16 @@ export default function ProfileView({ user, language, hospitalSettings, systemUs
           <Briefcase size={13} />
           <span>{isAr ? "طلبات إدارية واستثناءات" : "Admin Requests"}</span>
         </button>
+
+        <button
+          onClick={() => setActiveTab("id_card")}
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-black transition text-center flex items-center justify-center gap-1.5 ${
+            activeTab === "id_card" ? "bg-white text-pink-600 shadow-sm border border-slate-200" : "text-slate-650 hover:bg-white/50"
+          }`}
+        >
+          <Printer size={13} />
+          <span>{isAr ? "بطاقة الهوية (ID)" : "ID Card"}</span>
+        </button>
       </div>
 
       {/* Grid Content */}
@@ -739,6 +750,10 @@ export default function ProfileView({ user, language, hospitalSettings, systemUs
                 </div>
               </div>
             </div>
+          )}
+
+          {activeTab === "id_card" && (
+            <EmployeeIDCard user={user} language={language} />
           )}
 
           {/* TAB 2: Shift Wishes (رغبات الروستر للشهر الجديد) */}

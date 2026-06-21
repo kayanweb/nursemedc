@@ -164,7 +164,8 @@ export default function RosterPlanningPanel({
   onViewUserProfile,
   rosterAuditLogs = [],
   onAppTabChange,
-  setSelectedRosterDept
+  setSelectedRosterDept,
+  checkPermission
 }: {
   language: string;
   hospitalSettings: any;
@@ -178,6 +179,7 @@ export default function RosterPlanningPanel({
   rosterAuditLogs?: RosterAuditLog[];
   onAppTabChange?: (tab: any) => void;
   setSelectedRosterDept?: (dept: string) => void;
+  checkPermission?: (permissionId: string) => boolean;
 }) {
   const isAr = language === "ar";
 
@@ -936,6 +938,10 @@ export default function RosterPlanningPanel({
                 ) : (
                   <button
                     onClick={() => {
+                      if (checkPermission && !checkPermission("modifyRosterShifts")) {
+                         alert(isAr ? "ليس لديك صلاحية لإرسال طلبات النقل." : "You lack permission to initiate transfer requests.");
+                         return;
+                      }
                       if(addSystemLog) addSystemLog(`توزيع استثنائي: تم إرسال رسائل استدعاء لعدد ${smartTransferModal.selectedStaff.length} موظف لدعم قسم ${smartTransferModal.department}`, "success");
                       alert(isAr ? "تم إرسال الرسائل والإشعارات العام بنجاح." : "Messages & notifications sent successfully.");
                       setSmartTransferModal({ ...smartTransferModal, open: false });

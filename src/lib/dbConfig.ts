@@ -1,6 +1,6 @@
 // dbConfig.ts
 
-export type DbProvider = "FIREBASE" | "SUPABASE" | "POCKETBASE" | "LOCAL_HOST" | "MQTT" | "SOCKET_IO_REDIS";
+export type DbProvider = "FIREBASE" | "SUPABASE" | "POCKETBASE" | "APPWRITE" | "LOCAL_HOST" | "MQTT" | "SOCKET_IO_REDIS" | "NULL_DB";
 
 // Central dynamic provider setting (in-memory, strictly no localStorage for patient data!)
 let currentProvider: DbProvider = (typeof window !== "undefined" && localStorage.getItem("active_db_provider") as DbProvider) || "FIREBASE";
@@ -55,6 +55,18 @@ export const DB_PROVIDERS_CONFIG = {
     adminPassword: "",  // Added as requested
     statusUrl: "https://kayan.pockethost.io/api/health"
   },
+  NULL_DB: {
+    nameAr: "وضع عدم الاتصال (Offline Local Only)",
+    nameEn: "Offline Local Only Mode",
+    statusUrl: ""
+  },
+  APPWRITE: {
+    nameAr: "أب رايت (Appwrite Backend)",
+    nameEn: "Appwrite Backend Service",
+    endpoint: "https://cloud.appwrite.io/v1",
+    projectId: "",
+    apiKey: ""
+  },
   LOCAL_HOST: {
     nameAr: "سيرفر المستشفى المحلي الرقمي (Localhost HTTP / WS)",
     nameEn: "Hospital Router Network (Host API/WS)",
@@ -81,7 +93,7 @@ export const DB_PROVIDERS_CONFIG = {
 };
 
 export const switchEnvironment = (provider: DbProvider, newSettings: any = {}) => {
-  if (["FIREBASE", "SUPABASE", "POCKETBASE", "LOCAL_HOST", "MQTT", "SOCKET_IO_REDIS"].includes(provider)) {
+  if (["FIREBASE", "SUPABASE", "POCKETBASE", "APPWRITE", "LOCAL_HOST", "MQTT", "SOCKET_IO_REDIS", "NULL_DB"].includes(provider)) {
     setActiveDbProvider(provider);
     if (newSettings && Object.keys(newSettings).length > 0) {
       const targetConfig: any = DB_PROVIDERS_CONFIG[provider];

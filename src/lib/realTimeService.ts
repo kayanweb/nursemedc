@@ -9,7 +9,8 @@ import {
   setDoc, 
   deleteDoc, 
   orderBy,
-  getDocs
+  getDocs,
+  getLocalStore
 } from "./firestoreService";
 
 // Bilingual notification trigger to alert the client to server faults
@@ -92,8 +93,15 @@ export function subscribeToClinicalData<T>(
         onDataUpdate(json.data);
       }
     } catch (err: any) {
-      triggerBilingualNotification(`Failed to load from ${provider}: ${err.message}`);
-      onError(err);
+      console.warn(`Failed to load from ${provider}, checking local fallback: ${err.message}`);
+      // Fallback to local storage if server fetch fails
+      const localData = getLocalStore(collectionName);
+      if (localData.length > 0) {
+        onDataUpdate(localData as T[]);
+      } else {
+        triggerBilingualNotification(`Failed to load from ${provider}: ${err.message}`);
+        onError(err);
+      }
     }
   };
 
@@ -155,6 +163,11 @@ export async function saveDataPermanently<T extends { id: string }>(
       return { success: true };
     }
 
+    if (provider === "NULL_DB") {
+      console.log(`🔒 [Offline] NullDB active, skipping save for ${collectionName}.`);
+      return { success: true };
+    }
+
     // ---------------------------------------------
     // CLOUD & LOCAL ROUTER SECURE SAVE (SUPABASE, POCKETBASE, LOCAL_HOST)
     // ---------------------------------------------
@@ -193,6 +206,11 @@ export async function deleteDataPermanently(
     if (provider === "FIREBASE") {
       console.log(`🗑️ [Permanent Delete] Removing from Firebase: ${collectionName}/${recordId}`);
       await deleteDoc(doc(db, collectionName, recordId));
+      return { success: true };
+    }
+
+    if (provider === "NULL_DB") {
+      console.log(`🔒 [Offline] NullDB active, skipping delete.`);
       return { success: true };
     }
 

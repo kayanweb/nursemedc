@@ -95,6 +95,7 @@ import {
   RosterAuditLog
 } from "./types";
 import ProfileView from "./components/ProfileView";
+import AdminDashboard from "./components/AdminDashboard";
 import MessagingDashboard from "./components/MessagingDashboard";
 import NursingAdminToolbox from "./components/NursingAdminToolbox";
 import SupervisorDashboard from "./components/SupervisorDashboard";
@@ -802,7 +803,7 @@ function AppContent() {
   const [userRegistrySearch, setUserRegistrySearch] = useState("");
   const [userRegistryPage, setUserRegistryPage] = useState(0);
   const [dbStatus, setDbStatus] = useState<"connected" | "syncing" | "error">("connected");
-  const [activeTab, setActiveTab] = useState<"editor" | "history" | "settings" | "login_settings" | "about" | "analytics" | "duty" | "it_panel" | "distribution" | "roster" | "messaging" | "cloud_settings" | "roster_config" | "approval" | "profile" | "medical_tools" | "nursing_toolbox" | "supervisor" | "medication_ledger" | "meals" | "director_dashboard" | "supervisor_dashboard" | "headnurse_dashboard" | "transport" | "reception" | "emr" | "pharmacy" | "billing" | "ancillary" | "ward" | "ot" | "hospital_admin" | "manage_templates" | "document_center">("duty");
+  const [activeTab, setActiveTab] = useState<"editor" | "history" | "settings" | "login_settings" | "about" | "admin_dashboard" | "analytics" | "duty" | "it_panel" | "distribution" | "roster" | "messaging" | "cloud_settings" | "roster_config" | "approval" | "profile" | "medical_tools" | "nursing_toolbox" | "supervisor" | "medication_ledger" | "meals" | "director_dashboard" | "supervisor_dashboard" | "headnurse_dashboard" | "transport" | "reception" | "emr" | "pharmacy" | "billing" | "ancillary" | "ward" | "ot" | "hospital_admin" | "manage_templates" | "document_center">("duty");
   const [ledgerViewMode, setLedgerViewMode] = useState<"weekly" | "monthly">("weekly");
   const [dayFocus, setDayFocus] = useState<"all" | number>("all"); // Show all 31 days or focus on a single day
   const [language, setLanguage] = useState<"ar" | "en">("ar");
@@ -5606,6 +5607,19 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
           </button>
           )}
 
+          {/* 7. Admin Dashboard - NEW */}
+          <button
+            onClick={() => setActiveTab("admin_dashboard")}
+            className={`w-full flex items-center gap-3 px-6 py-2.5 text-right text-xs font-semibold transition-colors ${
+              activeTab === "admin_dashboard"
+                ? "bg-slate-800 border-r-4 border-blue-500 text-blue-400 font-bold"
+                : "text-slate-400 hover:bg-slate-800 hover:text-white"
+            }`}
+          >
+            <Database className="h-4 w-4 shrink-0 text-blue-500" />
+            <span>{language === "ar" ? "لوحة الإدارة والدعم" : "Admin Dashboard"}</span>
+          </button>
+
           {/* Document Center */}
           <button
             onClick={() => setActiveTab("document_center")}
@@ -9148,6 +9162,16 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
             <ProfileView user={currentUser} language={language} systemUsers={systemUsers} currentUser={currentUser} />
           )}
 
+          {activeTab === "admin_dashboard" && (
+            <AdminDashboard 
+              language={language}
+              itStrictComplianceMode={itStrictComplianceMode}
+              setItStrictComplianceMode={setItStrictComplianceMode}
+              itConflictResolutionWithNewest={itConflictResolutionWithNewest}
+              setItConflictResolutionWithNewest={setItConflictResolutionWithNewest}
+            />
+          )}
+
           {activeTab === "document_center" && (
             <DocumentCenter 
               language={language}
@@ -9229,6 +9253,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                 onViewUserProfile={setViewingUserProfileUser}
                 onAppTabChange={setActiveTab}
                 setSelectedRosterDept={setSelectedRosterDept}
+                checkPermission={checkPermission}
               />
             </div>
           )}

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { X, Cloud, ShieldCheck, Database, Save } from "lucide-react";
+import { X, Cloud, ShieldCheck, Database, Save, Server } from "lucide-react";
+import { ACTIVE_DB_PROVIDER, DB_PROVIDERS_CONFIG, setActiveDbProvider } from "../lib/dbConfig";
 import { useSettings } from "../context/SettingsContext";
 
 interface Props {
@@ -15,6 +16,7 @@ export default function CloudSettingsPanel({ onClose }: Props) {
   const [address, setAddress] = useState(settings.address);
   const [emergencyPhone, setEmergencyPhone] = useState(settings.emergencyPhone);
   const [isSaving, setIsSaving] = useState(false);
+  const [provider, setProvider] = useState(ACTIVE_DB_PROVIDER);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -37,15 +39,24 @@ export default function CloudSettingsPanel({ onClose }: Props) {
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-100">
-            <div className="flex items-center gap-3">
-              <ShieldCheck className="w-6 h-6 text-green-600" />
-              <div>
-                <p className="font-semibold text-green-900">نظام الربط نشط</p>
-                <p className="text-sm text-green-700">Firebase Cloud Firestore</p>
-              </div>
+          <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+            <div className="flex items-center gap-3 mb-2">
+              <Server className="w-5 h-5 text-gray-600" />
+              <p className="font-semibold text-gray-900">مزود قاعدة البيانات</p>
             </div>
-            <span className="bg-green-200 text-green-800 text-xs px-2 py-1 rounded-full font-medium">متصل</span>
+            <select 
+              className="w-full p-2 border rounded-md"
+              value={provider}
+              onChange={(e) => {
+                const newProv = e.target.value as any;
+                setProvider(newProv);
+                setActiveDbProvider(newProv);
+              }}
+            >
+              {Object.keys(DB_PROVIDERS_CONFIG).map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
           </div>
           
           <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">

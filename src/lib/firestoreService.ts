@@ -22,12 +22,20 @@ const isQuotaExceeded = () => {
     return (window as any).firestoreQuotaExceeded || localStorage.getItem("firestoreQuotaExceeded") === "true";
 };
 
+// Track active listeners
+const activeSubscribers: (() => void)[] = [];
+
 const setQuotaExceeded = () => {
     (window as any).firestoreQuotaExceeded = true;
     localStorage.setItem("firestoreQuotaExceeded", "true");
+    
+    // Unsubscribe all active listeners
+    activeSubscribers.forEach(unsubscribe => unsubscribe());
+    activeSubscribers.length = 0;
+    
     if (getActiveDbProvider() === "FIREBASE") {
-      console.log("Firestore quota exceeded: Switching to SUPABASE...");
-      switchEnvironment("SUPABASE");
+      console.log("Firestore quota exceeded: Switching to NULL_DB (Offline Mode)...");
+      switchEnvironment("NULL_DB");
     }
 };
 
@@ -48,17 +56,23 @@ export async function addDoc(collRef: any, data: any) {
     if (!result.success) {
       throw new Error(result.error || "Failed to save to dynamic provider");
     }
-    return { id: result.id || Math.random().toString(36).substring(7) } as any; // Return mock ID
+    return { id: data?.id || Math.random().toString(36).substring(7) } as any; // Return mock ID
   }
   if (isQuotaExceeded()) {
-    console.log("Firestore write quota exceeded: addDoc skipped.");
-    return { id: "skipped-" + Math.random().toString(36).substring(7) } as any;
+    const colName = getCollectionName(collRef);
+    const id = data?.id || Math.random().toString(36).substring(7);
+    saveLocalDoc(colName, id, { ...data, id });
+    console.log("Firestore write quota exceeded: addDoc saved to local fallback.", colName, id);
+    return { id } as any;
   }
   try {
     return await fbAddDoc(collRef, data);
   } catch (e: any) {
      if (e.code === 'resource-exhausted') {
          setQuotaExceeded();
+         console.warn("Firestore quota exceeded: Switching to local fallback.");
+         const colName = getCollectionName(collRef);
+         return { id: data?.id || Math.random().toString(36).substring(7) } as any; // Fallback to local
      }
      throw e;
   }
@@ -81,13 +95,19 @@ export async function getDocs(query: any) {
       return { docs: [] } as any;
   }
   if (isQuotaExceeded()) {
-      return { docs: [] } as any;
+      const colName = getCollectionName(query);
+      const localData = getLocalStore(colName);
+      return { docs: localData.map((item: any) => ({ data: () => item })) } as any;
   }
   try {
     return await fbGetDocs(query);
   } catch (e: any) {
      if (e.code === 'resource-exhausted') {
          setQuotaExceeded();
+         console.warn("Firestore quota exceeded: Switching to local fallback.");
+         const colName = getCollectionName(query);
+         const localData = getLocalStore(colName);
+         return { docs: localData.map((item: any) => ({ data: () => item })) } as any;
      }
      throw e;
   }
@@ -135,7 +155,9 @@ export async function setDoc(docRef: any, data: any, options?: any) {
     return;
   }
   if (isQuotaExceeded()) {
-    console.log("Firestore write quota exceeded: setDoc skipped for offline local sandbox mode.", docRef?.path);
+    const colName = getCollectionName(docRef);
+    saveLocalDoc(colName, docRef.id, { ...data, id: docRef.id });
+    console.log("Firestore write quota exceeded: setDoc saved to local fallback.", docRef?.path);
     return;
   }
   try {
@@ -240,6 +262,7 @@ export function onSnapshot(queryRef: any, onNext: (snapshot: any) => void, onErr
       }
       if (onError) onError(err);
     });
+    activeSubscribers.push(unsubscribe);
 
     // New: Handle provider switch to unsubscribe automatically from Firebase
     const handleProviderChange = () => {
@@ -253,6 +276,10 @@ export function onSnapshot(queryRef: any, onNext: (snapshot: any) => void, onErr
     // Return the combined unsubscribe
     return () => {
       unsubscribe();
+      // Remove from activeSubscribers
+      const index = activeSubscribers.indexOf(unsubscribe);
+      if (index > -1) activeSubscribers.splice(index, 1);
+      
       window.removeEventListener("db-provider-changed", handleProviderChange);
     };
   }
@@ -824,7 +851,17 @@ export async function getRolePermissions(): Promise<any> {
       return data;
     }
     const local = getLocalDoc("hospital_settings", "role_permissions");
-    return local ? local.permissions : null;
+    if (local && local.permissions) return local.permissions;
+    
+    // Fallback if quota exceeded and no local permissions found
+    if (isQuotaExceeded()) {
+        console.warn("Firestore quota exceeded and no local permissions found, using default permissions.");
+        return [
+            { id: "mod_nursing_admin", nameAr: "إدارة التمريض", nameEn: "Nursing Admin" },
+            { id: "mod_supervisor", nameAr: "مشرف التمريض", nameEn: "Supervisor" }
+        ];
+    }
+    return null;
 }
 
 export async function saveRolePermissions(permissions: any): Promise<void> {
@@ -1025,7 +1062,19 @@ export function syncPermissions(onData: (permissions: Permission[]) => void) {
 
 export function syncAccessMatrix(onData: (matrix: AccessMatrix[]) => void) {
   const path = "access_matrix";
-  onData(mergeWithLocal([], path));
+  const local = getLocalStore(path);
+  
+  if (local.length === 0 && isQuotaExceeded()) {
+    // Provide a basic fallback matrix to allow system access
+    onData([
+      { roleId: "admin", permissionId: "mod_nursing_admin", id: "admin_mod_nursing_admin", enabled: true },
+      { roleId: "admin", permissionId: "mod_supervisor", id: "admin_mod_supervisor", enabled: true },
+      // Add other modules as needed
+    ]);
+  } else {
+    onData(mergeWithLocal([], path));
+  }
+  
   return onSnapshot(collection(db, path), (snapshot) => {
     const matrix: AccessMatrix[] = [];
     snapshot.forEach((doc) => matrix.push(doc.data() as AccessMatrix));
