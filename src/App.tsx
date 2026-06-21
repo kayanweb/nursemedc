@@ -123,6 +123,9 @@ import InfectionControlHub from "./components/InfectionControlHub";
 import { FORM_TEMPLATES, createNewRecord, getItemsForTemplate } from "./data/templates";
 import { generatePDF } from "./lib/pdfGenerator";
 import { DynamicProfessionalLogo } from "./components/DynamicProfessionalLogo";
+import { LiveClock } from "./components/LiveClock";
+import { MultiTenantManager } from "./components/MultiTenantManager";
+import { DepartmentsDetailedManager } from "./components/DepartmentsDetailedManager";
 import {
   testConnection,
   syncClinicalRecords,
@@ -769,21 +772,21 @@ function AppContent() {
     isDevice: boolean;
   } | null>(null);
 
-  const [currentTime, setCurrentTime] = useState<Date>(new Date());
-
-
   useEffect(() => {
+    // Only check shift change every minute to avoid re-renders
     const timer = setInterval(() => {
       const now = new Date();
-      setCurrentTime(now);
-      
       // Auto-identify active shift in real-time
       const hour = now.getHours();
       let activeShiftIdNow = "N";
       if (hour >= 8 && hour < 14) activeShiftIdNow = "M";
       else if (hour >= 14 && hour < 20) activeShiftIdNow = "A";
-      setSelectedShift(activeShiftIdNow);
-    }, 1000);
+      
+      setSelectedShift(prev => {
+         if (prev !== activeShiftIdNow) return activeShiftIdNow;
+         return prev;
+      });
+    }, 60000);
     return () => clearInterval(timer);
   }, []);
 
@@ -1750,7 +1753,7 @@ Full administrative override and emergency clinical execution privileges have be
 
     // Default fallbacks
     const defaults: Record<string, string[]> = {
-      submitChecklist: ["staff", "head_nurse", "admin", "quality", "president", "it"],
+      submitChecklist: ["staff", "Staff", "head_nurse", "admin", "quality", "president", "it"],
       approveChecklist: ["head_nurse", "admin", "quality", "president", "it"],
       manageDutyTasks: ["head_nurse", "admin", "quality", "president", "it"],
       editMasterTemplates: ["admin", "quality", "president", "it"],
@@ -1759,7 +1762,26 @@ Full administrative override and emergency clinical execution privileges have be
       signoffRosterCno: ["president", "it"],
       addRemoveStaff: ["head_nurse", "admin", "president", "it"],
       editHospitalSettings: ["admin", "president", "it"],
-      viewSystemDatabase: ["admin", "president", "it"]
+      viewSystemDatabase: ["admin", "president", "it"],
+      
+      // Module sidebars mapping
+      mod_nursing_admin: ["admin", "head_nurse", "president", "it", "nursing_director"],
+      mod_supervisor: ["admin", "head_nurse", "supervisor", "it", "nursing_director", "quality"],
+      mod_medication: ["admin", "head_nurse", "staff", "Staff", "supervisor", "nursing_director", "clinical_pharmacist", "medical_director", "it"],
+      mod_forms_fill: ["admin", "head_nurse", "staff", "Staff", "supervisor", "it", "quality", "intern", "assistant", "secretary", "ward_clerk", "clinical_pharmacist", "medical_director"],
+      mod_forms_dist: ["admin", "head_nurse", "supervisor", "nursing_director", "quality", "president", "it"],
+      mod_roster_view: ["admin", "head_nurse", "staff", "Staff", "quality", "president", "supervisor", "intern", "assistant", "secretary", "ward_clerk", "clinical_pharmacist", "medical_director", "it"],
+      mod_roster_config: ["admin", "head_nurse", "nursing_director", "supervisor", "it", "quality"],
+      mod_meals: ["admin", "head_nurse", "staff", "Staff", "supervisor", "ward_clerk", "it"],
+      mod_transport: ["admin", "head_nurse", "staff", "Staff", "supervisor", "ward_clerk", "it"],
+      mod_quality: ["admin", "quality", "nursing_director", "supervisor", "it", "president", "audit_auditor", "hmo"],
+      mod_archives: ["admin", "quality", "it", "president", "nursing_director", "supervisor", "head_nurse", "audit_auditor", "medical_director"],
+      mod_wsd_console: ["admin", "it"],
+      mod_profile: ["admin", "head_nurse", "staff", "Staff", "quality", "president", "supervisor", "intern", "assistant", "secretary", "ward_clerk", "clinical_pharmacist", "medical_director", "it"],
+      mod_system_settings: ["admin", "it", "president", "medical_director"],
+      mod_messaging: ["admin", "head_nurse", "staff", "Staff", "quality", "president", "supervisor", "intern", "assistant", "secretary", "ward_clerk", "clinical_pharmacist", "medical_director", "it"],
+      mod_evaluations: ["admin", "head_nurse", "supervisor", "president", "medical_director", "it"],
+      mod_infection_control: ["admin", "head_nurse", "supervisor", "infection_control", "quality", "medical_director", "it"]
     };
     return defaults[permissionId]?.includes(roleId) || false;
   };
@@ -4605,6 +4627,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                     <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
                     <input
                       type="password"
+                      autoComplete="current-password"
                       required
                       maxLength={6}
                       value={loginPasscode}
@@ -5194,7 +5217,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 print:block print:min-w-full print:w-full print:p-0 print:m-0">
+      <div className="flex-1 flex flex-col min-w-0 md:h-screen md:overflow-hidden print:block print:min-w-full print:w-full print:p-0 print:m-0">
         
         {/* Top Header Bar - Highly Advanced Glassmorphism */}
         <header className="no-print sticky top-0 bg-white/70 backdrop-blur-xl border-b border-white/50 flex flex-col md:flex-row items-center justify-between px-6 py-3 gap-4 shadow-[0_4px_30px_rgba(0,0,0,0.05)] z-40 text-right transition-all">
@@ -5239,23 +5262,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
 
           <div className="flex flex-wrap items-center gap-2.5 justify-end w-full md:w-auto">
             {/* Live Clock */}
-            <div className="bg-slate-50/80 backdrop-blur-sm border border-slate-200/50 text-slate-700 text-[10px] font-mono px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
-              <Clock className="w-3.5 h-3.5 text-indigo-600 animate-spin-slow" />
-              <span className="font-bold">
-                {currentTime.toLocaleDateString(language === "ar" ? "ar-EG" : "en-US", {
-                  weekday: "short",
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                })}{" "}
-                 {currentTime.toLocaleTimeString(language === "ar" ? "ar-EG" : "en-US", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  second: "2-digit",
-                  hour12: true,
-                })}
-              </span>
-            </div>
+            <LiveClock language={language} />
 
             {/* Smart Shift Tracker badge */}
             <div 
@@ -12588,7 +12595,13 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
                       <span className="text-pink-500">🏢</span>
                     </h4>
                     
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs space-y-3">
+                    <MultiTenantManager
+                      language={language}
+                      settingsForm={settingsForm}
+                      setSettingsForm={setSettingsForm}
+                    />
+
+                    <div className="hidden bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs space-y-3">
                       {settingsForm.tenants && settingsForm.tenants.map((t, idx) => (
                         <div key={idx} className="flex justify-between items-center bg-white p-3 border rounded shadow-sm">
                           <div className="flex gap-2">
@@ -12637,75 +12650,14 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
               </div>
 
               {/* Dynamic Departments Manager Card */}
-              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4 text-right">
-                <div className="border-b border-slate-100 pb-3">
-                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-1.5 justify-end">
-                    <span>إدارة وتعديل الأقسام والوحدات الطبية بالمستشفى</span>
-                    <Layers className="h-4.5 w-4.5 text-pink-600" />
-                  </h3>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    قم بإضافة وحذف الأقسام والوحدات السريرية الطبية المتاحة بالمستشفى. سيتم تحديث نماذج واستمارات الجرد وخيارات إضافة وتعديل حسابات الكادر فوراً بهذا الدليل الديناميكي.
-                  </p>
-                </div>
-
-                <div className="flex flex-col md:flex-row gap-4 items-start justify-end text-xs">
-                  {/* List of departments */}
-                  <div className="w-full md:w-1/2 space-y-2 order-2 md:order-1">
-                    <label className="block text-[10px] font-bold text-slate-505 mb-1 text-slate-500">الأقسام والوحدات السريرية الطبية المسجّلة حالياً بالمنظومة:</label>
-                    <div className="border border-slate-150 rounded-lg p-2 max-h-44 overflow-y-auto space-y-1 bg-slate-50">
-                      {departments.map((dept, index) => (
-                        <div key={index} className="flex justify-between items-center bg-white px-3 py-1.5 rounded-md border border-slate-100 shadow-sm">
-                          <button
-                            onClick={() => {
-                              if (departments.length <= 1) {
-                                alert(language === "ar" ? `عذراً: يجب الحفاظ على قسم طبي واحد على الأقل بنظام ${hospitalSettings.nameAr || "المؤسسة"}!` : "Access Denied: You must keep at least one registered department!");
-                                return;
-                              }
-                              if (confirm(language === "ar" ? `هل أنت متأكد من حذف قسم "${dept}"؟` : `Are you sure you want to delete ${dept}?`)) {
-                                const list = departments.filter((d) => d !== dept);
-                                setDepartments(list);
-                                saveSetting("baheya_hospital_departments", list);
-                              }
-                            }}
-                            className="text-rose-600 hover:text-rose-800 font-extrabold text-[10px] cursor-pointer"
-                          >
-                            × حذف القسم
-                          </button>
-                          <span className="font-bold text-slate-700 text-xs">{dept}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Add New Department Form */}
-                  <div className="w-full md:w-1/2 p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 order-1 md:order-2">
-                    <label className="block text-[10px] font-bold text-slate-650 text-slate-700">تسجيل وتفعيل وحدة طبية جديدة:</label>
-                    <div className="space-y-1.5">
-                      <input
-                        type="text"
-                        placeholder="مثال: ONCOLOGY INTENSIVE CARE"
-                        className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-bold text-xs text-slate-800 outline-none focus:ring-1 focus:ring-pink-500 text-right"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            const val = (e.target as HTMLInputElement).value.trim().toUpperCase();
-                            if (!val) return;
-                            if (departments.includes(val)) {
-                              alert(language === "ar" ? "هذا القسم مسجل بالفعل!" : "This department already exists!");
-                              return;
-                            }
-                            const updatedDepts = [...departments, val];
-                            setDepartments(updatedDepts);
-                            saveSetting("baheya_hospital_departments", updatedDepts);
-                            (e.target as HTMLInputElement).value = "";
-                            alert(language === "ar" ? `تم تفعيل قسم "${val}" بنجاح!` : `Department ${val} added!`);
-                          }
-                        }}
-                      />
-                      <p className="text-[9px] text-slate-400">اكتب الاسم بالكامل ثم اضغط Enter للإضافة والحفظ التلقائي</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <DepartmentsDetailedManager
+                language={language}
+                departments={departments}
+                setDepartments={setDepartments}
+                systemUsers={systemUsers}
+                setSystemUsers={setSystemUsers}
+                saveSetting={saveSetting}
+              />
 
               {/* Roles and Job Titles Manager */}
               <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4 text-right">
@@ -13740,8 +13692,9 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
             <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 p-1.5 rounded-full shadow-inner shrink-0 scale-90 md:scale-100">
               <button
                 onClick={() => {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
                   const mainContent = document.getElementById("main-content-dashboard");
-                  mainContent ? mainContent.scrollTo({ top: 0, behavior: 'smooth' }) : window.scrollTo({ top: 0, behavior: 'smooth' });
+                  if (mainContent) mainContent.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 className="bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white p-2 rounded-full transition-all border border-slate-600 hover:border-slate-400 shadow-sm"
                 title={language === "ar" ? "صعود لأعلى (ذكي)" : "Smart Scroll Up"}
@@ -13760,8 +13713,9 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
 
               <button
                 onClick={() => {
+                  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
                   const mainContent = document.getElementById("main-content-dashboard");
-                  mainContent ? mainContent.scrollTo({ top: mainContent.scrollHeight, behavior: 'smooth' }) : window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                  if (mainContent) mainContent.scrollTo({ top: mainContent.scrollHeight, behavior: 'smooth' });
                 }}
                 className="bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white p-2 rounded-full transition-all border border-slate-600 hover:border-slate-400 shadow-sm"
                 title={language === "ar" ? "نزول لأسفل (ذكي)" : "Smart Scroll Down"}

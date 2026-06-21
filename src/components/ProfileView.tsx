@@ -46,7 +46,7 @@ export default function ProfileView({ user, language, hospitalSettings, systemUs
   
   // Profile Lock Logic
   // Only the user themselves, 'it', or 'manager' roles can view the profile completely.
-  const isAuthorizedToView = currentUser ? (currentUser.id === user.id || currentUser.role === "it" || currentUser.role === "manager") : true;
+  const isAuthorizedToView = currentUser ? (currentUser.id === user.id || currentUser.role === "admin") : true;
   
   // Tab State
   const [activeTab, setActiveTab ] = useState<"bio" | "wishes" | "leaves" | "admin_req">("bio");

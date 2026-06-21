@@ -1576,10 +1576,10 @@ export default function RosterPlanningPanel({
                             if(addSystemLog) addSystemLog(`الاطلاع على التوزيع التلقائي بواسطة: ${authorizer.nameAr}`, "info");
                             setSmartTransferModal({
                               open: true,
-                              department: stat.department,
+                              department: stat.departmentName,
                               selectedStaff: [],
                               step: 1,
-                              message: isAr ? "مرحباً، تم اختيارك لتغطية شیفت إضافي في قسم " + stat.department + " اليوم. يرجى التأكيد." : "Hello, you have been selected to cover an extra shift in " + stat.department + " today. Please confirm."
+                              message: isAr ? "مرحباً، تم اختيارك لتغطية شیفت إضافي في قسم " + stat.departmentName + " اليوم. يرجى التأكيد." : "Hello, you have been selected to cover an extra shift in " + stat.departmentName + " today. Please confirm."
                             });
                           }
                         });
@@ -1619,7 +1619,7 @@ export default function RosterPlanningPanel({
                     <button onClick={() => {
                         setNotifyModal({
                           open: true,
-                          department: stat.department,
+                          department: stat.departmentName,
                           selectedStaff: [],
                           authCode: ""
                         });

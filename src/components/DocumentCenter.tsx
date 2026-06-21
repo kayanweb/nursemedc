@@ -378,8 +378,17 @@ Fields Detected: Contains fillable areas or grid structures.
                   </div>
                   <p className="font-medium whitespace-pre-wrap">{activeModal.message}</p>
                 </div>
-                <div className="pt-2">
-                  <button onClick={() => setActiveModal(null)} className="w-full py-2.5 font-bold text-white bg-slate-800 hover:bg-slate-900 rounded-lg transition shadow-md">{isAr ? "إغلاق" : "Close"}</button>
+                <div className="pt-2 flex flex-col md:flex-row gap-2">
+                  <button onClick={() => {
+                        if (activeModal.doc) {
+                           handleConvertToGrid(activeModal.doc);
+                        }
+                     }} 
+                     className="flex-1 py-2.5 font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition shadow-md flex items-center justify-center gap-2">
+                     <Sparkles className="w-4 h-4" />
+                     {isAr ? "قبول الاقتراح وتحويله للحقيقة" : "Accept Suggestion & Extract to Forms"}
+                  </button>
+                  <button onClick={() => setActiveModal(null)} className="flex-1 py-2.5 font-bold text-slate-700 bg-slate-200 hover:bg-slate-300 rounded-lg transition shadow-md">{isAr ? "إغلاق" : "Close"}</button>
                 </div>
               </div>
             )}

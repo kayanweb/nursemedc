@@ -96,6 +96,8 @@ export default function NursingAdminToolbox({ language, currentUser }: NursingAd
   const [tasks, setTasks] = useState<{ id: number; text: string; done: boolean }[]>([]);
   const [taskInput, setTaskInput] = useState("");
 
+  const addSystemLog = (msg: string, type: string) => console.log(type, msg);
+
   // Sub tab and archive states
   const [activeSubTab, setActiveSubTab] = useState<"library" | "archive" | "advanced">("library");
   const [archiveList, setArchiveList] = useState<any[]>([]);
