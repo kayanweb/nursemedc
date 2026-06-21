@@ -29,7 +29,7 @@ interface AppUser {
   department: string;
 }
 
-interface MedicalToolsSuiteProps {
+interface AdvancedMedicalCalculatorsProps {
   currentUser: AppUser | null;
   language: "ar" | "en";
   addSystemLog?: (text: string, type: "info" | "warning" | "success" | "error") => void;
@@ -48,11 +48,11 @@ interface HandoverRecord {
   timestamp: string;
 }
 
-export default function MedicalToolsSuite({
+export default function AdvancedMedicalCalculators({
   currentUser,
   language,
   addSystemLog
-}: MedicalToolsSuiteProps) {
+}: AdvancedMedicalCalculatorsProps) {
   const isAr = language === "ar";
   const [activeSubTab, setActiveSubTab] = useState<"news2" | "isbar" | "crash_cart" | "more_tools">("news2");
 

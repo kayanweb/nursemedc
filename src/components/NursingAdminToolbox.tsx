@@ -18,6 +18,8 @@ import {
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
+import AdvancedMedicalCalculators from "./AdvancedMedicalCalculators";
+
 interface NursingAdminToolboxProps {
   language: "ar" | "en";
   currentUser?: {
@@ -28,6 +30,7 @@ interface NursingAdminToolboxProps {
     department?: string;
     email?: string;
   };
+  addSystemLog?: (text: string, type: "info" | "warning" | "success" | "error") => void;
 }
 
 // Full 50 Tools definitions with schema-driven interaction modes
@@ -94,7 +97,7 @@ export default function NursingAdminToolbox({ language, currentUser }: NursingAd
   const [taskInput, setTaskInput] = useState("");
 
   // Sub tab and archive states
-  const [activeSubTab, setActiveSubTab] = useState<"library" | "archive">("library");
+  const [activeSubTab, setActiveSubTab] = useState<"library" | "archive" | "advanced">("library");
   const [archiveList, setArchiveList] = useState<any[]>([]);
   const [archiveLoading, setArchiveLoading] = useState(false);
 
@@ -1113,6 +1116,18 @@ export default function NursingAdminToolbox({ language, currentUser }: NursingAd
       {/* Sub-Navigation Tabs for Library vs Archive logs */}
       <div className="flex border-b border-slate-200">
         <button 
+          onClick={() => setActiveSubTab("advanced")}
+          className={`px-6 py-3 font-extrabold text-sm transition-all border-b-2 flex items-center gap-2 ${
+            activeSubTab === "advanced" 
+              ? "border-pink-600 text-pink-600" 
+              : "border-transparent text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          <Activity className="w-4 h-4" />
+          {isAr ? "الآلات الحسابية والتقييمات المتقدمة" : "Advanced Clinical Calculators"}
+        </button>
+
+        <button 
           onClick={() => setActiveSubTab("library")}
           className={`px-6 py-3 font-extrabold text-sm transition-all border-b-2 flex items-center gap-2 ${
             activeSubTab === "library" 
@@ -1145,7 +1160,13 @@ export default function NursingAdminToolbox({ language, currentUser }: NursingAd
         </button>
       </div>
 
-      {activeSubTab === "library" ? (
+      {activeSubTab === "advanced" && (
+        <div className="pt-4">
+          <AdvancedMedicalCalculators currentUser={currentUser as any} language={language} addSystemLog={addSystemLog} />
+        </div>
+      )}
+
+      {activeSubTab === "library" && (
         /* Grid of 50 Tools */
         <div className="pt-4 space-y-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
@@ -1200,7 +1221,9 @@ export default function NursingAdminToolbox({ language, currentUser }: NursingAd
             )}
           </div>
         </div>
-      ) : (
+      )}
+      
+      {activeSubTab === "archive" && (
         /* Real-time Cloud SQL / Firestore Archive logs */
         <div className="space-y-4">
           <div className="bg-slate-50 border border-slate-200/60 p-5 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">

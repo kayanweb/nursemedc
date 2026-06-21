@@ -16,6 +16,7 @@ interface ProfileViewProps {
   language: "ar" | "en";
   hospitalSettings?: any;
   systemUsers?: any[];
+  currentUser?: AppUser; // Added currentUser prop
 }
 
 interface LeaveRequestRecord {
@@ -40,8 +41,12 @@ interface AdminRequestRecord {
   timestampMs: number;
 }
 
-export default function ProfileView({ user, language, hospitalSettings, systemUsers = [] }: ProfileViewProps) {
+export default function ProfileView({ user, language, hospitalSettings, systemUsers = [], currentUser }: ProfileViewProps) {
   const isAr = language === "ar";
+  
+  // Profile Lock Logic
+  // Only the user themselves, 'it', or 'manager' roles can view the profile completely.
+  const isAuthorizedToView = currentUser ? (currentUser.id === user.id || currentUser.role === "it" || currentUser.role === "manager") : true;
   
   // Tab State
   const [activeTab, setActiveTab ] = useState<"bio" | "wishes" | "leaves" | "admin_req">("bio");
@@ -530,6 +535,22 @@ export default function ProfileView({ user, language, hospitalSettings, systemUs
   return (
     <div className="space-y-6 text-right font-sans" dir={isAr ? "rtl" : "ltr"}>
       
+      {!isAuthorizedToView && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
+          <div className="bg-white p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl border border-slate-200">
+            <ShieldAlert className="w-16 h-16 text-rose-500 mx-auto mb-4 animate-bounce" />
+            <h3 className="font-black text-xl text-slate-800 mb-2">
+              {isAr ? "وصول مقيد (HIPAA Profile Lock)" : "Restricted Access (HIPAA)"}
+            </h3>
+            <p className="text-slate-500 text-sm font-semibold mb-6">
+              {isAr 
+                ? "لا تملك الصلاحية الكافية لمشاهدة الملف الشخصي والتفضيلات لهذا الموظف. السجل متاح فقط للموظف، ومدير التمريض، وتقنية المعلومات." 
+                : "You do not have sufficient clearance to view this staff's profile. Restricted to the owner, managers, and IT."}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Cover Banner Accent */}
       <div className="relative bg-gradient-to-l from-slate-900 via-rose-950 to-slate-900 p-6 rounded-2xl border border-rose-900 shadow-md text-white overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-pink-500/10 rounded-full -translate-y-8 translate-x-8 blur-lg pointer-events-none" />
@@ -1370,48 +1391,79 @@ export default function ProfileView({ user, language, hospitalSettings, systemUs
                   <Briefcase size={14} className="text-pink-600" />
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                  <div className="space-y-1.5 text-right">
-                    <label className="block text-[10px] font-bold text-slate-500">نوع الطلب الإداري الموجه:</label>
-                    <select
-                      value={requestType}
-                      onChange={(e: any) => setRequestType(e.target.value)}
-                      className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 text-xs text-right outline-none"
-                    >
-                      <option value="swap">طلب تنازل وتبادل نوبتجية مع زميل آخر</option>
-                      <option value="transfer">طلب نقل قسم سريري أو تشغيلي</option>
-                      <option value="clearance">طلب استثناء خاص للحد الأدنى من الوردية</option>
-                    </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <div className="space-y-2 text-right">
+                    <label className="block text-xs font-bold text-slate-600">نوع الطلب الإداري الموجه:</label>
+                    <div className="relative">
+                      <select
+                        value={requestType}
+                        onChange={(e: any) => setRequestType(e.target.value)}
+                        className="w-full p-3 bg-white border border-slate-300 rounded-xl font-bold text-slate-800 text-sm text-right outline-none appearance-none focus:ring-2 focus:ring-pink-500 shadow-sm"
+                      >
+                        <option value="swap">طلب تنازل وتبادل نوبتجية مع زميل آخر</option>
+                        <option value="transfer">طلب نقل قسم سريري أو تشغيلي</option>
+                        <option value="clearance">طلب استثناء خاص للحد الأدنى من الوردية</option>
+                        <option value="overtime">طلب اعتماد ساعات عمل إضافية (Overtime)</option>
+                        <option value="training">طلب تفريغ لحضور دورة تدريبية (CME)</option>
+                        <option value="resignation">إشعار استقالة أو إخلاء طرف</option>
+                      </select>
+                      <div className="absolute top-1/2 left-3 -translate-y-1/2 pointer-events-none text-slate-400">
+                        ▼
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="space-y-1.5 text-right">
-                    <label className="block text-[10px] font-bold text-slate-500">القسم البديل أو المفضل (إن وجد):</label>
+                  <div className="space-y-2 text-right">
+                    <label className="block text-xs font-bold text-slate-600">القسم البديل أو المفضل (إن وجد):</label>
                     <input
                       type="text"
                       value={requestPrefWard}
                       onChange={(e) => setRequestPrefWard(e.target.value)}
-                      className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 text-xs text-right outline-none"
+                      className="w-full p-3 bg-white border border-slate-300 rounded-xl font-bold text-slate-800 text-sm text-right outline-none focus:ring-2 focus:ring-pink-500 shadow-sm"
                       placeholder="مثال: EMERGENCY UNIT"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-1.5 text-right pt-1">
-                  <label className="block text-[10px] font-bold text-slate-500">تفاصيل الطلب والاتفاق مع الزملاء بالدليل السريري:</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                  <div className="space-y-2 text-right">
+                     <label className="block text-xs font-bold text-slate-600">تاريخ سريان الطلب / التنفيذ المأمول:</label>
+                     <input type="date" className="w-full p-3 bg-white border border-slate-300 rounded-xl font-bold text-slate-800 text-sm text-right outline-none focus:ring-2 focus:ring-pink-500 shadow-sm"/>
+                  </div>
+                  <div className="space-y-2 text-right">
+                     <label className="block text-xs font-bold text-slate-600">مرفقات (اختياري - تقارير / شهادات):</label>
+                     <div className="w-full p-2 bg-slate-50 border border-dashed border-slate-300 rounded-xl text-center text-xs font-bold text-slate-500 hover:bg-slate-100 cursor-pointer flex items-center justify-center gap-2 transition-colors">
+                        <Plus className="w-4 h-4"/>
+                        <span>ضغط وثيقة للإرفاق</span>
+                     </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2 text-right pt-2">
+                  <label className="block text-xs font-bold text-slate-600">تفاصيل الطلب والاتفاق مع الزملاء بالدليل السريري:</label>
                   <textarea
-                    rows={3}
+                    rows={4}
                     value={requestDetails}
                     onChange={(e) => setRequestDetails(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-right text-slate-800 outline-none focus:bg-white focus:ring-1 focus:ring-pink-500"
+                    className="w-full p-3 bg-white border border-slate-300 rounded-xl text-sm text-right text-slate-800 outline-none focus:ring-2 focus:ring-pink-500 shadow-sm leading-relaxed"
                     placeholder="برجاء كتابة تفاصيل الخدمة البديلة بدقة مثل كود زميل التنازل ومبررات التغيير للموافقة عليها..."
                   />
                 </div>
 
+                <div className="border border-slate-200 bg-slate-50 p-4 rounded-xl flex flex-col items-start gap-2 relative overflow-hidden mt-2">
+                  <div className="w-1.5 absolute top-0 bottom-0 right-0 bg-blue-500"></div>
+                  <label className="block text-xs font-black text-blue-900 text-right w-full flex justify-end gap-1.5 items-center">
+                    <span>إقرار الكادر وتوقيع الإعتماد التلقائي:</span>
+                    <CheckSquare className="w-4 h-4 text-blue-600" />
+                  </label>
+                  <p className="text-[10px] text-slate-500 text-right w-full">بتقديم هذا الطلب، أقر على صحة وجدية المعلومات المدونة، وأتحمل مسؤولية التبعات التشغيلية المترتبة على ذلك.</p>
+                </div>
+
                 <button
                   type="submit"
-                  className="w-full py-2.5 bg-slate-900 border border-slate-800 text-white rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  className="w-full py-3.5 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 border border-slate-900 text-white rounded-xl text-sm font-black transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl mt-2"
                 >
-                  <Send size={13} className="text-pink-400 rotate-180" />
+                  <Send size={15} className="text-pink-400 rotate-180" />
                   <span>بث السجل وتوجيه الطلب لمدير العمليات والتمريض</span>
                 </button>
               </form>

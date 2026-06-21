@@ -944,8 +944,8 @@ export default function SupervisorDailySuite({ language }: Props) {
             {/* Conditional outer wrapper to force read-only appearance via CSS classes */}
             <div className={`w-full ${isEditMode ? "is-editing" : "is-readonly-view"}`} dir={isAr ? "rtl" : "ltr"}>
               
-              {/* Institutional Custom Stamp Logo on top of printed reports */}
-              <div className="border-b-2 border-slate-800 pb-4 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+              {/* Institutional Custom Stamp Logo on top of printed reports - Hidden by User Request */}
+              <div className="hidden border-b-2 border-slate-800 pb-4 mb-6 flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
                   <h1 className="text-xl md:text-2xl font-black text-slate-900 leading-tight">
                     {isAr ? (settings.institutionNameAr || "مؤسسة المستشفى للاكتشاف المبكر وعلاج الأورام") : (settings.institutionNameEn || "Hospital Foundation Cancer Institute")}

@@ -96,7 +96,6 @@ import {
 } from "./types";
 import ProfileView from "./components/ProfileView";
 import MessagingDashboard from "./components/MessagingDashboard";
-import MedicalToolsSuite from "./components/MedicalToolsSuite";
 import NursingAdminToolbox from "./components/NursingAdminToolbox";
 import SupervisorDashboard from "./components/SupervisorDashboard";
 import MedicationLedger from "./components/MedicationLedger";
@@ -5107,20 +5106,6 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
           )}
 
           {/* Medical Tools Suite Tab */}
-          {checkPermission("mod_medical_tools") && (
-          <button
-            onClick={() => setActiveTab("medical_tools")}
-            className={`w-full flex items-center gap-3 px-6 py-3 text-right text-xs font-semibold transition-all border-l-4 ${
-              activeTab === "medical_tools"
-                ? "bg-slate-800 border-pink-500 text-pink-400 font-bold shadow-md shadow-pink-900/20"
-                : "border-transparent text-slate-400 hover:bg-slate-850 hover:text-white hover:border-pink-900"
-            }`}
-          >
-            <Activity className="h-4 w-4 shrink-0 text-pink-500 animate-pulse" />
-            <span className="flex-1">{language === "ar" ? "الأدوات والآلات الحسابية الطبية" : "Clinical Quality & NEWS2"}</span>
-            <span className="bg-pink-600 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold">NEW</span>
-          </button>
-          )}
 
           
           {/* Clinical Templates Builder */}
@@ -8614,7 +8599,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
           )}
 
           {activeTab === "profile" && (
-            <ProfileView user={currentUser} language={language} systemUsers={systemUsers} />
+            <ProfileView user={currentUser} language={language} systemUsers={systemUsers} currentUser={currentUser} />
           )}
 
           {activeTab === "document_center" && (
@@ -8623,16 +8608,6 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
               currentUser={currentUser}
               systemUsers={systemUsers}
             />
-          )}
-
-          {activeTab === "medical_tools" && (
-            <div className="p-4 md:p-6 bg-slate-50 min-h-[calc(100vh-80px)]">
-              <MedicalToolsSuite
-                currentUser={currentUser}
-                language={language}
-                addSystemLog={addSystemLog}
-              />
-            </div>
           )}
 
           {activeTab === "messaging" && (
@@ -14286,7 +14261,7 @@ For premium ease of use, you can click the visual override button 'Modify & Choo
 
             {/* Modal Body: Render ProfileView inside directly! */}
             <div className="p-6">
-              <ProfileView user={viewingUserProfileUser} language={language} systemUsers={systemUsers} />
+              <ProfileView user={viewingUserProfileUser} language={language} systemUsers={systemUsers} currentUser={currentUser} />
             </div>
           </div>
         </div>

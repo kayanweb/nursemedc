@@ -206,6 +206,22 @@ export default function RosterPlanningPanel({
     input: string;
   }>({ open: false, title: "", action: () => {}, input: "" });
 
+  const [smartTransferModal, setSmartTransferModal] = useState<{
+    open: boolean;
+    department: string;
+    selectedStaff: string[];
+    step: 1 | 2;
+    message: string;
+  }>({ open: false, department: "", selectedStaff: [], step: 1, message: "" });
+
+  const [notifyModal, setNotifyModal] = useState<{
+    open: boolean;
+    department: string;
+    selectedStaff: string[];
+    authCode: string;
+  }>({ open: false, department: "", selectedStaff: [], authCode: "" });
+
+
   const executeAuthModal = () => {
     if (!authModal.input) return;
     const authorizer = systemUsers.find(u => u.staffId === authModal.input || u.pin === authModal.input || u.id === authModal.input);
@@ -320,6 +336,9 @@ export default function RosterPlanningPanel({
   const [overrideReason, setOverrideReason] = useState("");
   const [overridePeriodType, setOverridePeriodType] = useState<"temporary" | "permanent">("temporary");
   const [cnoEsignature, setCnoEsignature] = useState("");
+  const [overrideImpactLevel, setOverrideImpactLevel] = useState<"low" | "medium" | "high">("medium");
+  const [overrideApprovalLevel, setOverrideApprovalLevel] = useState("CNO");
+  const [overrideDocsUploaded, setOverrideDocsUploaded] = useState(false);
 
   const handleApplyOverride = (e: React.FormEvent) => {
     e.preventDefault();
@@ -332,47 +351,48 @@ export default function RosterPlanningPanel({
       alert(isAr ? "تسجيل سبب التجاوز إجباري طبقاً لسياسة الجودة ولائحة مدير التمريض" : "Reason statement is mandatory.");
       return;
     }
+    
+    // Auth process using the inline cnoEsignature pin
+    const authorizer = systemUsers.find(u => u.staffId === cnoEsignature || u.pin === cnoEsignature || u.id === cnoEsignature);
+    if (!authorizer) {
+        alert(isAr ? "رمز التحقق [PIN] غير صحيح! التفويض يتطلب صلاحية إعتماد." : "Invalid PIN code. Authorization failed.");
+        return;
+    }
 
-    setAuthModal({
-      open: true,
-      title: isAr ? `مطلوب تأكيد الهوية` : `Verification required`,
-      message: isAr ? `لتنفيذ تفويض استثناء للموظف ${resolvedUser.nameAr}\nأدخل كود الموظف الخاص بك للتوقيع:` : `Enter your employee code to sign exception for ${resolvedUser.nameEn}:`,
-      input: "",
-      action: (code: string) => {
-        const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code)!;
-        const newRecord: LimitOverrideRecord = {
-          id: `override-${Date.now()}`,
-          employeeId: resolvedUser.id,
-          employeeNameAr: resolvedUser.nameAr,
-          employeeNameEn: resolvedUser.nameEn,
-          department: resolvedUser.department,
-          type: overrideType,
-          limitValue: overrideType === "under" ? settings.الحد_الأدنى_للشيفتات_الشهري : settings.الحد_الأقصى_للشيفتات_الشهري,
-          newTargetShifts: overrideNewShifts,
-          reason: overrideReason.trim(),
-          periodType: overridePeriodType,
-          signedBy: `${authorizer.nameAr} (${authorizer.staffId || ''})`,
-          timestampMs: Date.now(),
-          dateSignedStr: new Date().toISOString().split("T")[0]
-        };
+    const newRecord: LimitOverrideRecord = {
+      id: `override-${Date.now()}`,
+      employeeId: resolvedUser.id,
+      employeeNameAr: resolvedUser.nameAr,
+      employeeNameEn: resolvedUser.nameEn,
+      department: resolvedUser.department,
+      type: overrideType,
+      limitValue: overrideType === "under" ? settings.الحد_الأدنى_للشيفتات_الشهري : settings.الحد_الأقصى_للشيفتات_الشهري,
+      newTargetShifts: overrideNewShifts,
+      reason: overrideReason.trim() + ` (Risk: ${overrideImpactLevel}, Approval: ${overrideApprovalLevel}${overrideDocsUploaded ? ', Docs attached' : ''})`,
+      periodType: overridePeriodType,
+      signedBy: `${authorizer.nameAr} (${authorizer.staffId || ''})`,
+      timestampMs: Date.now(),
+      dateSignedStr: new Date().toISOString().split("T")[0]
+    };
 
-        const nextList = [newRecord, ...overridesList];
-        saveOverrides(nextList);
+    const nextList = [newRecord, ...overridesList];
+    saveOverrides(nextList);
 
-        if (addSystemLog) {
-          addSystemLog(
-            `توقيع ترخيص استثنائي مخصص للموظف/ة (${newRecord.employeeNameAr}) - قسم ${newRecord.department}. الحدود القياسية ${newRecord.type === "under" ? "الأدنى" : "الأقصى"} تصبح ${newRecord.newTargetShifts} شيفت.`,
-            "warning"
-          );
-        }
+    if (addSystemLog) {
+      addSystemLog(
+        `توقيع ترخيص استثنائي مخصص للموظف/ة (${newRecord.employeeNameAr}) - قسم ${newRecord.department}. الحدود القياسية ${newRecord.type === "under" ? "الأدنى" : "الأقصى"} تصبح ${newRecord.newTargetShifts} شيفت. (خطر: ${overrideImpactLevel === "high" ? "مرتفع" : overrideImpactLevel === "medium" ? "متوسط" : "منخفض"}, الاعتماد: ${overrideApprovalLevel})`,
+        "warning"
+      );
+    }
 
-        // Reset Form
-        setOverrideTargetEmployeeId("");
-        setOverrideReason("");
-        setCnoEsignature("");
-        alert(isAr ? "✔ تم تنفيذ وتوثيق ترخيص التجاوز والتوقيع بصحيفة التدقيق الإلكتروني بنجاح!" : "✔ Limit exception authorized and archived into the audit book!");
-      }
-    });
+    // Reset Form
+    setOverrideTargetEmployeeId("");
+    setOverrideReason("");
+    setCnoEsignature("");
+    setOverrideDocsUploaded(false);
+    setOverrideImpactLevel("medium");
+    setOverrideApprovalLevel("CNO");
+    alert(isAr ? "✔ تم تنفيذ وتوثيق ترخيص التجاوز واستصدار القرار بصحيفة التدقيق الإلكتروني بنجاح!" : "✔ Limit exception authorized and archived into the audit book!");
   };
 
   const handleDeleteOverride = (recordId: string) => {
@@ -775,6 +795,240 @@ export default function RosterPlanningPanel({
               >
                 {isAr ? "تحقق واعتماد" : "Verify & Sign"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Smart Transfer Modal Overlay */}
+      {smartTransferModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
+            <div className="bg-gradient-to-r from-blue-900 to-indigo-900 p-4 shrink-0 flex items-center justify-between">
+              <h3 className="text-white font-bold text-sm flex items-center gap-2">
+                <Search className="w-4 h-4 text-blue-200" />
+                {isAr ? `اقتراح نقل ذكي: تغطية قسم ${smartTransferModal.department}` : `Smart Transfer: Cover ${smartTransferModal.department}`}
+              </h3>
+              <button 
+                onClick={() => setSmartTransferModal({ ...smartTransferModal, open: false })}
+                className="text-white/70 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-5 overflow-y-auto flex-1 space-y-5 flex flex-col">
+              {smartTransferModal.step === 1 ? (
+                <>
+                  <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl text-blue-800 text-xs font-semibold leading-relaxed">
+                    {isAr ? "تحليل الذكاء الاصطناعي: تم العثور على الكوادر التالية من الأقسام المجاورة والأقل كثافة اليوم. يرجى اختيار المرشحين لإرسال طلب النقل." : "AI Analysis: The following staff have been matched from nearby low-census units. Please select candidates."}
+                  </div>
+                  <div className="space-y-2 flex-1 overflow-y-auto pr-1">
+                    {systemUsers.filter(u => u.department !== smartTransferModal.department).slice(0, 5).map(u => (
+                      <div key={u.id} className="flex items-center justify-between p-3 border border-slate-200 rounded-xl hover:border-blue-300 transition-colors bg-white cursor-pointer" onClick={() => {
+                        const newSelection = smartTransferModal.selectedStaff.includes(u.id) 
+                          ? smartTransferModal.selectedStaff.filter(id => id !== u.id)
+                          : [...smartTransferModal.selectedStaff, u.id];
+                        setSmartTransferModal({ ...smartTransferModal, selectedStaff: newSelection });
+                      }}>
+                        <div className="flex items-center gap-3">
+                          <input 
+                            type="checkbox" 
+                            className="w-4 h-4 text-blue-600 rounded border-slate-300 pointer-events-none"
+                            checked={smartTransferModal.selectedStaff.includes(u.id)}
+                            readOnly
+                          />
+                          <div>
+                            <div className="font-bold text-sm text-slate-800">{isAr ? u.nameAr : u.nameEn}</div>
+                            <div className="text-[10px] text-slate-500 font-mono mt-0.5">{u.staffId} • {u.department}</div>
+                          </div>
+                        </div>
+                        <div className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
+                          0% {isAr ? "عجز بالقسم" : "Deficit"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="bg-emerald-50 border border-emerald-100 p-3 rounded-xl text-emerald-800 text-xs font-semibold leading-relaxed">
+                    {isAr ? `تأكيد الإرسال: سيتم إرسال الدعم لعدد ${smartTransferModal.selectedStaff.length} موظف(ين) وإشعار الإدارة.` : `Confirmation: A transfer request message will be sent to ${smartTransferModal.selectedStaff.length} selected staff, and a general notification will be published.`}
+                  </div>
+                  <div className="space-y-4 pt-2">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">{isAr ? "نص الرسالة المباشرة للموظف:" : "Direct Message to staff:"}</label>
+                      <textarea 
+                        className="w-full h-24 border border-slate-300 rounded-xl p-3 text-xs focus:ring-2 focus:ring-blue-500 outline-none resize-none leading-relaxed"
+                        value={smartTransferModal.message}
+                        onChange={(e) => setSmartTransferModal({ ...smartTransferModal, message: e.target.value })}
+                        dir={isAr ? "rtl" : "ltr"}
+                      />
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-600">
+                      <span className="font-bold text-slate-800 mb-1 block">📌 {isAr ? "إشعار عام للقسم:" : "General Dept Notification:"}</span>
+                      {isAr ? `تم توجيه ${smartTransferModal.selectedStaff.length} كادر من أقسام أخرى لتغطية العجز المجدول.` : `${smartTransferModal.selectedStaff.length} staff redirected from other departments to cover the scheduled deficit.`}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-between gap-2 shrink-0">
+              {smartTransferModal.step === 2 ? (
+                <button
+                  onClick={() => setSmartTransferModal({ ...smartTransferModal, step: 1 })}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200/50 rounded-lg transition"
+                >
+                  {isAr ? "رجوع" : "Back"}
+                </button>
+              ) : <div></div>}
+              <div className="flex gap-2 text-right justify-end">
+                <button
+                  onClick={() => setSmartTransferModal({ ...smartTransferModal, open: false })}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200/50 rounded-lg transition"
+                >
+                  {isAr ? "إلغاء" : "Cancel"}
+                </button>
+                {smartTransferModal.step === 1 ? (
+                  <button
+                    onClick={() => setSmartTransferModal({ ...smartTransferModal, step: 2 })}
+                    disabled={smartTransferModal.selectedStaff.length === 0}
+                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg shadow-sm transition"
+                  >
+                    {isAr ? "تخصيص الرسالة" : "Next: Customize"}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      if(addSystemLog) addSystemLog(`توزيع استثنائي: تم إرسال رسائل استدعاء لعدد ${smartTransferModal.selectedStaff.length} موظف لدعم قسم ${smartTransferModal.department}`, "success");
+                      alert(isAr ? "تم إرسال الرسائل والإشعارات العام بنجاح." : "Messages & notifications sent successfully.");
+                      setSmartTransferModal({ ...smartTransferModal, open: false });
+                    }}
+                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-1.5"
+                  >
+                    <Briefcase className="w-4 h-4" />
+                    {isAr ? "تأكيد واستدعاء ذكي" : "Confirm & Send"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notify Target Staff Modal Overlay */}
+      {notifyModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
+            <div className="bg-gradient-to-r from-pink-900 to-rose-900 p-4 shrink-0 flex items-center justify-between">
+              <h3 className="text-white font-bold text-sm flex items-center gap-2">
+                <Mail className="w-4 h-4 text-pink-200" />
+                {isAr ? `تأكيد إجراء (إرسال تنبيه آلي) - ${notifyModal.department}` : `Verification required (Notify) - ${notifyModal.department}`}
+              </h3>
+              <button 
+                onClick={() => setNotifyModal({ ...notifyModal, open: false })}
+                className="text-white/70 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-5 overflow-y-auto flex-1 space-y-4 flex flex-col">
+              <div className="bg-pink-50 border border-pink-100 p-3 rounded-xl text-pink-800 text-xs font-semibold leading-relaxed">
+                {isAr ? "حدد الموظفين لإرسال تنبيه آلي عن العجز لديهم أو إشعارهم بالتحديثات، وأدخل كود التفويض." : "Select staff to notify regarding shift deficiency, and provide override code."}
+              </div>
+              
+              <div className="flex items-center gap-4 bg-slate-100 p-2 rounded-lg">
+                <button 
+                  type="button"
+                  className="px-3 py-1.5 text-xs font-bold bg-white border border-slate-300 rounded hover:bg-slate-50 transition shadow-sm"
+                  onClick={() => {
+                    const allDeptStaff = systemUsers.filter(u => u.department === notifyModal.department).map(u => u.id);
+                    if (notifyModal.selectedStaff.length === allDeptStaff.length) {
+                       setNotifyModal({ ...notifyModal, selectedStaff: [] });
+                    } else {
+                       setNotifyModal({ ...notifyModal, selectedStaff: allDeptStaff });
+                    }
+                  }}
+                >
+                  {isAr ? "تحديد/إلغاء الكل" : "Toggle All"}
+                </button>
+                <span className="text-xs font-bold text-slate-600">{notifyModal.selectedStaff.length} {isAr ? "محدد" : "Selected"}</span>
+              </div>
+
+              <div className="space-y-2 flex-1 overflow-y-auto pr-1 border border-slate-200 p-2 rounded-xl bg-slate-50">
+                {systemUsers.filter(u => u.department === notifyModal.department).map(u => (
+                  <div key={u.id} className="flex items-center justify-between p-2 border border-slate-200 rounded-lg hover:border-pink-300 transition-colors bg-white cursor-pointer" onClick={() => {
+                    const newSelection = notifyModal.selectedStaff.includes(u.id) 
+                      ? notifyModal.selectedStaff.filter(id => id !== u.id)
+                      : [...notifyModal.selectedStaff, u.id];
+                    setNotifyModal({ ...notifyModal, selectedStaff: newSelection });
+                  }}>
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 text-pink-600 rounded border-slate-300 pointer-events-none"
+                        checked={notifyModal.selectedStaff.includes(u.id)}
+                        readOnly
+                      />
+                      <div>
+                        <div className="font-bold text-sm text-slate-800">{isAr ? u.nameAr : u.nameEn}</div>
+                        <div className="text-[10px] text-slate-500 font-mono">{u.staffId}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="pt-2">
+                <input
+                    type="password"
+                    placeholder={isAr ? "أدخل كود الموظف لتأكيد إرسال التنبيه..." : "Enter employee code..."}
+                    value={notifyModal.authCode}
+                    onChange={(e) => setNotifyModal({ ...notifyModal, authCode: e.target.value })}
+                    className="w-full border border-slate-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-pink-500 outline-none font-mono tracking-widest text-center"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        if (!notifyModal.authCode || notifyModal.selectedStaff.length === 0) return;
+                        const authorizer = systemUsers.find(u => u.staffId === notifyModal.authCode || u.pin === notifyModal.authCode || u.id === notifyModal.authCode);
+                        if (!authorizer) {
+                          alert(isAr ? "كود غير صالح!" : "Invalid code!");
+                          return;
+                        }
+                        if(addSystemLog) addSystemLog(`تنبيه غياب بواسطة: ${authorizer.nameAr}`, "warning");
+                        alert(isAr ? `تم إشعار المحدد وعددهم ${notifyModal.selectedStaff.length} بتوقيع: ${authorizer.nameAr}` : "Notifications sent.");
+                        setNotifyModal({ ...notifyModal, open: false, authCode: "", selectedStaff: [] });
+                      }
+                    }}
+                  />
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2 shrink-0">
+                <button
+                  onClick={() => setNotifyModal({ ...notifyModal, open: false })}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200/50 rounded-lg transition"
+                >
+                  {isAr ? "إلغاء" : "Cancel"}
+                </button>
+                <button
+                  disabled={notifyModal.selectedStaff.length === 0 || !notifyModal.authCode}
+                  onClick={() => {
+                    const authorizer = systemUsers.find(u => u.staffId === notifyModal.authCode || u.pin === notifyModal.authCode || u.id === notifyModal.authCode);
+                    if (!authorizer) {
+                      alert(isAr ? "كود غير صالح!" : "Invalid code!");
+                      return;
+                    }
+                    if(addSystemLog) addSystemLog(`تنبيه غياب بواسطة: ${authorizer.nameAr}`, "warning");
+                    alert(isAr ? `تم إشعار المحدد وعددهم ${notifyModal.selectedStaff.length} بتوقيع: ${authorizer.nameAr}` : "Notifications sent.");
+                    setNotifyModal({ ...notifyModal, open: false, authCode: "", selectedStaff: [] });
+                  }}
+                  className="px-5 py-2 bg-pink-600 hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-1.5"
+                >
+                  <Mail className="w-4 h-4" />
+                  {isAr ? "إرسال واعتماد" : "Send & Authorize"}
+                </button>
             </div>
           </div>
         </div>
@@ -1315,12 +1569,18 @@ export default function RosterPlanningPanel({
                         setAuthModal({
                           open: true,
                           title: isAr ? "تأكيد إجراء (اقتراح نقل ذكي)" : "Verification required (AI Staffing)",
-                          message: isAr ? "أدخل كود الموظف لتأكيد اقتراح النقل الآلي لسد العجز:" : "Enter employee code to confirm automated staffing logic:",
+                          message: isAr ? "أدخل كود الموظف للاطلاع على اقتراح النقل الآلي لسد العجز:" : "Enter employee code to view automated staffing proposal:",
                           input: "",
                           action: (code: string) => {
                             const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code)!;
-                            if(addSystemLog) addSystemLog(`تفعيل التوزيع التلقائي للقسم بواسطة: ${authorizer.nameAr}`, "info");
-                            alert(isAr ? `اقتراح ذكي: تم اختيار ٢ ممرضين من العيادات الخارجية لتغطية النقص المؤقت اليوم.` : "AI Proposal generated. Transferring 2 nurses from OPD to cover shortage.");
+                            if(addSystemLog) addSystemLog(`الاطلاع على التوزيع التلقائي بواسطة: ${authorizer.nameAr}`, "info");
+                            setSmartTransferModal({
+                              open: true,
+                              department: stat.department,
+                              selectedStaff: [],
+                              step: 1,
+                              message: isAr ? "مرحباً، تم اختيارك لتغطية شیفت إضافي في قسم " + stat.department + " اليوم. يرجى التأكيد." : "Hello, you have been selected to cover an extra shift in " + stat.department + " today. Please confirm."
+                            });
                           }
                         });
                     }} className="px-2 py-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100 rounded transition shadow-sm" title={isAr ? "اقتراحات الدعم ونقل الشفتات الذكي (AI)" : "AI Staffing logic"}>
@@ -1357,18 +1617,13 @@ export default function RosterPlanningPanel({
                       <Download className="w-3.5 h-3.5"/>
                     </button>
                     <button onClick={() => {
-                        setAuthModal({
+                        setNotifyModal({
                           open: true,
-                          title: isAr ? "تأكيد إجراء (إرسال تنبيه آلي)" : "Verification required (Notify)",
-                          message: isAr ? "أدخل كود الموظف لتأكيد إرسال التنبيه:" : "Enter employee code to confirm notification:",
-                          input: "",
-                          action: (code: string) => {
-                            const authorizer = systemUsers.find(u => u.staffId === code || u.pin === code || u.id === code)!;
-                            if(addSystemLog) addSystemLog(`تنبيه غياب بواسطة: ${authorizer.nameAr}`, "warning");
-                            alert(isAr ? `تم إشعار الغائبين والمشرفين بتوقيع: ${authorizer.nameAr}` : "Notifications sent.");
-                          }
+                          department: stat.department,
+                          selectedStaff: [],
+                          authCode: ""
                         });
-                    }} className="px-2 py-1 text-slate-500 hover:text-pink-600 hover:bg-white rounded transition shadow-sm" title={isAr ? "إرسال تنبيهات للغائبين" : "Send Automated Alerts"}>
+                    }} className="px-2 py-1 text-slate-500 hover:text-pink-600 hover:bg-white rounded transition shadow-sm" title={isAr ? "إرسال تنبيهات" : "Send Automated Alerts"}>
                       <Mail className="w-3.5 h-3.5"/>
                     </button>
                   </div>
@@ -1414,118 +1669,183 @@ export default function RosterPlanningPanel({
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
             {/* Authorization Register Entry Form */}
-            <form onSubmit={handleApplyOverride} className="lg:col-span-1 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-              <div className="border-b pb-3">
-                <h4 className="font-black text-slate-900 text-sm flex items-center gap-1.5">
-                  <FileCheck className="w-4 h-4 text-pink-600" />
-                  <span>وثيقة تفويض بتجاوز الحدود</span>
+            <form onSubmit={handleApplyOverride} className="lg:col-span-1 bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden flex flex-col relative">
+              <div className="absolute top-0 w-full h-1.5 bg-gradient-to-r from-pink-500 via-rose-500 to-red-500"></div>
+              <div className="p-6 bg-slate-50 border-b border-slate-200">
+                <h4 className="font-black text-slate-900 text-base flex items-center gap-2">
+                  <FileCheck className="w-5 h-5 text-pink-600" />
+                  <span>وثيقة تفويض بتجاوز الحدود المعيارية (الاستثناء السريري)</span>
                 </h4>
-                <p className="text-slate-400 text-[10px] mt-0.5">طبقاً للمادة 2 من سياسة العمل، يجب تفويض أي زيادة أو نقصان بتوقيع مدير التمريض.</p>
+                <p className="text-slate-500 text-xs mt-2 leading-relaxed">
+                  نظام التوثيق والإجازة الإلكتروني طبقاً للمادة 2 من سياسة العمل، يجب تفويض أي زيادة أو نقصان بتوقيع مدير التمريض وتحديد الخطر السريري.
+                </p>
               </div>
 
-              {/* Select Employee */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-700">تحديد الكادر المعني بالاستثناء:</label>
-                <select
-                  value={overrideTargetEmployeeId}
-                  onChange={(e) => setOverrideTargetEmployeeId(e.target.value)}
-                  className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl p-2.5 text-xs outline-none focus:ring-1 focus:ring-pink-500"
-                >
-                  <option value="">{isAr ? "-- اختر من الدليل الموظف --" : "-- Choose user --"}</option>
-                  {systemUsers.map(u => (
-                    <option key={u.id} value={u.id}>
-                      {u.nameAr} - {u.role} ({u.department})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                {/* Type override */}
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-700">نوع الترخيص:</label>
+              <div className="p-6 space-y-5 flex-1">
+                {/* Select Employee */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-slate-700">تحديد الكادر المعني بالاستثناء:</label>
                   <select
-                    value={overrideType}
-                    onChange={(e) => setOverrideType(e.target.value as any)}
-                    className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl p-2 text-xs"
+                    value={overrideTargetEmployeeId}
+                    onChange={(e) => setOverrideTargetEmployeeId(e.target.value)}
+                    className="w-full bg-white text-slate-800 border focus:border-pink-500 border-slate-300 rounded-xl p-3 text-sm outline-none shadow-sm transition"
                   >
-                    <option value="under">تقليص الحد الأدنى (&lt; 17)</option>
-                    <option value="over">ترفيع الحد الأقصى (&gt; 26)</option>
+                    <option value="">{isAr ? "-- اختر من الدليل الموظف --" : "-- Choose user --"}</option>
+                    {systemUsers.map(u => (
+                      <option key={u.id} value={u.id}>
+                        {u.nameAr} - {u.role} ({u.department})
+                      </option>
+                    ))}
                   </select>
                 </div>
 
-                {/* Target count */}
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-700">الحد المستهدف الجديد:</label>
-                  <input
-                    type="number"
-                    min="10"
-                    max="35"
-                    value={overrideNewShifts}
-                    onChange={(e) => setOverrideNewShifts(parseInt(e.target.value, 10))}
-                    className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl p-2 text-xs text-center font-mono"
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Type override */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-slate-700">نوع الترخيص:</label>
+                    <select
+                      value={overrideType}
+                      onChange={(e) => setOverrideType(e.target.value as any)}
+                      className="w-full bg-white text-slate-800 border border-slate-300 rounded-xl p-3 text-sm shadow-sm"
+                    >
+                      <option value="under">تقليص الحد الأدنى (&lt; 17)</option>
+                      <option value="over">ترفيع الحد الأقصى (&gt; 26)</option>
+                    </select>
+                  </div>
+
+                  {/* Target count */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-slate-700">الحد المستهدف الجديد:</label>
+                    <input
+                      type="number"
+                      min="10"
+                      max="35"
+                      value={overrideNewShifts}
+                      onChange={(e) => setOverrideNewShifts(parseInt(e.target.value, 10))}
+                      className="w-full bg-white text-slate-800 border border-slate-300 rounded-xl p-3 text-sm text-center font-mono shadow-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-4 bg-slate-100 rounded-2xl border border-slate-200 grid grid-cols-2 gap-4">
+                  {/* Duration choice */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-slate-700">المدى الزمني للصلاحية:</label>
+                    <div className="flex flex-col gap-2">
+                      <label className="flex items-center gap-2 text-sm text-slate-700 font-semibold cursor-pointer">
+                        <input
+                          type="radio"
+                          checked={overridePeriodType === "temporary"}
+                          onChange={() => setOverridePeriodType("temporary")}
+                          className="w-4 h-4 text-pink-600 focus:ring-pink-500 shadow-sm"
+                        />
+                        <span>مؤقت (لشهر واحد)</span>
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-slate-700 font-semibold cursor-pointer">
+                        <input
+                          type="radio"
+                          checked={overridePeriodType === "permanent"}
+                          onChange={() => setOverridePeriodType("permanent")}
+                          className="w-4 h-4 text-pink-600 focus:ring-pink-500 shadow-sm"
+                        />
+                        <span>دائم ممتد (مستمر)</span>
+                      </label>
+                    </div>
+                  </div>
+                  {/* Approval Selection */}
+                   <div className="space-y-2">
+                    <label className="block text-xs font-bold text-slate-700">مستوى الإعتماد المطلوب:</label>
+                     <select
+                        value={overrideApprovalLevel}
+                        onChange={(e) => setOverrideApprovalLevel(e.target.value)}
+                        className="w-full bg-white text-slate-800 border border-slate-300 rounded-xl p-2.5 text-xs shadow-sm"
+                      >
+                        <option value="HN">إعتماد أولي (رئيس التمريض)</option>
+                        <option value="Supervisor">إعتماد مرحلي (مشرف قطاع)</option>
+                        <option value="CNO">إعتماد نهائي (مدير التمريض)</option>
+                      </select>
+                  </div>
+                </div>
+
+                {/* Impact / Risk Assessment */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-slate-700">تقييم الخطر السريري والمؤسسي للتجاوز:</label>
+                  <div className="flex items-center gap-2 p-1.5 bg-slate-100 rounded-xl">
+                    {["low", "medium", "high"].map((level) => (
+                      <button
+                        key={level}
+                        type="button"
+                        onClick={() => setOverrideImpactLevel(level as any)}
+                        className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all capitalize ${
+                          overrideImpactLevel === level 
+                          ? level === "low" ? "bg-emerald-500 text-white shadow-sm" : level === "medium" ? "bg-orange-500 text-white shadow-sm" : "bg-rose-600 text-white shadow-sm"
+                          : "text-slate-500 hover:bg-slate-200"
+                        }`}
+                      >
+                        {level === "low" ? "منخفض" : level === "medium" ? "متوسط" : "حرج (مرتفع)"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                 {/* Reason statement (Mandatory) */}
+                 <div className="space-y-2">
+                  <label className="block text-xs font-bold text-slate-700">المبرر السريري للتجاوز (إجباري للاعتماد):</label>
+                  <textarea
+                    placeholder="مثال: تغطية إجازة رعاية طفل لزميل بالقسم / عجز موسمي بجدول الوردية الليلية..."
+                    value={overrideReason}
+                    onChange={(e) => setOverrideReason(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm h-20 outline-none focus:ring-2 focus:ring-pink-500 shadow-sm leading-relaxed"
                   />
                 </div>
-              </div>
 
-              {/* Duration choice */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-700">المدى الزمني للصلاحية:</label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-1.5 text-xs text-slate-700 font-semibold cursor-pointer">
-                    <input
-                      type="radio"
-                      checked={overridePeriodType === "temporary"}
-                      onChange={() => setOverridePeriodType("temporary")}
-                      className="w-4 h-4 cursor-pointer"
-                    />
-                    <span>مؤقت (لشهر واحد)</span>
-                  </label>
-                  <label className="flex items-center gap-1.5 text-xs text-slate-700 font-semibold cursor-pointer">
-                    <input
-                      type="radio"
-                      checked={overridePeriodType === "permanent"}
-                      onChange={() => setOverridePeriodType("permanent")}
-                      className="w-4 h-4 cursor-pointer"
-                    />
-                    <span>دائم ممتد</span>
-                  </label>
+                {/* File Upload Simulator */}
+                <div className="space-y-2">
+                   <label className="block text-xs font-bold text-slate-700">المستندات الداعمة (اختياري - مثلاً: صورة الإجازة):</label>
+                   <div className="border border-dashed border-slate-300 rounded-xl p-3 flex items-center justify-between bg-slate-50">
+                      <div className="flex items-center gap-2 text-slate-500">
+                         <div className="p-2 bg-white rounded shadow-sm border border-slate-200">
+                           <Download className="w-4 h-4" />
+                         </div>
+                         <span className="text-xs font-semibold">{overrideDocsUploaded ? "تم إدراج المرفقات" : "إدراج (سحب وإفلات)"}</span>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => setOverrideDocsUploaded(!overrideDocsUploaded)}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition ${overrideDocsUploaded ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-white border-slate-300 text-slate-600 hover:bg-slate-100"}`}
+                      >
+                        {overrideDocsUploaded ? "إزالة المرفق" : "تصفح الملفات"}
+                      </button>
+                   </div>
                 </div>
               </div>
 
-              {/* Reason statement (Mandatory) */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-700">أدخل سبب التجاوز السريري بالتفصيل:</label>
-                <textarea
-                  placeholder="مثال: تغطية إجازة رعاية طفل لزميل بالقسم / عجز موسمي بجدول الوردية الليلية..."
-                  value={overrideReason}
-                  onChange={(e) => setOverrideReason(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs h-16 outline-none focus:ring-1 focus:ring-pink-500"
-                />
-              </div>
+              {/* Action Area & E-signature */}
+              <div className="bg-slate-900 mt-2 p-6 space-y-4">
+                <div className="space-y-1.5 flex flex-col">
+                  <label className="text-xs font-black text-rose-300 flex items-center justify-end gap-1 mb-1">
+                    <span>التوقيع الإلكتروني الإلزامي للمدير المختص:</span>
+                    <ShieldCheck className="w-4 h-4" />
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="أدخل كود المرور المعتمد [PIN]"
+                    value={cnoEsignature}
+                    onChange={(e) => setCnoEsignature(e.target.value)}
+                    className="w-full bg-slate-800 text-white focus:bg-slate-950 focus:border-rose-500 border border-slate-700 rounded-xl p-3 text-center tracking-widest font-mono text-sm outline-none transition"
+                  />
+                  <div className="text-[10px] text-slate-500 text-left w-full pt-1">* سيتم تسجيل البصمة الزمنية وبيانات الدخول فور الاعتماد.</div>
+                </div>
 
-              {/* E-signature required */}
-              <div className="space-y-1.5 bg-rose-50/50 p-3 rounded-xl border border-rose-100">
-                <label className="block text-xs font-black text-rose-950 flex items-center justify-end gap-1">
-                  <span>التوقيع الإلكتروني الإلزامي:</span>
-                  <ShieldCheck className="w-3.5 h-3.5 text-rose-600" />
-                </label>
-                <input
-                  type="text"
-                  placeholder="اكتب: [مدير هيئة التمريض كاملاً]"
-                  value={cnoEsignature}
-                  onChange={(e) => setCnoEsignature(e.target.value)}
-                  className="w-full bg-white text-slate-800 border border-slate-300 rounded-lg p-2 text-xs font-bold font-sans text-center text-rose-800"
-                />
+                <button
+                  type="submit"
+                  disabled={!overrideTargetEmployeeId || !overrideReason || !cnoEsignature}
+                  className="w-full py-3.5 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-black text-sm rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Check className="w-5 h-5" />
+                  <span>إجازة التوقيع وأرشفة واستصدار القرار</span>
+                </button>
               </div>
-
-              <button
-                type="submit"
-                className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
-              >
-                <Check className="w-4 h-4" />
-                <span>إجازة التوقيع وأرشفة الطلب</span>
-              </button>
             </form>
 
             {/* List and archive of active e-signatures and bypass audits */}
