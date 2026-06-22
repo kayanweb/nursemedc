@@ -269,13 +269,25 @@ Output text in: ${isAr ? "Arabic" : "English"}.
   // API Route: Update Database Provider Credentials
   app.post("/api/settings/update-provider", (req, res) => {
       const { provider, settings } = req.body;
+      console.log("Updating provider:", provider, "with settings:", Object.keys(settings));
       if (provider === "SUPABASE" && settings) {
           const { supabaseUrl, supabaseKey } = settings;
           if (supabaseUrl && supabaseKey) {
-              // Update server-side admin client
-              (global as any).supabaseAdmin = createClient(supabaseUrl, supabaseKey);
-              return res.json({ success: true, message: "Supabase admin client updated." });
+              try {
+                // Basic validation
+                if (!supabaseUrl.startsWith("http")) throw new Error("Invalid Supabase URL: Must start with http");
+                
+                // Update server-side admin client
+                const newAdmin = createClient(supabaseUrl, supabaseKey);
+                (global as any).supabaseAdmin = newAdmin;
+                console.log("Supabase admin client updated for URL:", supabaseUrl);
+                return res.json({ success: true, message: "Supabase admin client updated." });
+              } catch (e: any) {
+                console.error("Failed to initialize Supabase client:", e.message);
+                return res.status(400).json({ success: false, error: e.message });
+              }
           }
+           return res.status(400).json({ success: false, error: "Missing URL or Key." });
       }
       return res.status(400).json({ success: false, error: "Invalid provider or settings." });
   });
@@ -423,13 +435,18 @@ The language of the response MUST be: ${lang === "ar" ? "Arabic" : "English"}.
     const upperProvider = provider.toUpperCase();
 
     const admin = (global as any).supabaseAdmin || supabaseAdmin;
-    if (upperProvider === "SUPABASE" && admin) {
+    if (upperProvider === "SUPABASE") {
+      if (!admin) {
+        console.error("SUPABASE admin client is not initialized.");
+        return res.status(500).json({ success: false, error: "Supabase client not initialized." });
+      }
       try {
         const { data, error } = await admin.from(collectionName).select("*");
         if (error) throw error;
         return res.json({ success: true, data });
       } catch (err: any) {
-        return res.status(500).json({ success: false, error: err.message });
+        console.error(`SUPABASE API Error for ${collectionName}:`, JSON.stringify(err, null, 2));
+        return res.status(500).json({ success: false, error: err.message, details: err.details || err.hint });
       }
     }
 
@@ -451,14 +468,19 @@ The language of the response MUST be: ${lang === "ar" ? "Arabic" : "English"}.
     const item = req.body;
 
     const admin = (global as any).supabaseAdmin || supabaseAdmin;
-    if (upperProvider === "SUPABASE" && admin) {
+    if (upperProvider === "SUPABASE") {
+      if (!admin) {
+        console.error("SUPABASE admin client is not initialized.");
+        return res.status(500).json({ success: false, error: "Supabase client not initialized." });
+      }
       try {
         const { data, error } = await admin.from(collectionName).upsert(item).select();
         if (error) throw error;
         broadcastUpdate(upperProvider, collectionName);
         return res.json({ success: true, item: data?.[0] || item });
       } catch (err: any) {
-        return res.status(500).json({ success: false, error: err.message });
+        console.error(`SUPABASE API Error (POST) for ${collectionName}:`, JSON.stringify(err, null, 2));
+        return res.status(500).json({ success: false, error: err.message, details: err.details || err.hint });
       }
     }
 
@@ -499,14 +521,19 @@ The language of the response MUST be: ${lang === "ar" ? "Arabic" : "English"}.
     const upperProvider = provider.toUpperCase();
 
     const admin = (global as any).supabaseAdmin || supabaseAdmin;
-    if (upperProvider === "SUPABASE" && admin) {
+    if (upperProvider === "SUPABASE") {
+      if (!admin) {
+        console.error("SUPABASE admin client is not initialized.");
+        return res.status(500).json({ success: false, error: "Supabase client not initialized." });
+      }
       try {
         const { error } = await admin.from(collectionName).delete().eq("id", id);
         if (error) throw error;
         broadcastUpdate(upperProvider, collectionName);
         return res.json({ success: true });
       } catch (err: any) {
-        return res.status(500).json({ success: false, error: err.message });
+        console.error(`SUPABASE API Error (DELETE) for ${collectionName}:`, JSON.stringify(err, null, 2));
+        return res.status(500).json({ success: false, error: err.message, details: err.details || err.hint });
       }
     }
 
