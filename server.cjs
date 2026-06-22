@@ -22,12 +22,16 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 
 // server.ts
+var import_supabase_js = require("@supabase/supabase-js");
 var import_express = __toESM(require("express"), 1);
 var import_path = __toESM(require("path"), 1);
 var import_vite = require("vite");
 var import_genai = require("@google/genai");
 var import_dotenv = __toESM(require("dotenv"), 1);
 import_dotenv.default.config();
+var supabaseUrl = process.env.SUPABASE_URL;
+var supabaseKey = process.env.SUPABASE_SECRET_KEY;
+var supabaseAdmin = supabaseUrl && supabaseKey ? (0, import_supabase_js.createClient)(supabaseUrl, supabaseKey) : null;
 async function startServer() {
   const app = (0, import_express.default)();
   const PORT = 3e3;
@@ -243,6 +247,17 @@ Output text in: ${isAr ? "Arabic" : "English"}.
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
   });
+  app.post("/api/settings/update-provider", (req, res) => {
+    const { provider, settings } = req.body;
+    if (provider === "SUPABASE" && settings) {
+      const { supabaseUrl: supabaseUrl2, supabaseKey: supabaseKey2 } = settings;
+      if (supabaseUrl2 && supabaseKey2) {
+        global.supabaseAdmin = (0, import_supabase_js.createClient)(supabaseUrl2, supabaseKey2);
+        return res.json({ success: true, message: "Supabase admin client updated." });
+      }
+    }
+    return res.status(400).json({ success: false, error: "Invalid provider or settings." });
+  });
   app.post("/api/ai/analyze-clinical", async (req, res) => {
     try {
       const { type, data, lang } = req.body;
@@ -366,9 +381,19 @@ The language of the response MUST be: ${lang === "ar" ? "Arabic" : "English"}.
       }
     });
   }
-  app.get("/api/db/:provider/:collection", (req, res) => {
+  app.get("/api/db/:provider/:collection", async (req, res) => {
     const { provider, collection: collectionName } = req.params;
     const upperProvider = provider.toUpperCase();
+    const admin = global.supabaseAdmin || supabaseAdmin;
+    if (upperProvider === "SUPABASE" && admin) {
+      try {
+        const { data, error } = await admin.from(collectionName).select("*");
+        if (error) throw error;
+        return res.json({ success: true, data });
+      } catch (err) {
+        return res.status(500).json({ success: false, error: err.message });
+      }
+    }
     if (!providerStores[upperProvider]) {
       return res.status(404).json({ success: false, error: "Database provider not supported." });
     }
@@ -377,10 +402,21 @@ The language of the response MUST be: ${lang === "ar" ? "Arabic" : "English"}.
     }
     res.json({ success: true, data: providerStores[upperProvider][collectionName] });
   });
-  app.post("/api/db/:provider/:collection", (req, res) => {
+  app.post("/api/db/:provider/:collection", async (req, res) => {
     const { provider, collection: collectionName } = req.params;
     const upperProvider = provider.toUpperCase();
     const item = req.body;
+    const admin = global.supabaseAdmin || supabaseAdmin;
+    if (upperProvider === "SUPABASE" && admin) {
+      try {
+        const { data, error } = await admin.from(collectionName).upsert(item).select();
+        if (error) throw error;
+        broadcastUpdate(upperProvider, collectionName);
+        return res.json({ success: true, item: data?.[0] || item });
+      } catch (err) {
+        return res.status(500).json({ success: false, error: err.message });
+      }
+    }
     if (!providerStores[upperProvider]) {
       return res.status(404).json({ success: false, error: "Database provider not supported." });
     }
@@ -407,9 +443,20 @@ The language of the response MUST be: ${lang === "ar" ? "Arabic" : "English"}.
     broadcastUpdate(upperProvider, collectionName);
     res.json({ success: true, item });
   });
-  app.delete("/api/db/:provider/:collection/:id", (req, res) => {
+  app.delete("/api/db/:provider/:collection/:id", async (req, res) => {
     const { provider, collection: collectionName, id } = req.params;
     const upperProvider = provider.toUpperCase();
+    const admin = global.supabaseAdmin || supabaseAdmin;
+    if (upperProvider === "SUPABASE" && admin) {
+      try {
+        const { error } = await admin.from(collectionName).delete().eq("id", id);
+        if (error) throw error;
+        broadcastUpdate(upperProvider, collectionName);
+        return res.json({ success: true });
+      } catch (err) {
+        return res.status(500).json({ success: false, error: err.message });
+      }
+    }
     if (!providerStores[upperProvider]) {
       return res.status(404).json({ success: false, error: "Database provider not supported." });
     }
