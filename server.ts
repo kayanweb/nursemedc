@@ -1,10 +1,17 @@
+import { createClient } from "@supabase/supabase-js";
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
+import { withSupabase } from "@supabase/server";
 
 dotenv.config();
+
+// Supabase Admin Client
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SECRET_KEY;
+const supabaseAdmin = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 async function startServer() {
   const app = express();
@@ -259,6 +266,20 @@ Output text in: ${isAr ? "Arabic" : "English"}.
     res.json({ status: "ok" });
   });
 
+  // API Route: Update Database Provider Credentials
+  app.post("/api/settings/update-provider", (req, res) => {
+      const { provider, settings } = req.body;
+      if (provider === "SUPABASE" && settings) {
+          const { supabaseUrl, supabaseKey } = settings;
+          if (supabaseUrl && supabaseKey) {
+              // Update server-side admin client
+              (global as any).supabaseAdmin = createClient(supabaseUrl, supabaseKey);
+              return res.json({ success: true, message: "Supabase admin client updated." });
+          }
+      }
+      return res.status(400).json({ success: false, error: "Invalid provider or settings." });
+  });
+
   // API Route: Clinical Quality & Safety AI assistant
   app.post("/api/ai/analyze-clinical", async (req, res) => {
     try {
@@ -397,9 +418,20 @@ The language of the response MUST be: ${lang === "ar" ? "Arabic" : "English"}.
   }
 
   // Get all items in a collection for a given provider
-  app.get("/api/db/:provider/:collection", (req, res) => {
+  app.get("/api/db/:provider/:collection", async (req, res) => {
     const { provider, collection: collectionName } = req.params;
     const upperProvider = provider.toUpperCase();
+
+    const admin = (global as any).supabaseAdmin || supabaseAdmin;
+    if (upperProvider === "SUPABASE" && admin) {
+      try {
+        const { data, error } = await admin.from(collectionName).select("*");
+        if (error) throw error;
+        return res.json({ success: true, data });
+      } catch (err: any) {
+        return res.status(500).json({ success: false, error: err.message });
+      }
+    }
 
     if (!providerStores[upperProvider]) {
       return res.status(404).json({ success: false, error: "Database provider not supported." });
@@ -413,10 +445,22 @@ The language of the response MUST be: ${lang === "ar" ? "Arabic" : "English"}.
   });
 
   // Save/Update an item in a collection
-  app.post("/api/db/:provider/:collection", (req, res) => {
+  app.post("/api/db/:provider/:collection", async (req, res) => {
     const { provider, collection: collectionName } = req.params;
     const upperProvider = provider.toUpperCase();
     const item = req.body;
+
+    const admin = (global as any).supabaseAdmin || supabaseAdmin;
+    if (upperProvider === "SUPABASE" && admin) {
+      try {
+        const { data, error } = await admin.from(collectionName).upsert(item).select();
+        if (error) throw error;
+        broadcastUpdate(upperProvider, collectionName);
+        return res.json({ success: true, item: data?.[0] || item });
+      } catch (err: any) {
+        return res.status(500).json({ success: false, error: err.message });
+      }
+    }
 
     if (!providerStores[upperProvider]) {
       return res.status(404).json({ success: false, error: "Database provider not supported." });
@@ -450,9 +494,21 @@ The language of the response MUST be: ${lang === "ar" ? "Arabic" : "English"}.
   });
 
   // Delete an item from a collection
-  app.delete("/api/db/:provider/:collection/:id", (req, res) => {
+  app.delete("/api/db/:provider/:collection/:id", async (req, res) => {
     const { provider, collection: collectionName, id } = req.params;
     const upperProvider = provider.toUpperCase();
+
+    const admin = (global as any).supabaseAdmin || supabaseAdmin;
+    if (upperProvider === "SUPABASE" && admin) {
+      try {
+        const { error } = await admin.from(collectionName).delete().eq("id", id);
+        if (error) throw error;
+        broadcastUpdate(upperProvider, collectionName);
+        return res.json({ success: true });
+      } catch (err: any) {
+        return res.status(500).json({ success: false, error: err.message });
+      }
+    }
 
     if (!providerStores[upperProvider]) {
       return res.status(404).json({ success: false, error: "Database provider not supported." });

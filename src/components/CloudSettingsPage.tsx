@@ -1027,6 +1027,13 @@ export default function CloudSettingsPage({
                     dbSchema,
                     realtimeChannel
                   };
+                  
+                  fetch("/api/settings/update-provider", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ provider: "SUPABASE", settings })
+                  }).catch(console.error);
+
                   const success = switchEnvironment("SUPABASE", settings);
                   if (success) {
                     setCurrentDbProvider("SUPABASE");

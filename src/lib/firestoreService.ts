@@ -235,27 +235,42 @@ export async function getDoc(docRef: any) {
 }
 
 // Intercept low-level onSnapshot subscriptions for multi-provider live syncing
-export function onSnapshot(queryRef: any, onNext: (snapshot: any) => void, onError?: (error: any) => void) {
+export function onSnapshot(ref: any, onNext: (snapshot: any) => void, onError?: (error: any) => void) {
+  // Helper to determine if ref is a document reference (has path)
+  const isDoc = !!ref.path && ref.path.split('/').length % 2 === 0;
+
   if (getActiveDbProvider() !== "FIREBASE" || isQuotaExceeded()) {
     if (isQuotaExceeded()) {
        console.warn("Firestore quota exceeded: onSnapshot skipped.");
     }
-    const colName = getCollectionName(queryRef);
+    const colName = getCollectionName(ref);
+    
     return subscribeToClinicalData(
       colName,
       (data) => {
-        const mockSnapshot = {
-          forEach: (callback: (doc: any) => void) => {
-            data.forEach((item: any) => {
-              callback({
+        if (isDoc) {
+            // Document snapshot
+            const item = Array.isArray(data) ? data.find((x: any) => x.id === ref.id) : null;
+            onNext({
                 data: () => item,
-                id: item.id,
-                exists: () => true
-              });
+                id: ref.id,
+                exists: () => !!item
             });
-          }
-        };
-        onNext(mockSnapshot);
+        } else {
+            // Collection snapshot
+            const mockSnapshot = {
+              forEach: (callback: (doc: any) => void) => {
+                data.forEach((item: any) => {
+                  callback({
+                    data: () => item,
+                    id: item.id,
+                    exists: () => true
+                  });
+                });
+              }
+            };
+            onNext(mockSnapshot);
+        }
       },
       (err) => {
         if (onError) onError(err);
@@ -263,7 +278,7 @@ export function onSnapshot(queryRef: any, onNext: (snapshot: any) => void, onErr
     );
   } else {
     // Firebase snapshot listener
-    const unsubscribe = fbOnSnapshot(queryRef, onNext, (err: any) => {
+    const unsubscribe = fbOnSnapshot(ref, onNext, (err: any) => {
       if (err.code === 'resource-exhausted') {
         setQuotaExceeded();
       }
